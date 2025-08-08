@@ -1,42 +1,55 @@
-# Install dependencies only when needed
-FROM node:20-alpine AS deps
+FROM node:20-alpine AS base
+
+# Enable pnpm via Corepack and add common alpine dependency
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
+RUN corepack enable pnpm
+
+FROM base AS builder
+RUN apk add --no-cache libc6-compat
+# Set working directory
 WORKDIR /app
 
-# Install pnpm
-RUN corepack enable && corepack prepare pnpm@latest --activate
+COPY . .
 
-# Copy only the pnpm files to install dependencies (faster cache)
-COPY ../../pnpm-workspace.yaml ../../package.json ./
-COPY ../../packages ./packages
-COPY ./package.json ./
-COPY ./pnpm-lock.yaml ./
+# Use pnpm to run turbo without installing globally
+# Generate a partial monorepo with a pruned lockfile for the target workspace
+# Assuming "web" is the name entered in the project's package.json: { name: "web" }
+RUN pnpm dlx turbo@^2 prune web --docker
 
+# Add lockfile and package.json's of isolated subworkspace
+FROM base AS installer
+RUN apk add --no-cache libc6-compat
+WORKDIR /app
+
+# First install the dependencies (as they change less often)
+COPY --from=builder /app/out/json/ .
+# Copy the pruned lockfile for pnpm
+COPY --from=builder /app/out/pnpm-lock.yaml ./pnpm-lock.yaml
+# Install with a frozen lockfile to ensure reproducible builds
 RUN pnpm install --frozen-lockfile
 
-# Rebuild the source code only when needed
-FROM node:20-alpine AS builder
+# Build the project
+COPY --from=builder /app/out/full/ .
+# Use the repo's build script (runs `turbo build` in pruned workspace)
+RUN pnpm run build
+
+FROM base AS runner
 WORKDIR /app
 
-COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/packages ./packages
-COPY . .
-COPY ../../packages ../../packages
-COPY ../../tsconfig.json ../../tsconfig.json
+# Don't run production as root
+RUN addgroup --system --gid 1001 nodejs \
+	&& adduser --system --uid 1001 nextjs
+USER nextjs
 
-RUN pnpm build
-
-# Production image, copy only necessary files
-FROM node:20-alpine AS runner
-WORKDIR /app
+# Automatically leverage output traces to reduce image size
+# https://nextjs.org/docs/advanced-features/output-file-tracing
+COPY --from=installer --chown=nextjs:nodejs /app/apps/web/.next/standalone ./
+COPY --from=installer --chown=nextjs:nodejs /app/apps/web/.next/static ./apps/web/.next/static
+# COPY --from=installer --chown=nextjs:nodejs /app/apps/web/public ./apps/web/public
 
 ENV NODE_ENV=production
-
-COPY --from=builder /app/.next ./.next
-COPY --from=builder /app/public ./public
-COPY --from=builder /app/package.json ./package.json
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/next.config.mjs ./next.config.mjs
-
+ENV PORT=3000
 EXPOSE 3000
 
-CMD ["pnpm", "start"]
+CMD node app/apps/web/server.js

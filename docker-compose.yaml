@@ -1,0 +1,19 @@
+
+services:
+  easymeals.ui:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    ports:
+      - "3000:3000"
+    depends_on:
+      - easymeals.api
+
+  easymeals.api:
+    build:
+      context: .
+      dockerfile: apps/api/src/EasyMeals.Api/Dockerfile
+    ports:
+      - "5000:5000"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
