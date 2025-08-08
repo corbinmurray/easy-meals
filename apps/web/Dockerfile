@@ -52,4 +52,4 @@ ENV NODE_ENV=production
 ENV PORT=3000
 EXPOSE 3000
 
-CMD node app/apps/web/server.js
+CMD node apps/web/server.js
