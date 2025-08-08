@@ -1,0 +1,7 @@
+services:
+  easymeals.api:
+    image: easymeals.ui
+    build:
+      context: .
+      dockerfile: Dockerfile
+

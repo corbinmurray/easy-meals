@@ -1,0 +1,6 @@
+@EasyMeals.Api_HostAddress = http://localhost:8080
+
+GET {{EasyMeals.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

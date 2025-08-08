@@ -34,3 +34,10 @@ npm-debug.log*
 # Misc
 .DS_Store
 *.pem
+
+# JetBrains
+**/.idea
+**/.idea/*
+
+**/.vscode/
+**/.vs/
