@@ -77,7 +77,7 @@ export default function RecipeCard({
 
         {/* Description */}
         <CardContent className="flex-1 px-0 pt-3 pb-0">
-          <CardDescription className="text-sm text-muted line-clamp-3 leading-relaxed">
+          <CardDescription className="text-sm text-muted-foreground line-clamp-3 leading-relaxed">
             {recipe.description}
           </CardDescription>
         </CardContent>
