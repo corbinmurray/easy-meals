@@ -59,7 +59,7 @@
   --muted: oklch(16.203% .007 17.911); /* base-300 */
   --muted-foreground: oklch(75.768% .001 17.911); /* base-content */
   --accent: oklch(70.628% .119 185.713); /* accent */
-  --accent-foreground: oklch(14.125% .023 185.713); /* accent-content */
+  --accent-foreground: oklch(80.125% .023 185.713); /* accent-content */
   --destructive: oklch(71.76% .221 22.18); /* error */
   --destructive-foreground: oklch(0% 0 0); /* error-content */
   --border: oklch(16.203% .007 17.911); /* base-300 */
