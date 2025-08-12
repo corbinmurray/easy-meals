@@ -1,6 +1,17 @@
 "use client";
 
 import type { Recipe } from "@/types/meal-planner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@workspace/ui/components/alert-dialog";
 import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
 import {
@@ -47,16 +58,43 @@ export default function SelectedRecipesList({
               </Badge>
             </div>
             {hasSelections && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onClearAll}
-                className="hover:!bg-destructive hover:cursor-pointer hover:!text-destructive-foreground"
-                aria-label="Clear all selected recipes"
-              >
-                <Trash2 className="w-4 h-4 mr-2" />
-                Clear All
-              </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="hover:!bg-destructive hover:cursor-pointer hover:!text-destructive-foreground"
+                    aria-label="Clear all selected recipes"
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Clear All
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>
+                      Clear All Selected Recipes?
+                    </AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Are you sure you want to remove all {selectedCount}{" "}
+                      selected recipe{selectedCount === 1 ? "" : "s"}? This
+                      action cannot be undone and you'll need to reselect your
+                      recipes.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel className="hover:cursor-pointer">
+                      Cancel
+                    </AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={onClearAll}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90 hover:cursor-pointer"
+                    >
+                      Clear All Recipes
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             )}
           </div>
         </CardHeader>
