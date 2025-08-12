@@ -2,6 +2,18 @@
 
 import RecipeCard from "@/components/RecipeCard";
 import type { Recipe } from "@/types/meal-planner";
+import { Badge } from "@workspace/ui/components/badge";
+import { Checkbox } from "@workspace/ui/components/checkbox";
+import { Input } from "@workspace/ui/components/input";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@workspace/ui/components/pagination";
+import { Search } from "lucide-react";
 import { motion } from "motion/react";
 import { useEffect, useMemo, useState } from "react";
 
@@ -61,6 +73,64 @@ export default function RecipeGrid({
     });
     return Array.from(tagSet).sort();
   }, [recipes]);
+
+  // Search and filter logic
+  const filteredRecipes = useMemo(() => {
+    let filtered = [...recipes];
+
+    // Apply search filter
+    if (enableSearch && debouncedSearchTerm.trim()) {
+      const searchLower = debouncedSearchTerm.toLowerCase();
+      filtered = filtered.filter((recipe) => {
+        // Search in name
+        if (recipe.name.toLowerCase().includes(searchLower)) return true;
+
+        // Search in description
+        if (recipe.description.toLowerCase().includes(searchLower)) return true;
+
+        // Search in tags
+        if (recipe.tags?.some((tag) => tag.toLowerCase().includes(searchLower)))
+          return true;
+
+        return false;
+      });
+    }
+
+    // Apply tag filtering (AND logic - all selected tags must be present)
+    if (enableTagFiltering && selectedTags.length > 0) {
+      filtered = filtered.filter((recipe) => {
+        return selectedTags.every((selectedTag) =>
+          recipe.tags?.includes(selectedTag)
+        );
+      });
+    }
+
+    return filtered;
+  }, [
+    recipes,
+    debouncedSearchTerm,
+    selectedTags,
+    enableSearch,
+    enableTagFiltering,
+  ]);
+
+  // Pagination logic
+  const totalPages = enablePagination
+    ? Math.ceil(filteredRecipes.length / recipesPerPage)
+    : 1;
+  const paginatedRecipes = enablePagination
+    ? filteredRecipes.slice(
+        (currentPage - 1) * recipesPerPage,
+        currentPage * recipesPerPage
+      )
+    : filteredRecipes;
+
+  // Ensure current page is valid when filters change
+  useEffect(() => {
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
   return (
     <motion.section
       className="w-full"
@@ -77,8 +147,74 @@ export default function RecipeGrid({
         </p>
       </div>
 
+      {/* Search and Filter Controls */}
+      <div className="mb-6 space-y-4">
+        {/* Search Input */}
+        {enableSearch && (
+          <motion.div
+            className="relative"
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+            <Input
+              type="text"
+              placeholder="Search recipes by name, description, or tags..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 w-full"
+            />
+          </motion.div>
+        )}
+
+        {/* Tag Filtering */}
+        {enableTagFiltering && availableTags.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.1 }}
+          >
+            <h4 className="text-sm font-medium mb-3">Filter by Tags</h4>
+            <div className="flex flex-wrap gap-2">
+              {availableTags.map((tag) => {
+                const isSelected = selectedTags.includes(tag);
+                return (
+                  <motion.div
+                    key={tag}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    <Badge
+                      variant={isSelected ? "default" : "secondary"}
+                      className={`cursor-pointer transition-colors ${
+                        isSelected ? "bg-primary text-primary-foreground" : ""
+                      }`}
+                      onClick={() => {
+                        setSelectedTags((prev) =>
+                          isSelected
+                            ? prev.filter((t) => t !== tag)
+                            : [...prev, tag]
+                        );
+                      }}
+                    >
+                      <Checkbox
+                        checked={isSelected}
+                        className="mr-2 h-3 w-3"
+                        readOnly
+                      />
+                      {tag}
+                    </Badge>
+                  </motion.div>
+                );
+              })}
+            </div>
+          </motion.div>
+        )}
+      </div>
+
       <div className="grid gap-6 grid-cols-[repeat(auto-fit,minmax(340px,1fr))] justify-center">
-        {recipes.map((recipe, index) => {
+        {paginatedRecipes.map((recipe, index) => {
           const selected = isRecipeSelected(recipe.id);
           const canSelect = selected || !maxSelectionsReached;
 
@@ -109,6 +245,78 @@ export default function RecipeGrid({
           );
         })}
       </div>
+
+      {/* No results message */}
+      {filteredRecipes.length === 0 && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="text-center py-12"
+        >
+          <p className="text-muted-foreground text-lg">
+            No recipes found matching your search criteria.
+          </p>
+          {(debouncedSearchTerm || selectedTags.length > 0) && (
+            <p className="text-sm text-muted-foreground mt-2">
+              Try adjusting your search terms or clearing filters.
+            </p>
+          )}
+        </motion.div>
+      )}
+
+      {/* Pagination */}
+      {enablePagination && totalPages > 1 && filteredRecipes.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+          className="mt-8 flex justify-center"
+        >
+          <Pagination>
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious
+                  onClick={() =>
+                    setCurrentPage((prev) => Math.max(1, prev - 1))
+                  }
+                  className={
+                    currentPage === 1
+                      ? "pointer-events-none opacity-50"
+                      : "cursor-pointer"
+                  }
+                />
+              </PaginationItem>
+
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                (page) => (
+                  <PaginationItem key={page}>
+                    <PaginationLink
+                      onClick={() => setCurrentPage(page)}
+                      isActive={currentPage === page}
+                      className="cursor-pointer"
+                    >
+                      {page}
+                    </PaginationLink>
+                  </PaginationItem>
+                )
+              )}
+
+              <PaginationItem>
+                <PaginationNext
+                  onClick={() =>
+                    setCurrentPage((prev) => Math.min(totalPages, prev + 1))
+                  }
+                  className={
+                    currentPage === totalPages
+                      ? "pointer-events-none opacity-50"
+                      : "cursor-pointer"
+                  }
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
+        </motion.div>
+      )}
 
       {maxSelectionsReached && (
         <motion.div

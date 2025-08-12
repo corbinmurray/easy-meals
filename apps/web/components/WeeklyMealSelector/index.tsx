@@ -125,6 +125,7 @@ export default function WeeklyMealSelector({
         isRecipeSelected={isRecipeSelected}
         onRecipeSelect={handleRecipeSelect}
         maxSelectionsReached={currentWeekMeals.length >= 7}
+        currentWeekStart={currentWeekStart}
       />
     </div>
   );
