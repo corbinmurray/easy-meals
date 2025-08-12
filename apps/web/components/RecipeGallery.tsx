@@ -31,7 +31,7 @@ export default function RecipeGallery({
   };
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+    <div className="grid gap-6 grid-cols-[repeat(auto-fit,minmax(340px,1fr))] justify-center">
       {recipes.map((recipe) => (
         <RecipeCard
           key={recipe.id}

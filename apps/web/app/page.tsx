@@ -36,12 +36,7 @@ export default function Page() {
 
   return (
     <main className="min-h-screen flex flex-col items-center">
-      <header className="mb-8 text-center flex flex-col items-center">
-        <div className="flex items-center gap-2">
-          <h1 className="text-4xl font-bold mb-2">Easy Meals Planner</h1>
-          <ThemeToggle />
-        </div>
-      </header>
+      <h1 className="text-4xl font-bold mb-8">Easy Meals</h1>
 
       {/* Recipe Gallery */}
       <section className="w-full max-w-5xl mb-8">
