@@ -3,12 +3,19 @@
 import RecipeCard from "@/components/RecipeCard";
 import type { Recipe } from "@/types/meal-planner";
 import { motion } from "motion/react";
+import { useEffect, useMemo, useState } from "react";
 
 interface RecipeGridProps {
   recipes: Recipe[];
   isRecipeSelected: (recipeId: string) => boolean;
   onRecipeSelect: (recipeId: string) => void;
   maxSelectionsReached: boolean;
+  // New props for enhanced functionality
+  currentWeekStart?: Date; // For week-based randomization
+  recipesPerPage?: number; // For pagination (default: 12)
+  enableSearch?: boolean; // Enable/disable search (default: true)
+  enableTagFiltering?: boolean; // Enable/disable tag filtering (default: true)
+  enablePagination?: boolean; // Enable/disable pagination (default: true)
 }
 
 export default function RecipeGrid({
@@ -16,7 +23,44 @@ export default function RecipeGrid({
   isRecipeSelected,
   onRecipeSelect,
   maxSelectionsReached,
+  currentWeekStart,
+  recipesPerPage = 12,
+  enableSearch = true,
+  enableTagFiltering = true,
+  enablePagination = true,
 }: RecipeGridProps) {
+  // State for search functionality
+  const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
+
+  // State for tag filtering
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+
+  // State for pagination
+  const [currentPage, setCurrentPage] = useState(1);
+
+  // Debounce search term
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  // Reset page when search or filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearchTerm, selectedTags]);
+
+  // Extract unique tags from all recipes
+  const availableTags = useMemo(() => {
+    const tagSet = new Set<string>();
+    recipes.forEach((recipe) => {
+      recipe.tags?.forEach((tag) => tagSet.add(tag));
+    });
+    return Array.from(tagSet).sort();
+  }, [recipes]);
   return (
     <motion.section
       className="w-full"
