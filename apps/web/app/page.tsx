@@ -1,39 +1,78 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Providers } from "@/components/providers";
+import RecipeGallery from "@/components/RecipeGallery";
+import SelectedMealsSummary from "@/components/SelectedMealsSummary";
+import WeeklyCalendar from "@/components/WeeklyCalendar";
+import { mockRecipes } from "@/mock/recipes";
+import type { Recipe, ScheduledMeal } from "@/types/meal-planner";
+import { Button } from "@workspace/ui/components/button";
+import { useTheme } from "next-themes";
+import { useState } from "react";
 
-interface WeatherForecast {
-  date: Date;
-  temperatureC: number;
-  description: string;
+function ThemeToggle() {
+  const { theme, setTheme } = useTheme();
+  return (
+    <Button
+      variant="outline"
+      size="icon"
+      aria-label="Toggle theme"
+      onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+      className="ml-2"
+    >
+      {theme === "dark" ? "🌙" : "☀️"}
+    </Button>
+  );
 }
 
 export default function Page() {
-  const [weatherArray, setWeatherArray] = useState<WeatherForecast[]>([]);
+  // Placeholder state for selected recipes and schedule
+  const [recipes, setRecipes] = useState<Recipe[]>(mockRecipes); // Use mock data for development
+  const [scheduledMeals, setScheduledMeals] = useState<ScheduledMeal[]>([]); // { day, recipeId }
 
-  useEffect(() => {
-    const fetchWeather = async () => {
-      console.log("Fetching weather data...");
-      const weatherArray = await fetch("/api/weatherforecast").then((res) =>
-        res.json()
-      );
-      // Convert date strings to Date objects
-      setWeatherArray(
-        weatherArray.map((w: any) => ({
-          ...w,
-          date: new Date(w.date),
-        }))
-      );
-    };
-
-    fetchWeather();
-  }, []);
+  // Placeholder: handle saving schedule
+  const handleSaveSchedule = () => {
+    // TODO: Implement API call to /api/v1/schedule
+    alert("Schedule saved! (not implemented)");
+  };
 
   return (
-    <main>
-      <h1>{weatherArray[0]?.description}</h1>
-      <p>{weatherArray[0]?.temperatureC}°C</p>
-      <p>{weatherArray[0]?.date.toLocaleDateString()}</p>
-    </main>
+    <Providers>
+      <main className="min-h-screen flex flex-col items-center container mx-auto">
+        <header className="mb-8 text-center flex flex-col items-center">
+          <div className="flex items-center gap-2">
+            <h1 className="text-4xl font-bold mb-2">Easy Meals Planner</h1>
+            <ThemeToggle />
+          </div>
+        </header>
+
+        {/* Recipe Gallery */}
+        <section className="w-full max-w-5xl mb-8">
+          <RecipeGallery
+            recipes={recipes}
+            setRecipes={setRecipes}
+            scheduledMeals={scheduledMeals}
+            setScheduledMeals={setScheduledMeals}
+          />
+        </section>
+
+        {/* Weekly Calendar */}
+        <section className="w-full max-w-3xl mb-8">
+          <WeeklyCalendar
+            scheduledMeals={scheduledMeals}
+            setScheduledMeals={setScheduledMeals}
+            recipes={recipes}
+          />
+        </section>
+
+        {/* Selected Meals Summary */}
+        <section className="mb-4">
+          <SelectedMealsSummary
+            scheduledMeals={scheduledMeals}
+            recipes={recipes}
+          />
+        </section>
+      </main>
+    </Providers>
   );
 }

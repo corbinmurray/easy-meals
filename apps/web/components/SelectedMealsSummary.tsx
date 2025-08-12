@@ -1,6 +1,14 @@
-// SelectedMealsSummary.tsx
-// Scaffolding for the selected meals summary component
+import type { Recipe, ScheduledMeal } from "../types/meal-planner";
 
-export default function SelectedMealsSummary() {
+interface SelectedMealsSummaryProps {
+  scheduledMeals: ScheduledMeal[];
+  recipes: Recipe[];
+}
+
+export default function SelectedMealsSummary({
+  scheduledMeals,
+  recipes,
+}: SelectedMealsSummaryProps) {
+  // TODO: Implement summary display
   return <div>Selected Meals Summary</div>;
 }
