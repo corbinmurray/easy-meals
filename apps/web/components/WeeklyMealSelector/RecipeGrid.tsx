@@ -3,7 +3,6 @@
 import RecipeCard from "@/components/RecipeCard";
 import type { Recipe } from "@/types/meal-planner";
 import { Badge } from "@workspace/ui/components/badge";
-import { Checkbox } from "@workspace/ui/components/checkbox";
 import { Input } from "@workspace/ui/components/input";
 import {
   Pagination,
@@ -13,7 +12,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@workspace/ui/components/pagination";
-import { Search } from "lucide-react";
+import { ChevronDown, ChevronUp, Search, X } from "lucide-react";
 import { motion } from "motion/react";
 import { useEffect, useMemo, useState } from "react";
 
@@ -47,6 +46,8 @@ export default function RecipeGrid({
 
   // State for tag filtering
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [showAllTags, setShowAllTags] = useState(false);
+  const [tagSearchTerm, setTagSearchTerm] = useState("");
 
   // State for pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -65,14 +66,41 @@ export default function RecipeGrid({
     setCurrentPage(1);
   }, [debouncedSearchTerm, selectedTags]);
 
-  // Extract unique tags from all recipes
-  const availableTags = useMemo(() => {
-    const tagSet = new Set<string>();
+  // Reset show all tags when tag search changes
+  useEffect(() => {
+    setShowAllTags(false);
+  }, [tagSearchTerm]);
+
+  // Extract unique tags with frequency from all recipes
+  const tagData = useMemo(() => {
+    const tagCounts = new Map<string, number>();
     recipes.forEach((recipe) => {
-      recipe.tags?.forEach((tag) => tagSet.add(tag));
+      recipe.tags?.forEach((tag) => {
+        tagCounts.set(tag, (tagCounts.get(tag) || 0) + 1);
+      });
     });
-    return Array.from(tagSet).sort();
+
+    // Convert to array and sort by frequency (most popular first)
+    return Array.from(tagCounts.entries())
+      .map(([tag, count]) => ({ tag, count }))
+      .sort((a, b) => b.count - a.count);
   }, [recipes]);
+
+  // Filter tags based on search term
+  const filteredTagData = useMemo(() => {
+    if (!tagSearchTerm.trim()) return tagData;
+
+    const searchLower = tagSearchTerm.toLowerCase();
+    return tagData.filter(({ tag }) => tag.toLowerCase().includes(searchLower));
+  }, [tagData, tagSearchTerm]);
+
+  // Determine which tags to display
+  const displayedTags = useMemo(() => {
+    const tagsToShow = showAllTags
+      ? filteredTagData
+      : filteredTagData.slice(0, 8);
+    return tagsToShow;
+  }, [filteredTagData, showAllTags]);
 
   // Search and filter logic
   const filteredRecipes = useMemo(() => {
@@ -169,27 +197,48 @@ export default function RecipeGrid({
         )}
 
         {/* Tag Filtering */}
-        {enableTagFiltering && availableTags.length > 0 && (
+        {enableTagFiltering && tagData.length > 0 && (
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, delay: 0.1 }}
           >
-            <h4 className="text-sm font-medium mb-3">Filter by Tags</h4>
-            <div className="flex flex-wrap gap-2">
-              {availableTags.map((tag) => {
-                const isSelected = selectedTags.includes(tag);
-                return (
-                  <motion.div
-                    key={tag}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                  >
-                    <Badge
-                      variant={isSelected ? "default" : "secondary"}
-                      className={`cursor-pointer transition-colors ${
-                        isSelected ? "bg-primary text-primary-foreground" : ""
-                      }`}
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="text-sm font-medium">Filter by Tags</h4>
+              {selectedTags.length > 0 && (
+                <button
+                  onClick={() => setSelectedTags([])}
+                  className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
+                >
+                  <X className="h-3 w-3" />
+                  Clear all
+                </button>
+              )}
+            </div>
+
+            {/* Tag search input (only show if there are many tags) */}
+            {tagData.length > 12 && (
+              <div className="mb-3">
+                <Input
+                  type="text"
+                  placeholder="Search tags..."
+                  value={tagSearchTerm}
+                  onChange={(e) => setTagSearchTerm(e.target.value)}
+                  className="text-sm h-8"
+                />
+              </div>
+            )}
+
+            {/* Available tags */}
+            <div className="space-y-2">
+              <div className="flex flex-wrap gap-2">
+                {displayedTags.map(({ tag, count }) => {
+                  const isSelected = selectedTags.includes(tag);
+                  return (
+                    <motion.button
+                      key={tag}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
                       onClick={() => {
                         setSelectedTags((prev) =>
                           isSelected
@@ -197,17 +246,52 @@ export default function RecipeGrid({
                             : [...prev, tag]
                         );
                       }}
+                      className="group"
                     >
-                      <Checkbox
-                        checked={isSelected}
-                        className="mr-2 h-3 w-3"
-                        readOnly
-                      />
-                      {tag}
-                    </Badge>
-                  </motion.div>
-                );
-              })}
+                      <Badge
+                        variant={isSelected ? "default" : "secondary"}
+                        className={`cursor-pointer transition-all duration-200 text-xs ${
+                          isSelected
+                            ? "bg-primary text-primary-foreground shadow-sm"
+                            : "hover:bg-secondary/80"
+                        }`}
+                      >
+                        {tag}
+                        <span className="ml-1 text-xs opacity-70">
+                          ({count})
+                        </span>
+                      </Badge>
+                    </motion.button>
+                  );
+                })}
+              </div>
+
+              {/* Show more/less button */}
+              {filteredTagData.length > 8 && (
+                <button
+                  onClick={() => setShowAllTags(!showAllTags)}
+                  className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 mt-2"
+                >
+                  {showAllTags ? (
+                    <>
+                      <ChevronUp className="h-3 w-3" />
+                      Show less tags
+                    </>
+                  ) : (
+                    <>
+                      <ChevronDown className="h-3 w-3" />
+                      Show {filteredTagData.length - 8} more tags
+                    </>
+                  )}
+                </button>
+              )}
+
+              {/* No tags found message */}
+              {tagSearchTerm && filteredTagData.length === 0 && (
+                <p className="text-xs text-muted-foreground">
+                  No tags found matching "{tagSearchTerm}"
+                </p>
+              )}
             </div>
           </motion.div>
         )}
