@@ -51,7 +51,7 @@ export default function SelectedRecipesList({
                 variant="ghost"
                 size="sm"
                 onClick={onClearAll}
-                className="text-muted-foreground hover:text-destructive"
+                className="hover:!bg-destructive hover:cursor-pointer hover:!text-destructive-foreground"
                 aria-label="Clear all selected recipes"
               >
                 <Trash2 className="w-4 h-4 mr-2" />
@@ -89,24 +89,30 @@ export default function SelectedRecipesList({
                       damping: 25,
                       duration: 0.3,
                     }}
-                    className="group relative flex items-center gap-3 p-3 bg-background rounded-lg border border-border hover:border-primary/50 transition-colors"
+                    className="group relative flex items-start gap-3 p-3 bg-background rounded-lg border border-border hover:border-primary/50 transition-colors"
                   >
-                    {recipe.image && (
-                      <div className="flex-shrink-0">
+                    <div className="flex-shrink-0">
+                      {recipe.image ? (
                         <img
                           src={recipe.image}
-                          alt={recipe.name}
+                          alt=""
                           className="w-12 h-12 rounded-md object-cover border"
                         />
-                      </div>
-                    )}
+                      ) : (
+                        <div className="w-12 h-12 rounded-md border bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center">
+                          <span className="text-xs font-bold text-primary/60">
+                            {recipe.name.slice(0, 2).toUpperCase()}
+                          </span>
+                        </div>
+                      )}
+                    </div>
 
-                    <div className="flex-1 min-w-0">
+                    <div className="flex-1 min-w-0 pr-2">
                       <h4 className="font-medium text-sm truncate">
                         {recipe.name}
                       </h4>
                       {recipe.tags && recipe.tags.length > 0 && (
-                        <div className="flex gap-1 mt-1">
+                        <div className="flex flex-wrap gap-1 mt-1">
                           {recipe.tags.slice(0, 2).map((tag) => (
                             <Badge
                               key={tag}
@@ -132,7 +138,7 @@ export default function SelectedRecipesList({
                       variant="ghost"
                       size="icon"
                       onClick={() => onRemoveRecipe(recipe.id)}
-                      className="opacity-60 group-hover:opacity-100 transition-opacity h-8 w-8 flex-shrink-0"
+                      className="opacity-60 group-hover:opacity-100 transition-all h-8 w-8 flex-shrink-0 hover:!bg-destructive hover:!text-destructive-foreground hover:cursor-pointer"
                       aria-label={`Remove ${recipe.name} from selection`}
                     >
                       <X className="w-4 h-4" />
