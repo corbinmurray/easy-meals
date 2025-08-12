@@ -1,10 +1,8 @@
 "use client";
 
-import RecipeGallery from "@/components/RecipeGallery";
-import SelectedMealsSummary from "@/components/SelectedMealsSummary";
-import WeeklyCalendar from "@/components/WeeklyCalendar";
+import WeeklyMealSelector from "@/components/WeeklyMealSelector";
 import { mockRecipes } from "@/mock/recipes";
-import type { Recipe, ScheduledMeal } from "@/types/meal-planner";
+import type { Recipe } from "@/types/meal-planner";
 import { Button } from "@workspace/ui/components/button";
 import { useTheme } from "next-themes";
 
@@ -30,40 +28,22 @@ function ThemeToggle() {
 }
 
 export default function Page() {
-  // Placeholder state for selected recipes and schedule
+  // Placeholder state for recipes
   const [recipes, setRecipes] = useState<Recipe[]>(mockRecipes); // Use mock data for development
-  const [scheduledMeals, setScheduledMeals] = useState<ScheduledMeal[]>([]); // { day, recipeId }
 
   return (
-    <main className="min-h-screen flex flex-col items-center">
-      <h1 className="text-4xl font-bold mb-8">Easy Meals</h1>
+    <main className="min-h-screen flex flex-col items-center px-4 py-8">
+      <div className="w-full max-w-6xl">
+        <header className="text-center mb-12">
+          <h1 className="text-4xl font-bold mb-4">Easy Meals</h1>
+          <p className="text-lg text-muted-foreground">
+            Plan your weekly meals with ease
+          </p>
+        </header>
 
-      {/* Recipe Gallery */}
-      <section className="w-full max-w-5xl mb-8">
-        <RecipeGallery
-          recipes={recipes}
-          setRecipes={setRecipes}
-          scheduledMeals={scheduledMeals}
-          setScheduledMeals={setScheduledMeals}
-        />
-      </section>
-
-      {/* Weekly Calendar */}
-      <section className="w-full max-w-3xl mb-8">
-        <WeeklyCalendar
-          scheduledMeals={scheduledMeals}
-          setScheduledMeals={setScheduledMeals}
-          recipes={recipes}
-        />
-      </section>
-
-      {/* Selected Meals Summary */}
-      <section className="mb-4">
-        <SelectedMealsSummary
-          scheduledMeals={scheduledMeals}
-          recipes={recipes}
-        />
-      </section>
+        {/* Weekly Meal Selector */}
+        <WeeklyMealSelector recipes={recipes} />
+      </div>
     </main>
   );
 }
