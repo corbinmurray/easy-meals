@@ -25,11 +25,16 @@ builder.Services.AddScoped<IRecipeExtractor, HelloFreshRecipeExtractor>();
 // HTTP Services for web scraping
 builder.Services.AddHttpClient<IHelloFreshHttpService, HelloFreshHttpService>(client =>
 {
+    // Set a basic user agent - the service will handle rotation
     client.DefaultRequestHeaders.Add("User-Agent",
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36");
     client.Timeout = TimeSpan.FromSeconds(30);
+})
+.ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler()
+{
+    // This is the critical part - ensure automatic decompression is enabled
+    AutomaticDecompression = System.Net.DecompressionMethods.All
 });
-builder.Services.AddScoped<IHelloFreshHttpService, HelloFreshHttpService>();
 
 // Configure logging
 builder.Logging.ClearProviders();

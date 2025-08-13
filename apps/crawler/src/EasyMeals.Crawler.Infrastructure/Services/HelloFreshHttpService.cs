@@ -1,6 +1,7 @@
 using System.Text.RegularExpressions;
 using EasyMeals.Crawler.Domain.Interfaces;
 using Microsoft.Extensions.Logging;
+using HtmlAgilityPack;
 
 namespace EasyMeals.Crawler.Infrastructure.Services;
 
@@ -31,14 +32,24 @@ public class HelloFreshHttpService : IHelloFreshHttpService
         _logger = logger;
         _rateLimitSemaphore = new SemaphoreSlim(1, 1);
 
-        // Configure HttpClient
+        // Configure HttpClient for proper content handling
         _httpClient.Timeout = TimeSpan.FromSeconds(30);
-        _httpClient.DefaultRequestHeaders.Add("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8");
-        _httpClient.DefaultRequestHeaders.Add("Accept-Language", "en-US,en;q=0.5");
-        _httpClient.DefaultRequestHeaders.Add("Accept-Encoding", "gzip, deflate");
-        _httpClient.DefaultRequestHeaders.Add("DNT", "1");
-        _httpClient.DefaultRequestHeaders.Add("Connection", "keep-alive");
+        
+        // Clear any existing headers to avoid conflicts
+        _httpClient.DefaultRequestHeaders.Clear();
+        
+        // Set standard browser headers - but let HttpClient handle compression automatically
+        _httpClient.DefaultRequestHeaders.Add("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8");
+        _httpClient.DefaultRequestHeaders.Add("Accept-Language", "en-US,en;q=0.9");
+        // Don't set Accept-Encoding manually - let HttpClientHandler manage this
+        _httpClient.DefaultRequestHeaders.Add("Cache-Control", "no-cache");
+        _httpClient.DefaultRequestHeaders.Add("Pragma", "no-cache");
+        _httpClient.DefaultRequestHeaders.Add("Sec-Fetch-Dest", "document");
+        _httpClient.DefaultRequestHeaders.Add("Sec-Fetch-Mode", "navigate");
+        _httpClient.DefaultRequestHeaders.Add("Sec-Fetch-Site", "none");
+        _httpClient.DefaultRequestHeaders.Add("Sec-Fetch-User", "?1");
         _httpClient.DefaultRequestHeaders.Add("Upgrade-Insecure-Requests", "1");
+        _httpClient.DefaultRequestHeaders.Add("DNT", "1");
     }
 
     /// <inheritdoc />
@@ -64,6 +75,12 @@ public class HelloFreshHttpService : IHelloFreshHttpService
 
             using HttpResponseMessage response = await _httpClient.GetAsync(recipeUrl, cancellationToken);
 
+            // Log response headers for debugging
+            _logger.LogDebug("Response status: {StatusCode}, Content-Type: {ContentType}, Content-Encoding: {ContentEncoding}",
+                response.StatusCode,
+                response.Content.Headers.ContentType?.ToString() ?? "unknown",
+                response.Content.Headers.ContentEncoding?.FirstOrDefault() ?? "none");
+
             if (!response.IsSuccessStatusCode)
             {
                 _logger.LogWarning("HTTP request failed for {Url}: {StatusCode} {ReasonPhrase}",
@@ -71,11 +88,84 @@ public class HelloFreshHttpService : IHelloFreshHttpService
                 return null;
             }
 
-            string content = await response.Content.ReadAsStringAsync(cancellationToken);
+            // Read content using multiple approaches to handle encoding issues
+            string content;
+            
+            try
+            {
+                // First try the standard approach - HttpClient should handle compression automatically
+                content = await response.Content.ReadAsStringAsync(cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to read content as string directly, trying byte array approach");
+                
+                // Fallback: read as byte array and manually decode
+                byte[] contentBytes = await response.Content.ReadAsByteArrayAsync(cancellationToken);
+                
+                // Try to detect encoding from Content-Type header
+                var contentType = response.Content.Headers.ContentType;
+                var encoding = System.Text.Encoding.UTF8; // Default to UTF-8
+                
+                if (contentType?.CharSet is not null)
+                {
+                    try
+                    {
+                        encoding = System.Text.Encoding.GetEncoding(contentType.CharSet);
+                    }
+                    catch (ArgumentException)
+                    {
+                        _logger.LogWarning("Unknown charset '{CharSet}', using UTF-8", contentType.CharSet);
+                    }
+                }
+                
+                content = encoding.GetString(contentBytes);
+            }
 
             if (string.IsNullOrWhiteSpace(content))
             {
                 _logger.LogWarning("Received empty content from {Url}", recipeUrl);
+                return null;
+            }
+
+            // Log the first few characters for debugging
+            string contentPreview = content.Length > 200 ? content[..200] : content;
+            _logger.LogDebug("Content preview (first 200 chars): {ContentPreview}", contentPreview);
+
+            // Validate that we received HTML content
+            string trimmedContent = content.TrimStart();
+            if (!trimmedContent.StartsWith("<", StringComparison.OrdinalIgnoreCase) && 
+                !content.Contains("<html", StringComparison.OrdinalIgnoreCase) &&
+                !content.Contains("<!DOCTYPE", StringComparison.OrdinalIgnoreCase))
+            {
+                _logger.LogWarning("Content from {Url} does not appear to be HTML. First 100 chars: {Content}", 
+                    recipeUrl, content.Length > 100 ? content[..100] : content);
+                
+                // Log additional debugging info
+                _logger.LogDebug("Content length: {Length}, Content type: {ContentType}", 
+                    content.Length, response.Content.Headers.ContentType);
+                
+                return null;
+            }
+
+            // Validate using HtmlAgilityPack to ensure it's parseable HTML
+            try
+            {
+                var doc = new HtmlDocument();
+                doc.LoadHtml(content);
+                
+                // Check if the document has basic HTML structure
+                if (doc.DocumentNode.SelectSingleNode("//html") is null && 
+                    doc.DocumentNode.SelectSingleNode("//head") is null &&
+                    doc.DocumentNode.SelectSingleNode("//body") is null)
+                {
+                    _logger.LogWarning("HTML content from {Url} lacks basic HTML structure", recipeUrl);
+                    return null;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to parse HTML content from {Url}", recipeUrl);
                 return null;
             }
 
@@ -201,7 +291,7 @@ public class HelloFreshHttpService : IHelloFreshHttpService
     }
 
     /// <summary>
-    ///     Extracts recipe URLs from HTML content
+    ///     Extracts recipe URLs from HTML content using HtmlAgilityPack
     /// </summary>
     private List<string> ExtractRecipeUrlsFromHtml(string htmlContent)
     {
@@ -209,23 +299,55 @@ public class HelloFreshHttpService : IHelloFreshHttpService
 
         try
         {
-            // Look for HelloFresh recipe URLs in the HTML
-            var pattern = @"href=[""']([^""']*hellofresh\.com/recipes/[^""']+)[""']";
-            MatchCollection matches = Regex.Matches(htmlContent, pattern, RegexOptions.IgnoreCase);
+            var doc = new HtmlDocument();
+            doc.LoadHtml(htmlContent);
 
-            foreach (Match match in matches)
+            // Look for recipe links using multiple selectors
+            var selectors = new[]
             {
-                string url = match.Groups[1].Value;
+                "//a[contains(@href, '/recipes/')]/@href",
+                "//a[contains(@href, 'hellofresh.com/recipes')]/@href",
+                "//link[@rel='canonical' and contains(@href, '/recipes/')]/@href"
+            };
 
-                // Clean up the URL
-                url = url.Split('?')[0]; // Remove query parameters
-                url = url.Split('#')[0]; // Remove fragments
+            foreach (string selector in selectors)
+            {
+                HtmlNodeCollection nodes = doc.DocumentNode.SelectNodes(selector);
+                if (nodes is null) continue;
 
-                // Ensure it's a full URL
-                if (!url.StartsWith("http")) url = "https://www.hellofresh.com" + (url.StartsWith("/") ? url : "/" + url);
+                foreach (HtmlNode node in nodes)
+                {
+                    string? href = node.GetAttributeValue("href", null);
+                    if (string.IsNullOrEmpty(href)) continue;
 
-                // Validate and add unique URLs
-                if (IsValidHelloFreshUrl(url) && !urls.Contains(url)) urls.Add(url);
+                    // Clean up the URL
+                    string cleanUrl = CleanUrl(href);
+
+                    // Validate and add unique URLs
+                    if (IsValidHelloFreshUrl(cleanUrl) && !urls.Contains(cleanUrl))
+                    {
+                        urls.Add(cleanUrl);
+                    }
+                }
+            }
+
+            // Fallback to regex if XPath selection doesn't work well
+            if (urls.Count == 0)
+            {
+                _logger.LogDebug("XPath selection found no URLs, falling back to regex");
+                var pattern = @"href=[""']([^""']*(?:hellofresh\.com)?/recipes/[^""']+)[""']";
+                MatchCollection matches = Regex.Matches(htmlContent, pattern, RegexOptions.IgnoreCase);
+
+                foreach (Match match in matches)
+                {
+                    string url = match.Groups[1].Value;
+                    string cleanUrl = CleanUrl(url);
+
+                    if (IsValidHelloFreshUrl(cleanUrl) && !urls.Contains(cleanUrl))
+                    {
+                        urls.Add(cleanUrl);
+                    }
+                }
             }
 
             _logger.LogDebug("Extracted {Count} recipe URLs from HTML", urls.Count);
@@ -236,5 +358,24 @@ public class HelloFreshHttpService : IHelloFreshHttpService
         }
 
         return urls;
+    }
+
+    /// <summary>
+    ///     Cleans and normalizes a URL
+    /// </summary>
+    private static string CleanUrl(string url)
+    {
+        if (string.IsNullOrEmpty(url)) return string.Empty;
+
+        // Remove query parameters and fragments
+        url = url.Split('?')[0].Split('#')[0];
+
+        // Ensure it's a full URL
+        if (!url.StartsWith("http"))
+        {
+            url = "https://www.hellofresh.com" + (url.StartsWith("/") ? url : "/" + url);
+        }
+
+        return url;
     }
 }
