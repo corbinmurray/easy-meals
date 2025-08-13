@@ -1,6 +1,7 @@
 "use client";
 
 import RecipeCard from "@/components/RecipeCard";
+import { randomizeRecipesForWeek } from "@/lib/randomization";
 import type { Recipe } from "@/types/meal-planner";
 import { Badge } from "@workspace/ui/components/badge";
 import { Input } from "@workspace/ui/components/input";
@@ -133,6 +134,9 @@ export default function RecipeGrid({
       });
     }
 
+    // Apply week-based randomization
+    filtered = randomizeRecipesForWeek(filtered, currentWeekStart);
+
     return filtered;
   }, [
     recipes,
@@ -140,6 +144,7 @@ export default function RecipeGrid({
     selectedTags,
     enableSearch,
     enableTagFiltering,
+    currentWeekStart,
   ]);
 
   // Pagination logic
