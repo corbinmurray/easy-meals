@@ -292,7 +292,7 @@ export default function RecipeGrid({
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: 10 }}
                 >
-                  <X className="h-3 w-3" />
+                  <X className="size-3" />
                   Clear all
                 </motion.button>
               )}

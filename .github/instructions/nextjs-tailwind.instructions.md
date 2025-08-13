@@ -11,7 +11,7 @@ Instructions for high-quality Next.js applications with Tailwind CSS styling and
 
 - Latest Next.js (App Router)
 - TypeScript for type safety
-- Tailwind CSS for styling
+- Tailwind CSS for styling (latest version [version 4])
 
 ## Development Standards
 

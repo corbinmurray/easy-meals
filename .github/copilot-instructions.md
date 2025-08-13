@@ -23,7 +23,7 @@
 
 - **Next.js App Router**: Use server components by default, client components only for interactivity/state.
 - **UI components**: Co-locate feature components in `apps/web/components`, shared in `packages/ui/src/components`.
-- **Styling**: Use Tailwind utility classes theme tokens, and shadcn conventions. See `globals.css` for theme.
+- **Styling**: Use Tailwind utility classes theme tokens, and shadcn conventions. See `globals.css` for theme. We are using Tailwind v4, please use the new conventions.
 - **lucide-react**: Use `lucide-react` for icons.
 - **Motion for React**: Use `<motion.* />` components for animation. Animate with `animate`, `initial`, `whileHover`, `whileTap`, `whileInView`, `exit`, and `layout` props. Use `AnimatePresence` for exit animations. Example:
   ```tsx
