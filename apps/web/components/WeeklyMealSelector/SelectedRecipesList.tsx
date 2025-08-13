@@ -48,8 +48,8 @@ export default function SelectedRecipesList({
     >
       <Card className="bg-gradient-to-r from-primary/5 to-accent/5 border-primary/20">
         <CardHeader className="pb-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
+          <div className="flex items-start justify-between">
+            <div className="flex flex-col items-start justify-start gap-3">
               <CardTitle className="text-xl">Selected Recipes</CardTitle>
               <Badge
                 variant={selectedCount === maxRecipes ? "default" : "secondary"}
@@ -66,7 +66,7 @@ export default function SelectedRecipesList({
                     className="hover:!bg-destructive hover:cursor-pointer hover:!text-destructive-foreground"
                     aria-label="Clear all selected recipes"
                   >
-                    <Trash2 className="w-4 h-4 mr-2" />
+                    <Trash2 className="size-4" />
                     Clear All
                   </Button>
                 </AlertDialogTrigger>

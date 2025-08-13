@@ -59,9 +59,9 @@ export default function WeekNavigation({
           onClick={() => handleWeekNav(-1)}
           disabled={!canGoBack}
           aria-label="Previous week"
-          className="h-10 w-10"
+          className="size-10"
         >
-          <ArrowLeft className="w-5 h-5" />
+          <ArrowLeft className="size-5 md:size-6" />
         </Button>
 
         <motion.div
@@ -77,12 +77,9 @@ export default function WeekNavigation({
           }}
           className="text-center"
         >
-          <h2 className="text-2xl font-bold text-foreground">
+          <h2 className="text-2xl md:text-3xl font-bold text-foreground">
             {weekStartFormatted} - {weekEndFormatted}
           </h2>
-          <p className="text-sm text-muted-foreground mt-1">
-            Select up to 7 recipes for this week
-          </p>
         </motion.div>
 
         <Button
@@ -91,9 +88,9 @@ export default function WeekNavigation({
           onClick={() => handleWeekNav(1)}
           disabled={!canGoForward}
           aria-label="Next week"
-          className="h-10 w-10"
+          className="size-10"
         >
-          <ArrowRight className="w-5 h-5" />
+          <ArrowRight className="size-5 md:size-6" />
         </Button>
       </div>
     </motion.section>
