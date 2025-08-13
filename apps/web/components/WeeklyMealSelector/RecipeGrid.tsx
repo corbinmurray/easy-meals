@@ -298,19 +298,6 @@ export default function RecipeGrid({
               )}
             </div>
 
-            {/* Tag search input (only show if there are many tags) */}
-            {tagData.length > 12 && (
-              <div className="mb-3">
-                <Input
-                  type="text"
-                  placeholder="Search tags..."
-                  value={tagSearchTerm}
-                  onChange={(e) => setTagSearchTerm(e.target.value)}
-                  className="text-sm h-8"
-                />
-              </div>
-            )}
-
             {/* Available tags */}
             <div className="space-y-2">
               <div className="flex flex-wrap gap-2">
