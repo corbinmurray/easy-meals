@@ -1,35 +1,36 @@
+using System.Text.RegularExpressions;
 using EasyMeals.Crawler.Domain.Interfaces;
 using Microsoft.Extensions.Logging;
-using System.Text.RegularExpressions;
 
 namespace EasyMeals.Crawler.Infrastructure.Services;
 
 /// <summary>
-/// HTTP service for fetching content from HelloFresh website
-/// Handles rate limiting, user agent rotation, and retry logic
+///     HTTP service for fetching content from HelloFresh website
+///     Handles rate limiting, user agent rotation, and retry logic
 /// </summary>
 public class HelloFreshHttpService : IHelloFreshHttpService
 {
     private readonly HttpClient _httpClient;
     private readonly ILogger<HelloFreshHttpService> _logger;
+    private readonly TimeSpan _minRequestInterval = TimeSpan.FromSeconds(1);
     private readonly SemaphoreSlim _rateLimitSemaphore;
-    private DateTime _lastRequestTime = DateTime.MinValue;
-    private readonly TimeSpan _minRequestInterval = TimeSpan.FromMilliseconds(1000); // 1 second between requests
-    
-    private readonly string[] _userAgents = new[]
-    {
+
+    private readonly string[] _userAgents =
+    [
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
         "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:89.0) Gecko/20100101 Firefox/89.0",
         "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.1 Safari/605.1.15"
-    };
+    ];
+
+    private DateTime _lastRequestTime = DateTime.MinValue;
 
     public HelloFreshHttpService(HttpClient httpClient, ILogger<HelloFreshHttpService> logger)
     {
         _httpClient = httpClient;
         _logger = logger;
         _rateLimitSemaphore = new SemaphoreSlim(1, 1);
-        
+
         // Configure HttpClient
         _httpClient.Timeout = TimeSpan.FromSeconds(30);
         _httpClient.DefaultRequestHeaders.Add("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8");
@@ -50,6 +51,7 @@ public class HelloFreshHttpService : IHelloFreshHttpService
         }
 
         await _rateLimitSemaphore.WaitAsync(cancellationToken);
+        
         try
         {
             // Enforce rate limiting
@@ -60,24 +62,24 @@ public class HelloFreshHttpService : IHelloFreshHttpService
             // Set a random user agent
             SetRandomUserAgent();
 
-            using var response = await _httpClient.GetAsync(recipeUrl, cancellationToken);
-            
+            using HttpResponseMessage response = await _httpClient.GetAsync(recipeUrl, cancellationToken);
+
             if (!response.IsSuccessStatusCode)
             {
-                _logger.LogWarning("HTTP request failed for {Url}: {StatusCode} {ReasonPhrase}", 
+                _logger.LogWarning("HTTP request failed for {Url}: {StatusCode} {ReasonPhrase}",
                     recipeUrl, response.StatusCode, response.ReasonPhrase);
                 return null;
             }
 
-            var content = await response.Content.ReadAsStringAsync(cancellationToken);
-            
+            string content = await response.Content.ReadAsStringAsync(cancellationToken);
+
             if (string.IsNullOrWhiteSpace(content))
             {
                 _logger.LogWarning("Received empty content from {Url}", recipeUrl);
                 return null;
             }
 
-            _logger.LogDebug("Successfully fetched {ContentLength} characters from {Url}", 
+            _logger.LogDebug("Successfully fetched {ContentLength} characters from {Url}",
                 content.Length, recipeUrl);
 
             return content;
@@ -112,13 +114,13 @@ public class HelloFreshHttpService : IHelloFreshHttpService
     public async Task<List<string>> DiscoverRecipeUrlsAsync(int maxResults = 50, CancellationToken cancellationToken = default)
     {
         var discoveredUrls = new List<string>();
-        
+
         try
         {
             _logger.LogDebug("Discovering HelloFresh recipe URLs, max results: {MaxResults}", maxResults);
 
             // Fetch main recipes page
-            var recipesPageContent = await FetchRecipeHtmlAsync("https://www.hellofresh.com/recipes", cancellationToken);
+            string? recipesPageContent = await FetchRecipeHtmlAsync("https://www.hellofresh.com/recipes", cancellationToken);
             if (string.IsNullOrEmpty(recipesPageContent))
             {
                 _logger.LogWarning("Could not fetch recipes page content");
@@ -126,7 +128,7 @@ public class HelloFreshHttpService : IHelloFreshHttpService
             }
 
             // Extract recipe URLs from the page
-            var urls = ExtractRecipeUrlsFromHtml(recipesPageContent);
+            List<string> urls = ExtractRecipeUrlsFromHtml(recipesPageContent);
             discoveredUrls.AddRange(urls.Take(maxResults));
 
             _logger.LogDebug("Discovered {Count} recipe URLs", discoveredUrls.Count);
@@ -140,9 +142,18 @@ public class HelloFreshHttpService : IHelloFreshHttpService
     }
 
     /// <summary>
-    /// Validates if the URL is a valid HelloFresh recipe URL
+    ///     Disposes the HTTP client
     /// </summary>
-    private bool IsValidHelloFreshUrl(string url)
+    public void Dispose()
+    {
+        _httpClient?.Dispose();
+        _rateLimitSemaphore?.Dispose();
+    }
+
+    /// <summary>
+    ///     Validates if the URL is a valid HelloFresh recipe URL
+    /// </summary>
+    private static bool IsValidHelloFreshUrl(string url)
     {
         if (string.IsNullOrWhiteSpace(url)) return false;
 
@@ -150,7 +161,7 @@ public class HelloFreshHttpService : IHelloFreshHttpService
         {
             var uri = new Uri(url);
             return uri.Host.EndsWith("hellofresh.com", StringComparison.OrdinalIgnoreCase) &&
-                   uri.AbsolutePath.StartsWith("/recipes/", StringComparison.OrdinalIgnoreCase);
+                   uri.AbsolutePath.StartsWith("/recipes", StringComparison.OrdinalIgnoreCase);
         }
         catch
         {
@@ -159,68 +170,62 @@ public class HelloFreshHttpService : IHelloFreshHttpService
     }
 
     /// <summary>
-    /// Enforces rate limiting between requests
+    ///     Enforces rate limiting between requests
     /// </summary>
     private async Task EnforceRateLimit(CancellationToken cancellationToken)
     {
-        var timeSinceLastRequest = DateTime.UtcNow - _lastRequestTime;
+        TimeSpan timeSinceLastRequest = DateTime.UtcNow - _lastRequestTime;
         if (timeSinceLastRequest < _minRequestInterval)
         {
-            var delay = _minRequestInterval - timeSinceLastRequest;
+            TimeSpan delay = _minRequestInterval - timeSinceLastRequest;
             _logger.LogDebug("Rate limiting: waiting {DelayMs}ms", delay.TotalMilliseconds);
             await Task.Delay(delay, cancellationToken);
         }
-        
+
         _lastRequestTime = DateTime.UtcNow;
     }
 
     /// <summary>
-    /// Sets a random user agent to avoid detection
+    ///     Sets a random user agent to avoid detection
     /// </summary>
     private void SetRandomUserAgent()
     {
         var random = new Random();
-        var userAgent = _userAgents[random.Next(_userAgents.Length)];
-        
+        string userAgent = _userAgents[random.Next(_userAgents.Length)];
+
         // Remove existing user agent
         _httpClient.DefaultRequestHeaders.Remove("User-Agent");
-        
+
         // Add new user agent
         _httpClient.DefaultRequestHeaders.Add("User-Agent", userAgent);
     }
 
     /// <summary>
-    /// Extracts recipe URLs from HTML content
+    ///     Extracts recipe URLs from HTML content
     /// </summary>
     private List<string> ExtractRecipeUrlsFromHtml(string htmlContent)
     {
         var urls = new List<string>();
-        
+
         try
         {
             // Look for HelloFresh recipe URLs in the HTML
             var pattern = @"href=[""']([^""']*hellofresh\.com/recipes/[^""']+)[""']";
-            var matches = Regex.Matches(htmlContent, pattern, RegexOptions.IgnoreCase);
+            MatchCollection matches = Regex.Matches(htmlContent, pattern, RegexOptions.IgnoreCase);
 
             foreach (Match match in matches)
             {
-                var url = match.Groups[1].Value;
-                
+                string url = match.Groups[1].Value;
+
                 // Clean up the URL
                 url = url.Split('?')[0]; // Remove query parameters
                 url = url.Split('#')[0]; // Remove fragments
-                
+
                 // Ensure it's a full URL
-                if (!url.StartsWith("http"))
-                {
-                    url = "https://www.hellofresh.com" + (url.StartsWith("/") ? url : "/" + url);
-                }
+                if (!url.StartsWith("http")) url = "https://www.hellofresh.com" + (url.StartsWith("/") ? url : "/" + url);
 
                 // Validate and add unique URLs
-                if (IsValidHelloFreshUrl(url) && !urls.Contains(url))
-                {
-                    urls.Add(url);
-                }
+                if (IsValidHelloFreshUrl(url) && !urls.Contains(url)) urls.Add(url);
             }
 
             _logger.LogDebug("Extracted {Count} recipe URLs from HTML", urls.Count);
@@ -231,14 +236,5 @@ public class HelloFreshHttpService : IHelloFreshHttpService
         }
 
         return urls;
-    }
-
-    /// <summary>
-    /// Disposes the HTTP client
-    /// </summary>
-    public void Dispose()
-    {
-        _httpClient?.Dispose();
-        _rateLimitSemaphore?.Dispose();
     }
 }

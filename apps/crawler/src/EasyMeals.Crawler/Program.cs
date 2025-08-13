@@ -5,7 +5,7 @@ using EasyMeals.Crawler.Infrastructure.Persistence;
 using EasyMeals.Crawler.Infrastructure.Services;
 using EasyMeals.Data.Extensions;
 
-var builder = Host.CreateApplicationBuilder(args);
+HostApplicationBuilder builder = Host.CreateApplicationBuilder(args);
 
 // Configure services following Clean Architecture and DI best practices
 builder.Services.AddHostedService<Worker>();
@@ -25,7 +25,7 @@ builder.Services.AddScoped<IRecipeExtractor, HelloFreshRecipeExtractor>();
 // HTTP Services for web scraping
 builder.Services.AddHttpClient<IHelloFreshHttpService, HelloFreshHttpService>(client =>
 {
-    client.DefaultRequestHeaders.Add("User-Agent", 
+    client.DefaultRequestHeaders.Add("User-Agent",
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36");
     client.Timeout = TimeSpan.FromSeconds(30);
 });
@@ -36,7 +36,7 @@ builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 builder.Logging.AddDebug();
 
-var host = builder.Build();
+IHost host = builder.Build();
 
 var logger = host.Services.GetRequiredService<ILogger<Program>>();
 logger.LogInformation("HelloFresh Crawler starting up with shared EF Core data layer...");

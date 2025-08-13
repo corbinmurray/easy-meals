@@ -1,7 +1,7 @@
 namespace EasyMeals.Crawler.Domain.ValueObjects;
 
 /// <summary>
-/// Represents the current state of a crawling session
+///     Represents the current state of a crawling session
 /// </summary>
 public record CrawlState
 {
@@ -9,24 +9,22 @@ public record CrawlState
     public HashSet<string> CompletedRecipeIds { get; init; } = new();
     public HashSet<string> FailedUrls { get; init; } = new();
     public DateTime LastCrawlTime { get; init; } = DateTime.MinValue;
-    public int TotalProcessed { get; init; } = 0;
-    public int TotalSuccessful { get; init; } = 0;
-    public int TotalFailed { get; init; } = 0;
+    public int TotalProcessed { get; init; }
+    public int TotalSuccessful { get; init; }
+    public int TotalFailed { get; init; }
 
     /// <summary>
-    /// Creates a new crawl state with the provided pending URLs
+    ///     Creates a new crawl state with the provided pending URLs
     /// </summary>
-    public static CrawlState Create(IEnumerable<string> pendingUrls)
-    {
-        return new CrawlState
+    public static CrawlState Create(IEnumerable<string> pendingUrls) =>
+        new()
         {
             PendingUrls = pendingUrls.ToList(),
             LastCrawlTime = DateTime.UtcNow
         };
-    }
 
     /// <summary>
-    /// Marks a recipe as successfully processed
+    ///     Marks a recipe as successfully processed
     /// </summary>
     public CrawlState MarkAsCompleted(string recipeId, string url)
     {
@@ -41,7 +39,7 @@ public record CrawlState
     }
 
     /// <summary>
-    /// Marks a URL as failed
+    ///     Marks a URL as failed
     /// </summary>
     public CrawlState MarkAsFailed(string url)
     {

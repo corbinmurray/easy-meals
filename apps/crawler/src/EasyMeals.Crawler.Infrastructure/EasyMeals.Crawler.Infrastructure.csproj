@@ -1,20 +1,20 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <ItemGroup>
-    <ProjectReference Include="..\EasyMeals.Crawler.Application\EasyMeals.Crawler.Application.csproj" />
-    <ProjectReference Include="..\EasyMeals.Crawler.Domain\EasyMeals.Crawler.Domain.csproj" />
-    <ProjectReference Include="..\..\..\shared\EasyMeals.Data\EasyMeals.Data.csproj" />
-  </ItemGroup>
+    <ItemGroup>
+        <ProjectReference Include="..\EasyMeals.Crawler.Application\EasyMeals.Crawler.Application.csproj"/>
+        <ProjectReference Include="..\EasyMeals.Crawler.Domain\EasyMeals.Crawler.Domain.csproj"/>
+        <ProjectReference Include="..\..\..\shared\EasyMeals.Data\EasyMeals.Data.csproj"/>
+    </ItemGroup>
 
-  <ItemGroup>
-    <PackageReference Include="HtmlAgilityPack" Version="1.12.2" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.8" />
-  </ItemGroup>
+    <ItemGroup>
+        <PackageReference Include="HtmlAgilityPack" Version="1.12.2"/>
+        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.8"/>
+    </ItemGroup>
 
-  <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-  </PropertyGroup>
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
 
 </Project>

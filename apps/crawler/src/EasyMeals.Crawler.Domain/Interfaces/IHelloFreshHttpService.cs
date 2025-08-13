@@ -1,12 +1,12 @@
 namespace EasyMeals.Crawler.Domain.Interfaces;
 
 /// <summary>
-/// Service for interacting with HelloFresh website HTTP endpoints
+///     Service for interacting with HelloFresh website HTTP endpoints
 /// </summary>
 public interface IHelloFreshHttpService : IDisposable
 {
     /// <summary>
-    /// Fetches HTML content from a HelloFresh recipe URL
+    ///     Fetches HTML content from a HelloFresh recipe URL
     /// </summary>
     /// <param name="recipeUrl">The URL of the recipe to fetch</param>
     /// <param name="cancellationToken">Cancellation token</param>
@@ -14,7 +14,7 @@ public interface IHelloFreshHttpService : IDisposable
     Task<string?> FetchRecipeHtmlAsync(string recipeUrl, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Discovers recipe URLs from HelloFresh website
+    ///     Discovers recipe URLs from HelloFresh website
     /// </summary>
     /// <param name="maxResults">Maximum number of URLs to discover</param>
     /// <param name="cancellationToken">Cancellation token</param>
