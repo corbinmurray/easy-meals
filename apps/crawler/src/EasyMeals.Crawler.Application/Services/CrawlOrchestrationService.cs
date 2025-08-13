@@ -14,20 +14,20 @@ public class CrawlOrchestrationService
     private readonly ICrawlStateRepository _crawlStateRepository;
     private readonly IRecipeRepository _recipeRepository;
     private readonly IRecipeExtractor _recipeExtractor;
-    private readonly HttpClient _httpClient;
+    private readonly IHelloFreshHttpService _httpService;
     private readonly ILogger<CrawlOrchestrationService> _logger;
 
     public CrawlOrchestrationService(
         ICrawlStateRepository crawlStateRepository,
         IRecipeRepository recipeRepository,
         IRecipeExtractor recipeExtractor,
-        HttpClient httpClient,
+        IHelloFreshHttpService httpService,
         ILogger<CrawlOrchestrationService> logger)
     {
         _crawlStateRepository = crawlStateRepository;
         _recipeRepository = recipeRepository;
         _recipeExtractor = recipeExtractor;
-        _httpClient = httpClient;
+        _httpService = httpService;
         _logger = logger;
     }
 
@@ -55,21 +55,39 @@ public class CrawlOrchestrationService
     }
 
     /// <summary>
-    /// Discovers recipe URLs from HelloFresh listing pages (placeholder implementation)
+    /// Discovers recipe URLs from HelloFresh website
     /// </summary>
     private async Task<CrawlState> DiscoverRecipeUrlsAsync(CrawlState currentState, CancellationToken cancellationToken)
     {
-        // TODO: Implement actual URL discovery logic for HelloFresh
-        // This would involve crawling listing pages and extracting recipe URLs
-        var discoveredUrls = new List<string>
+        try
         {
-            "https://www.hellofresh.com/recipes/example-recipe-1",
-            "https://www.hellofresh.com/recipes/example-recipe-2"
-        };
+            _logger.LogInformation("Discovering recipe URLs from HelloFresh website...");
+            
+            // Use the HTTP service to discover URLs
+            var discoveredUrls = await _httpService.DiscoverRecipeUrlsAsync(50, cancellationToken);
+            
+            if (!discoveredUrls.Any())
+            {
+                _logger.LogWarning("No recipe URLs discovered. Using fallback URLs for testing.");
+                // Fallback URLs for testing
+                discoveredUrls = new List<string>
+                {
+                    "https://www.hellofresh.com/recipes/winner-winner-chicken-orzo-dinner-5aaabf7530006c52b54bd0c2",
+                    "https://www.hellofresh.com/recipes/korean-beef-bibimbap-5ab3b883ae08b53bb4024952"
+                };
+            }
 
-        _logger.LogInformation("Discovered {Count} recipe URLs", discoveredUrls.Count);
-        
-        return currentState with { PendingUrls = discoveredUrls };
+            _logger.LogInformation("Discovered {Count} recipe URLs", discoveredUrls.Count);
+            
+            return currentState with { PendingUrls = discoveredUrls };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error discovering recipe URLs: {Message}", ex.Message);
+            
+            // Return current state with empty URLs if discovery fails
+            return currentState with { PendingUrls = new List<string>() };
+        }
     }
 
     /// <summary>
@@ -119,8 +137,8 @@ public class CrawlOrchestrationService
             // Save state periodically
             await _crawlStateRepository.SaveStateAsync(currentState, cancellationToken);
 
-            // Add delay between requests to be respectful
-            await Task.Delay(TimeSpan.FromSeconds(2), cancellationToken);
+            // Note: The HTTP service handles rate limiting internally
+            // No need for additional delays here
         }
 
         // Final state save
@@ -138,8 +156,17 @@ public class CrawlOrchestrationService
         try
         {
             _logger.LogDebug("Fetching content from URL: {Url}", url);
-            var htmlContent = await _httpClient.GetStringAsync(url, cancellationToken);
             
+            // Use the HTTP service to fetch HTML content
+            var htmlContent = await _httpService.FetchRecipeHtmlAsync(url, cancellationToken);
+            
+            if (string.IsNullOrEmpty(htmlContent))
+            {
+                _logger.LogWarning("No HTML content received for URL: {Url}", url);
+                return null;
+            }
+            
+            // Extract recipe from HTML content
             var recipe = await _recipeExtractor.ExtractRecipeAsync(htmlContent, url, cancellationToken);
             return recipe;
         }

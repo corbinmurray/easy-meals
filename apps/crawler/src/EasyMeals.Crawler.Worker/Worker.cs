@@ -8,12 +8,12 @@ namespace EasyMeals.Crawler;
 /// </summary>
 public class Worker : BackgroundService
 {
-    private readonly CrawlOrchestrationService _crawlOrchestrationService;
+    private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<Worker> _logger;
 
-    public Worker(CrawlOrchestrationService crawlOrchestrationService, ILogger<Worker> logger)
+    public Worker(IServiceProvider serviceProvider, ILogger<Worker> logger)
     {
-        _crawlOrchestrationService = crawlOrchestrationService;
+        _serviceProvider = serviceProvider;
         _logger = logger;
     }
 
@@ -23,9 +23,13 @@ public class Worker : BackgroundService
 
         try
         {
+            // Create a scope for scoped services like DbContext and repositories
+            using var scope = _serviceProvider.CreateScope();
+            var crawlOrchestrationService = scope.ServiceProvider.GetRequiredService<CrawlOrchestrationService>();
+            
             // Run the crawl session once (for external scheduling)
             // If you want continuous crawling, wrap this in a while loop
-            await _crawlOrchestrationService.StartCrawlSessionAsync(stoppingToken);
+            await crawlOrchestrationService.StartCrawlSessionAsync(stoppingToken);
             
             _logger.LogInformation("Crawl session completed successfully");
         }
