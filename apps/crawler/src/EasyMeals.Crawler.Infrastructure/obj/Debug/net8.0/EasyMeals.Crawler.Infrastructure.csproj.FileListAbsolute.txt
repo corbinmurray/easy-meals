@@ -1,0 +1,17 @@
+C:\Users\Corbin\repos\easy-meals\apps\crawler\src\EasyMeals.Crawler.Infrastructure\bin\Debug\net8.0\EasyMeals.Crawler.Infrastructure.deps.json
+C:\Users\Corbin\repos\easy-meals\apps\crawler\src\EasyMeals.Crawler.Infrastructure\bin\Debug\net8.0\EasyMeals.Crawler.Infrastructure.dll
+C:\Users\Corbin\repos\easy-meals\apps\crawler\src\EasyMeals.Crawler.Infrastructure\bin\Debug\net8.0\EasyMeals.Crawler.Infrastructure.pdb
+C:\Users\Corbin\repos\easy-meals\apps\crawler\src\EasyMeals.Crawler.Infrastructure\bin\Debug\net8.0\EasyMeals.Crawler.Application.dll
+C:\Users\Corbin\repos\easy-meals\apps\crawler\src\EasyMeals.Crawler.Infrastructure\bin\Debug\net8.0\EasyMeals.Crawler.Domain.dll
+C:\Users\Corbin\repos\easy-meals\apps\crawler\src\EasyMeals.Crawler.Infrastructure\bin\Debug\net8.0\EasyMeals.Crawler.Application.pdb
+C:\Users\Corbin\repos\easy-meals\apps\crawler\src\EasyMeals.Crawler.Infrastructure\bin\Debug\net8.0\EasyMeals.Crawler.Domain.pdb
+C:\Users\Corbin\repos\easy-meals\apps\crawler\src\EasyMeals.Crawler.Infrastructure\obj\Debug\net8.0\EasyMeals.Crawler.Infrastructure.csproj.AssemblyReference.cache
+C:\Users\Corbin\repos\easy-meals\apps\crawler\src\EasyMeals.Crawler.Infrastructure\obj\Debug\net8.0\EasyMeals.Crawler.Infrastructure.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\Corbin\repos\easy-meals\apps\crawler\src\EasyMeals.Crawler.Infrastructure\obj\Debug\net8.0\EasyMeals.Crawler.Infrastructure.AssemblyInfoInputs.cache
+C:\Users\Corbin\repos\easy-meals\apps\crawler\src\EasyMeals.Crawler.Infrastructure\obj\Debug\net8.0\EasyMeals.Crawler.Infrastructure.AssemblyInfo.cs
+C:\Users\Corbin\repos\easy-meals\apps\crawler\src\EasyMeals.Crawler.Infrastructure\obj\Debug\net8.0\EasyMeals.Crawler.Infrastructure.csproj.CoreCompileInputs.cache
+C:\Users\Corbin\repos\easy-meals\apps\crawler\src\EasyMeals.Crawler.Infrastructure\obj\Debug\net8.0\EasyMeal.0BA8D13D.Up2Date
+C:\Users\Corbin\repos\easy-meals\apps\crawler\src\EasyMeals.Crawler.Infrastructure\obj\Debug\net8.0\EasyMeals.Crawler.Infrastructure.dll
+C:\Users\Corbin\repos\easy-meals\apps\crawler\src\EasyMeals.Crawler.Infrastructure\obj\Debug\net8.0\refint\EasyMeals.Crawler.Infrastructure.dll
+C:\Users\Corbin\repos\easy-meals\apps\crawler\src\EasyMeals.Crawler.Infrastructure\obj\Debug\net8.0\EasyMeals.Crawler.Infrastructure.pdb
+C:\Users\Corbin\repos\easy-meals\apps\crawler\src\EasyMeals.Crawler.Infrastructure\obj\Debug\net8.0\ref\EasyMeals.Crawler.Infrastructure.dll

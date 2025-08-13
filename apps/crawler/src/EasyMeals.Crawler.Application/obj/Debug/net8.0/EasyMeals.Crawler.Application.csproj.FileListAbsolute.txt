@@ -1,0 +1,15 @@
+C:\Users\Corbin\repos\easy-meals\apps\crawler\src\EasyMeals.Crawler.Application\obj\Debug\net8.0\EasyMeals.Crawler.Application.csproj.AssemblyReference.cache
+C:\Users\Corbin\repos\easy-meals\apps\crawler\src\EasyMeals.Crawler.Application\obj\Debug\net8.0\EasyMeals.Crawler.Application.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\Corbin\repos\easy-meals\apps\crawler\src\EasyMeals.Crawler.Application\obj\Debug\net8.0\EasyMeals.Crawler.Application.AssemblyInfoInputs.cache
+C:\Users\Corbin\repos\easy-meals\apps\crawler\src\EasyMeals.Crawler.Application\obj\Debug\net8.0\EasyMeals.Crawler.Application.AssemblyInfo.cs
+C:\Users\Corbin\repos\easy-meals\apps\crawler\src\EasyMeals.Crawler.Application\obj\Debug\net8.0\EasyMeals.Crawler.Application.csproj.CoreCompileInputs.cache
+C:\Users\Corbin\repos\easy-meals\apps\crawler\src\EasyMeals.Crawler.Application\bin\Debug\net8.0\EasyMeals.Crawler.Application.deps.json
+C:\Users\Corbin\repos\easy-meals\apps\crawler\src\EasyMeals.Crawler.Application\bin\Debug\net8.0\EasyMeals.Crawler.Application.dll
+C:\Users\Corbin\repos\easy-meals\apps\crawler\src\EasyMeals.Crawler.Application\bin\Debug\net8.0\EasyMeals.Crawler.Application.pdb
+C:\Users\Corbin\repos\easy-meals\apps\crawler\src\EasyMeals.Crawler.Application\bin\Debug\net8.0\EasyMeals.Crawler.Domain.dll
+C:\Users\Corbin\repos\easy-meals\apps\crawler\src\EasyMeals.Crawler.Application\bin\Debug\net8.0\EasyMeals.Crawler.Domain.pdb
+C:\Users\Corbin\repos\easy-meals\apps\crawler\src\EasyMeals.Crawler.Application\obj\Debug\net8.0\EasyMeal.9364624F.Up2Date
+C:\Users\Corbin\repos\easy-meals\apps\crawler\src\EasyMeals.Crawler.Application\obj\Debug\net8.0\EasyMeals.Crawler.Application.dll
+C:\Users\Corbin\repos\easy-meals\apps\crawler\src\EasyMeals.Crawler.Application\obj\Debug\net8.0\refint\EasyMeals.Crawler.Application.dll
+C:\Users\Corbin\repos\easy-meals\apps\crawler\src\EasyMeals.Crawler.Application\obj\Debug\net8.0\EasyMeals.Crawler.Application.pdb
+C:\Users\Corbin\repos\easy-meals\apps\crawler\src\EasyMeals.Crawler.Application\obj\Debug\net8.0\ref\EasyMeals.Crawler.Application.dll
