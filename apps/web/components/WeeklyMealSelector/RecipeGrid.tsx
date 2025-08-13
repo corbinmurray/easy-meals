@@ -27,7 +27,7 @@ import {
   Search,
   X,
 } from "lucide-react";
-import { motion } from "motion/react";
+import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useMemo, useState } from "react";
 
 interface RecipeGridProps {
@@ -283,13 +283,18 @@ export default function RecipeGrid({
             <div className="flex items-center justify-between mb-3">
               <h4 className="text-sm font-medium">Filter by Tags</h4>
               {selectedTags.length > 0 && (
-                <button
+                <motion.button
                   onClick={() => setSelectedTags([])}
                   className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  initial={{ opacity: 0, x: 10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 10 }}
                 >
                   <X className="h-3 w-3" />
                   Clear all
-                </button>
+                </motion.button>
               )}
             </div>
 
@@ -345,9 +350,11 @@ export default function RecipeGrid({
 
               {/* Show more/less button */}
               {filteredTagData.length > 8 && (
-                <button
+                <motion.button
                   onClick={() => setShowAllTags(!showAllTags)}
                   className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 mt-2"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
                 >
                   {showAllTags ? (
                     <>
@@ -360,52 +367,68 @@ export default function RecipeGrid({
                       Show {filteredTagData.length - 8} more tags
                     </>
                   )}
-                </button>
+                </motion.button>
               )}
 
               {/* No tags found message */}
               {tagSearchTerm && filteredTagData.length === 0 && (
-                <p className="text-xs text-muted-foreground">
+                <motion.p
+                  className="text-xs text-muted-foreground"
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.2 }}
+                >
                   No tags found matching "{tagSearchTerm}"
-                </p>
+                </motion.p>
               )}
             </div>
           </motion.div>
         )}
       </div>
 
-      <div className="grid gap-6 grid-cols-[repeat(auto-fit,minmax(340px,1fr))] justify-center">
-        {paginatedRecipes.map((recipe, index) => {
-          const selected = isRecipeSelected(recipe.id);
-          const canSelect = selected || !maxSelectionsReached;
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={`${debouncedSearchTerm}-${selectedTags.join(",")}-${currentPage}`}
+          className="grid gap-6 grid-cols-[repeat(auto-fit,minmax(340px,1fr))] justify-center"
+          layout
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.2 }}
+        >
+          {paginatedRecipes.map((recipe, index) => {
+            const selected = isRecipeSelected(recipe.id);
+            const canSelect = selected || !maxSelectionsReached;
 
-          return (
-            <motion.div
-              key={recipe.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{
-                duration: 0.4,
-                delay: index * 0.05,
-                type: "spring",
-                stiffness: 300,
-                damping: 30,
-              }}
-              className={`${!canSelect ? "opacity-60 pointer-events-none" : ""}`}
-            >
-              <RecipeCard
-                recipe={recipe}
-                selected={selected}
-                onSelect={() => {
-                  if (canSelect) {
-                    onRecipeSelect(recipe.id);
-                  }
+            return (
+              <motion.div
+                key={recipe.id}
+                layout
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{
+                  duration: 0.4,
+                  delay: index * 0.03, // Slightly faster stagger for better responsiveness
+                  type: "spring",
+                  stiffness: 300,
+                  damping: 30,
                 }}
-              />
-            </motion.div>
-          );
-        })}
-      </div>
+                className={`${!canSelect ? "opacity-60 pointer-events-none" : ""}`}
+              >
+                <RecipeCard
+                  recipe={recipe}
+                  selected={selected}
+                  onSelect={() => {
+                    if (canSelect) {
+                      onRecipeSelect(recipe.id);
+                    }
+                  }}
+                />
+              </motion.div>
+            );
+          })}
+        </motion.div>
+      </AnimatePresence>
 
       {/* No results message */}
       {filteredRecipes.length === 0 && (
