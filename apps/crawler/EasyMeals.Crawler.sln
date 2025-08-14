@@ -1,7 +1,5 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{827E0CD3-B72D-47B6-A68D-7590B98EB39B}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EasyMeals.Crawler.Domain", "src\EasyMeals.Crawler.Domain\EasyMeals.Crawler.Domain.csproj", "{E24316DC-4901-4174-8809-23E4A401E13D}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EasyMeals.Crawler.Application", "src\EasyMeals.Crawler.Application\EasyMeals.Crawler.Application.csproj", "{6344668A-ABCE-4411-B9F6-95D33C67485E}"
@@ -73,9 +71,5 @@ Global
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
-		{E24316DC-4901-4174-8809-23E4A401E13D} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
-		{6344668A-ABCE-4411-B9F6-95D33C67485E} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
-		{A99CD1C3-4355-4E77-8043-2C56EFE9CD21} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
-		{D851F580-19C8-45F7-BEAA-321EDAD3ACDE} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 	EndGlobalSection
 EndGlobal
