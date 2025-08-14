@@ -69,12 +69,8 @@ public class CrawlOrchestrationService
             if (!discoveredUrls.Any())
             {
                 _logger.LogWarning("No recipe URLs discovered. Using fallback URLs for testing.");
-                // Fallback URLs for testing
-                discoveredUrls = new List<string>
-                {
-                    "https://www.hellofresh.com/recipes/winner-winner-chicken-orzo-dinner-5aaabf7530006c52b54bd0c2",
-                    "https://www.hellofresh.com/recipes/korean-beef-bibimbap-5ab3b883ae08b53bb4024952"
-                };
+
+                return currentState with { PendingUrls = [] };
             }
 
             _logger.LogInformation("Discovered {Count} recipe URLs", discoveredUrls.Count);
@@ -86,7 +82,7 @@ public class CrawlOrchestrationService
             _logger.LogError(ex, "Error discovering recipe URLs: {Message}", ex.Message);
 
             // Return current state with empty URLs if discovery fails
-            return currentState with { PendingUrls = new List<string>() };
+            return currentState with { PendingUrls = [] };
         }
     }
 
