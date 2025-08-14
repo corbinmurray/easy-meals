@@ -9,46 +9,31 @@ namespace EasyMeals.Crawler.Application.Services;
 ///     Application service that orchestrates the recipe crawling process
 ///     Coordinates between domain services and maintains crawl state
 /// </summary>
-public class CrawlOrchestrationService
+public class CrawlOrchestrationService(
+    ICrawlStateRepository crawlStateRepository,
+    IRecipeRepository recipeRepository,
+    IRecipeExtractor recipeExtractor,
+    IHelloFreshHttpService httpService,
+    ILogger<CrawlOrchestrationService> logger)
 {
-    private readonly ICrawlStateRepository _crawlStateRepository;
-    private readonly IHelloFreshHttpService _httpService;
-    private readonly ILogger<CrawlOrchestrationService> _logger;
-    private readonly IRecipeExtractor _recipeExtractor;
-    private readonly IRecipeRepository _recipeRepository;
-
-    public CrawlOrchestrationService(
-        ICrawlStateRepository crawlStateRepository,
-        IRecipeRepository recipeRepository,
-        IRecipeExtractor recipeExtractor,
-        IHelloFreshHttpService httpService,
-        ILogger<CrawlOrchestrationService> logger)
-    {
-        _crawlStateRepository = crawlStateRepository;
-        _recipeRepository = recipeRepository;
-        _recipeExtractor = recipeExtractor;
-        _httpService = httpService;
-        _logger = logger;
-    }
-
     /// <summary>
     ///     Starts or resumes a crawl session
     /// </summary>
     /// <param name="cancellationToken">Cancellation token</param>
     public async Task StartCrawlSessionAsync(CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Starting crawl session...");
+        logger.LogInformation("Starting crawl session...");
 
         // Load existing state or create new one
-        CrawlState crawlState = await _crawlStateRepository.LoadStateAsync(cancellationToken);
+        CrawlState crawlState = await crawlStateRepository.LoadStateAsync(cancellationToken);
 
         if (!crawlState.PendingUrls.Any())
         {
-            _logger.LogInformation("No pending URLs found. Discovering recipe URLs...");
+            logger.LogInformation("No pending URLs found. Discovering recipe URLs...");
             crawlState = await DiscoverRecipeUrlsAsync(crawlState, cancellationToken);
         }
 
-        _logger.LogInformation("Found {PendingCount} pending URLs to process", crawlState.PendingUrls.Count);
+        logger.LogInformation("Found {PendingCount} pending URLs to process", crawlState.PendingUrls.Count());
 
         // Process pending URLs
         await ProcessPendingUrlsAsync(crawlState, cancellationToken);
@@ -61,25 +46,25 @@ public class CrawlOrchestrationService
     {
         try
         {
-            _logger.LogInformation("Discovering recipe URLs from HelloFresh website...");
+            logger.LogInformation("Discovering recipe URLs from HelloFresh website...");
 
             // Use the HTTP service to discover URLs
-            List<string> discoveredUrls = await _httpService.DiscoverRecipeUrlsAsync(50, cancellationToken);
+            List<string> discoveredUrls = await httpService.DiscoverRecipeUrlsAsync(50, cancellationToken);
 
             if (!discoveredUrls.Any())
             {
-                _logger.LogWarning("No recipe URLs discovered. Using fallback URLs for testing.");
+                logger.LogWarning("No recipe URLs discovered. Using fallback URLs for testing.");
 
                 return currentState with { PendingUrls = [] };
             }
 
-            _logger.LogInformation("Discovered {Count} recipe URLs", discoveredUrls.Count);
+            logger.LogInformation("Discovered {Count} recipe URLs", discoveredUrls.Count);
 
             return currentState with { PendingUrls = discoveredUrls };
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error discovering recipe URLs: {Message}", ex.Message);
+            logger.LogError(ex, "Error discovering recipe URLs: {Message}", ex.Message);
 
             // Return current state with empty URLs if discovery fails
             return currentState with { PendingUrls = [] };
@@ -93,11 +78,11 @@ public class CrawlOrchestrationService
     {
         CrawlState currentState = crawlState;
 
-        foreach (string url in crawlState.PendingUrls.ToList())
+        foreach (string url in crawlState.PendingUrls)
         {
             if (cancellationToken.IsCancellationRequested)
             {
-                _logger.LogInformation("Crawl session cancelled. Saving current state...");
+                logger.LogInformation("Crawl session cancelled. Saving current state...");
                 break;
             }
 
@@ -106,41 +91,41 @@ public class CrawlOrchestrationService
                 Recipe? recipe = await ProcessSingleUrlAsync(url, cancellationToken);
                 if (recipe is not null)
                 {
-                    bool saved = await _recipeRepository.SaveRecipeAsync(recipe, cancellationToken);
+                    bool saved = await recipeRepository.SaveRecipeAsync(recipe, cancellationToken);
                     if (saved)
                     {
                         currentState = currentState.MarkAsCompleted(recipe.Id, url);
-                        _logger.LogInformation("Successfully processed recipe: {Title} ({Id})", recipe.Title, recipe.Id);
+                        logger.LogInformation("Successfully processed recipe: {Title} ({Id})", recipe.Title, recipe.Id);
                     }
                     else
                     {
                         currentState = currentState.MarkAsFailed(url);
-                        _logger.LogWarning("Failed to save recipe from URL: {Url}", url);
+                        logger.LogWarning("Failed to save recipe from URL: {Url}", url);
                     }
                 }
                 else
                 {
                     currentState = currentState.MarkAsFailed(url);
-                    _logger.LogWarning("Failed to extract recipe from URL: {Url}", url);
+                    logger.LogWarning("Failed to extract recipe from URL: {Url}", url);
                 }
             }
             catch (Exception ex)
             {
                 currentState = currentState.MarkAsFailed(url);
-                _logger.LogError(ex, "Error processing URL: {Url}", url);
+                logger.LogError(ex, "Error processing URL: {Url}", url);
             }
 
             // Save state periodically
-            await _crawlStateRepository.SaveStateAsync(currentState, cancellationToken);
+            await crawlStateRepository.SaveStateAsync(currentState, cancellationToken);
 
             // Note: The HTTP service handles rate limiting internally
             // No need for additional delays here
         }
 
         // Final state save
-        await _crawlStateRepository.SaveStateAsync(currentState, cancellationToken);
+        await crawlStateRepository.SaveStateAsync(currentState, cancellationToken);
 
-        _logger.LogInformation("Crawl session completed. Processed: {Total}, Successful: {Success}, Failed: {Failed}",
+        logger.LogInformation("Crawl session completed. Processed: {Total}, Successful: {Success}, Failed: {Failed}",
             currentState.TotalProcessed, currentState.TotalSuccessful, currentState.TotalFailed);
     }
 
@@ -151,24 +136,24 @@ public class CrawlOrchestrationService
     {
         try
         {
-            _logger.LogDebug("Fetching content from URL: {Url}", url);
+            logger.LogDebug("Fetching content from URL: {Url}", url);
 
             // Use the HTTP service to fetch HTML content
-            string? htmlContent = await _httpService.FetchRecipeHtmlAsync(url, cancellationToken);
+            string? htmlContent = await httpService.FetchRecipeHtmlAsync(url, cancellationToken);
 
             if (string.IsNullOrEmpty(htmlContent))
             {
-                _logger.LogWarning("No HTML content received for URL: {Url}", url);
+                logger.LogWarning("No HTML content received for URL: {Url}", url);
                 return null;
             }
 
             // Extract recipe from HTML content
-            Recipe? recipe = await _recipeExtractor.ExtractRecipeAsync(htmlContent, url, cancellationToken);
+            Recipe? recipe = await recipeExtractor.ExtractRecipeAsync(htmlContent, url, cancellationToken);
             return recipe;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to process URL: {Url}", url);
+            logger.LogError(ex, "Failed to process URL: {Url}", url);
             return null;
         }
     }

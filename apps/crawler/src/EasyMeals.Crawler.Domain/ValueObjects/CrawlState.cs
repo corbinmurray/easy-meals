@@ -5,23 +5,13 @@ namespace EasyMeals.Crawler.Domain.ValueObjects;
 /// </summary>
 public record CrawlState
 {
-    public List<string> PendingUrls { get; init; } = new();
-    public HashSet<string> CompletedRecipeIds { get; init; } = new();
-    public HashSet<string> FailedUrls { get; init; } = new();
+    public IEnumerable<string> PendingUrls { get; init; } = [];
+    public HashSet<string> CompletedRecipeIds { get; init; } = [];
+    public HashSet<string> FailedUrls { get; init; } = [];
     public DateTime LastCrawlTime { get; init; } = DateTime.MinValue;
     public int TotalProcessed { get; init; }
     public int TotalSuccessful { get; init; }
     public int TotalFailed { get; init; }
-
-    /// <summary>
-    ///     Creates a new crawl state with the provided pending URLs
-    /// </summary>
-    public static CrawlState Create(IEnumerable<string> pendingUrls) =>
-        new()
-        {
-            PendingUrls = pendingUrls.ToList(),
-            LastCrawlTime = DateTime.UtcNow
-        };
 
     /// <summary>
     ///     Marks a recipe as successfully processed
@@ -30,7 +20,7 @@ public record CrawlState
     {
         return this with
         {
-            CompletedRecipeIds = CompletedRecipeIds.Concat(new[] { recipeId }).ToHashSet(),
+            CompletedRecipeIds = CompletedRecipeIds.Concat([recipeId]).ToHashSet(),
             PendingUrls = PendingUrls.Where(u => u != url).ToList(),
             TotalProcessed = TotalProcessed + 1,
             TotalSuccessful = TotalSuccessful + 1,
@@ -45,7 +35,7 @@ public record CrawlState
     {
         return this with
         {
-            FailedUrls = FailedUrls.Concat(new[] { url }).ToHashSet(),
+            FailedUrls = FailedUrls.Concat([url]).ToHashSet(),
             PendingUrls = PendingUrls.Where(u => u != url).ToList(),
             TotalProcessed = TotalProcessed + 1,
             TotalFailed = TotalFailed + 1,

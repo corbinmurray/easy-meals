@@ -11,37 +11,30 @@ namespace EasyMeals.Crawler.Infrastructure.Persistence;
 ///     EF Core implementation of the crawler's ICrawlStateRepository
 ///     Bridges between the crawler's domain model and the shared data layer
 /// </summary>
-public class EfCoreCrawlStateRepositoryAdapter : ICrawlStateRepository
+public class EfCoreCrawlStateRepositoryAdapter(
+    ICrawlStateDataRepository dataRepository,
+    ILogger<EfCoreCrawlStateRepositoryAdapter> logger)
+    : ICrawlStateRepository
 {
     private const string SourceProvider = "HelloFresh";
-    private readonly ICrawlStateDataRepository _dataRepository;
-    private readonly ILogger<EfCoreCrawlStateRepositoryAdapter> _logger;
-
-    public EfCoreCrawlStateRepositoryAdapter(
-        ICrawlStateDataRepository dataRepository,
-        ILogger<EfCoreCrawlStateRepositoryAdapter> logger)
-    {
-        _dataRepository = dataRepository;
-        _logger = logger;
-    }
 
     /// <inheritdoc />
     public async Task<CrawlState> LoadStateAsync(CancellationToken cancellationToken = default)
     {
         try
         {
-            CrawlStateEntity? stateEntity = await _dataRepository.LoadStateAsync(SourceProvider, cancellationToken);
+            CrawlStateEntity? stateEntity = await dataRepository.LoadStateAsync(SourceProvider, cancellationToken);
 
             if (stateEntity is null)
             {
-                _logger.LogInformation("No existing crawl state found. Creating new state.");
+                logger.LogInformation("No existing crawl state found. Creating new state.");
                 return new CrawlState();
             }
 
             // Map from data entity to domain value object
-            List<string> pendingUrls = JsonSerializer.Deserialize<List<string>>(stateEntity.PendingUrlsJson) ?? new List<string>();
-            HashSet<string> completedIds = JsonSerializer.Deserialize<HashSet<string>>(stateEntity.CompletedRecipeIdsJson) ?? new HashSet<string>();
-            HashSet<string> failedUrls = JsonSerializer.Deserialize<HashSet<string>>(stateEntity.FailedUrlsJson) ?? new HashSet<string>();
+            List<string> pendingUrls = JsonSerializer.Deserialize<List<string>>(stateEntity.PendingUrlsJson) ?? [];
+            HashSet<string> completedIds = JsonSerializer.Deserialize<HashSet<string>>(stateEntity.CompletedRecipeIdsJson) ?? [];
+            HashSet<string> failedUrls = JsonSerializer.Deserialize<HashSet<string>>(stateEntity.FailedUrlsJson) ?? [];
 
             var state = new CrawlState
             {
@@ -54,14 +47,14 @@ public class EfCoreCrawlStateRepositoryAdapter : ICrawlStateRepository
                 TotalFailed = stateEntity.TotalFailed
             };
 
-            _logger.LogDebug("Loaded crawl state: {PendingCount} pending, {CompletedCount} completed, {FailedCount} failed",
-                state.PendingUrls.Count, state.CompletedRecipeIds.Count, state.FailedUrls.Count);
+            logger.LogDebug("Loaded crawl state: {PendingCount} pending, {CompletedCount} completed, {FailedCount} failed",
+                state.PendingUrls.Count(), state.CompletedRecipeIds.Count, state.FailedUrls.Count);
 
             return state;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error loading crawl state via shared data layer. Creating new state.");
+            logger.LogError(ex, "Error loading crawl state via shared data layer. Creating new state.");
             return new CrawlState();
         }
     }
@@ -86,18 +79,18 @@ public class EfCoreCrawlStateRepositoryAdapter : ICrawlStateRepository
                 UpdatedAt = DateTime.UtcNow
             };
 
-            bool result = await _dataRepository.SaveStateAsync(stateEntity, cancellationToken);
+            bool result = await dataRepository.SaveStateAsync(stateEntity, cancellationToken);
 
             if (result)
-                _logger.LogDebug("Successfully saved crawl state via shared data layer");
+                logger.LogDebug("Successfully saved crawl state via shared data layer");
             else
-                _logger.LogWarning("Failed to save crawl state via shared data layer");
+                logger.LogWarning("Failed to save crawl state via shared data layer");
 
             return result;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error saving crawl state via shared data layer");
+            logger.LogError(ex, "Error saving crawl state via shared data layer");
             return false;
         }
     }

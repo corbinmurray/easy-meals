@@ -45,6 +45,7 @@ public class HelloFreshHttpService : IHelloFreshHttpService
         // Set standard browser headers - but let HttpClient handle compression automatically
         _httpClient.DefaultRequestHeaders.Add("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8");
         _httpClient.DefaultRequestHeaders.Add("Accept-Language", "en-US,en;q=0.9");
+        
         // Don't set Accept-Encoding manually - let HttpClientHandler manage this
         _httpClient.DefaultRequestHeaders.Add("Cache-Control", "no-cache");
         _httpClient.DefaultRequestHeaders.Add("Pragma", "no-cache");
@@ -59,7 +60,7 @@ public class HelloFreshHttpService : IHelloFreshHttpService
     /// <inheritdoc />
     public async Task<string?> FetchRecipeHtmlAsync(string recipeUrl, CancellationToken cancellationToken = default)
     {
-        if (!IsValidHelloFreshUrl(recipeUrl))
+        if (!IsValidHelloFreshUrl(recipeUrl) && !IsValidHelloFreshCategoryUrl(recipeUrl))
         {
             _logger.LogWarning("Invalid HelloFresh URL: {Url}", recipeUrl);
             return null;
@@ -389,17 +390,36 @@ public class HelloFreshHttpService : IHelloFreshHttpService
                 return false;
             
             string recipePath = pathSegments[1];
-
-            // Individual recipes often have IDs or are longer descriptive names
-            // Category pages are usually shorter and more generic
-            return recipePath.Length > 10 || // Longer descriptive names
-                   char.IsDigit(recipePath[^1]) || // Ends with a number (ID)
-                   (recipePath.Contains('-') && recipePath.Length > 15); // Long hyphenated names
+            string potentialId = recipePath.Split("-")[^1];
+            
+            // Check if individual recipe by looking for a hexadecimal ID
+            // HelloFresh uses hexadecimal IDs (like MongoDB ObjectIds) that are typically 24 characters
+            // but could be other lengths. Check if it's a valid hex string with reasonable length.
+            return IsValidHexadecimalId(potentialId);
         }
         catch
         {
             return false;
         }
+    }
+
+    /// <summary>
+    ///     Validates if a string is a valid hexadecimal identifier (like MongoDB ObjectId or similar)
+    /// </summary>
+    /// <param name="id">The ID string to validate</param>
+    /// <returns>True if the string is a valid hexadecimal ID with reasonable length</returns>
+    private static bool IsValidHexadecimalId(string id)
+    {
+        if (string.IsNullOrWhiteSpace(id))
+            return false;
+        
+        // Check length - most hex IDs are between 16-32 characters
+        // MongoDB ObjectIds are 24 characters, UUIDs without hyphens are 32
+        if (id.Length < 16 || id.Length > 32)
+            return false;
+        
+        // Check if all characters are valid hexadecimal
+        return id.All(c => char.IsAsciiHexDigit(c));
     }
 
     /// <summary>
@@ -468,7 +488,7 @@ public class HelloFreshHttpService : IHelloFreshHttpService
     /// </summary>
     private List<string> ExtractRecipeUrlsFromHtml(string htmlContent)
     {
-        var urls = new List<string>();
+        var urls = new HashSet<string>();
 
         try
         {
@@ -519,7 +539,8 @@ public class HelloFreshHttpService : IHelloFreshHttpService
                     string cleanUrl = CleanUrl(href);
 
                     // Validate and add unique URLs (only individual recipes, not categories)
-                    if (IsValidHelloFreshUrl(cleanUrl) && !urls.Contains(cleanUrl)) urls.Add(cleanUrl);
+                    if (IsValidHelloFreshUrl(cleanUrl)) 
+                        urls.Add(cleanUrl);
                 }
             }
 
@@ -555,13 +576,13 @@ public class HelloFreshHttpService : IHelloFreshHttpService
             _logger.LogError(ex, "Error extracting recipe URLs from HTML: {Message}", ex.Message);
         }
 
-        return urls;
+        return urls.ToList();
     }
 
     /// <summary>
     ///     Extracts URLs from JSON-LD structured data in the HTML
     /// </summary>
-    private void ExtractUrlsFromJsonLd(HtmlDocument doc, List<string> urls)
+    private void ExtractUrlsFromJsonLd(HtmlDocument doc, HashSet<string> urls)
     {
         try
         {
@@ -574,7 +595,7 @@ public class HelloFreshHttpService : IHelloFreshHttpService
                 if (string.IsNullOrWhiteSpace(jsonContent)) continue;
 
                 // Look for URL patterns in JSON-LD that might be recipe URLs
-                var urlPattern = @"""url"":\s*""([^""]*recipes/[^""]+)""";
+                const string urlPattern = @"""url"":\s*""([^""]*recipes/[^""]+)""";
                 MatchCollection matches = Regex.Matches(jsonContent, urlPattern, RegexOptions.IgnoreCase);
 
                 foreach (Match match in matches)
@@ -582,11 +603,11 @@ public class HelloFreshHttpService : IHelloFreshHttpService
                     string url = match.Groups[1].Value;
                     string cleanUrl = CleanUrl(url);
 
-                    if (IsValidHelloFreshUrl(cleanUrl) && !urls.Contains(cleanUrl))
-                    {
-                        urls.Add(cleanUrl);
-                        _logger.LogDebug("Found recipe URL in JSON-LD: {Url}", cleanUrl);
-                    }
+                    if (!IsValidHelloFreshUrl(cleanUrl)) continue;
+                    
+                    _logger.LogDebug("Found recipe URL in JSON-LD: {Url}", cleanUrl);
+                    
+                    urls.Add(cleanUrl);
                 }
             }
         }
