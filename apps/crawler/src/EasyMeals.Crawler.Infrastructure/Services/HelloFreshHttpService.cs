@@ -43,9 +43,10 @@ public class HelloFreshHttpService : IHelloFreshHttpService
         _httpClient.DefaultRequestHeaders.Clear();
 
         // Set standard browser headers - but let HttpClient handle compression automatically
-        _httpClient.DefaultRequestHeaders.Add("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8");
+        _httpClient.DefaultRequestHeaders.Add("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7");
         _httpClient.DefaultRequestHeaders.Add("Accept-Language", "en-US,en;q=0.9");
-        
+        _httpClient.DefaultRequestHeaders.Add("Accept-Encoding", "gzip, deflate, br");
+
         // Don't set Accept-Encoding manually - let HttpClientHandler manage this
         _httpClient.DefaultRequestHeaders.Add("Cache-Control", "no-cache");
         _httpClient.DefaultRequestHeaders.Add("Pragma", "no-cache");
@@ -54,13 +55,16 @@ public class HelloFreshHttpService : IHelloFreshHttpService
         _httpClient.DefaultRequestHeaders.Add("Sec-Fetch-Site", "none");
         _httpClient.DefaultRequestHeaders.Add("Sec-Fetch-User", "?1");
         _httpClient.DefaultRequestHeaders.Add("Upgrade-Insecure-Requests", "1");
+        _httpClient.DefaultRequestHeaders.Add("sec-ch-ua", "\"Chromium\";v=\"130\", \"Google Chrome\";v=\"130\", \"Not?A_Brand\";v=\"99\"");
+        _httpClient.DefaultRequestHeaders.Add("sec-ch-ua-mobile", "?0");
+        _httpClient.DefaultRequestHeaders.Add("sec-ch-ua-platform", "\"Windows\"");
         _httpClient.DefaultRequestHeaders.Add("DNT", "1");
     }
 
     /// <inheritdoc />
     public async Task<string?> FetchRecipeHtmlAsync(string recipeUrl, CancellationToken cancellationToken = default)
     {
-        if (!IsValidHelloFreshUrl(recipeUrl) && !IsValidHelloFreshCategoryUrl(recipeUrl))
+        if (!IsValidHelloFreshRecipeUrl(recipeUrl) && !IsValidHelloFreshCategoryUrl(recipeUrl))
         {
             _logger.LogWarning("Invalid HelloFresh URL: {Url}", recipeUrl);
             return null;
@@ -206,41 +210,23 @@ public class HelloFreshHttpService : IHelloFreshHttpService
     /// <inheritdoc />
     public async Task<List<string>> DiscoverRecipeUrlsAsync(int maxResults = 50, CancellationToken cancellationToken = default)
     {
-        var discoveredUrls = new HashSet<string>(); // Use HashSet to avoid duplicates
+        var discoveredRecipes = new HashSet<string>();
 
         try
         {
-            _logger.LogDebug("Discovering HelloFresh recipe URLs using multi-level strategy, max results: {MaxResults}", maxResults);
+            _logger.LogDebug("Discovering HelloFresh recipe URLs using breadth-first search with recipe priority, max results: {MaxResults}", maxResults);
 
-            // Strategy 1: Start with the main recipes page
-            await DiscoverFromPage(HelloFreshRecipeDiscoveryUrl, discoveredUrls, cancellationToken);
+            // Use breadth-first search with recipe priority
+            await PerformBreadthFirstSearchAsync(HelloFreshRecipeDiscoveryUrl, discoveredRecipes, maxResults, cancellationToken);
 
-            // Strategy 2: Discover and crawl category pages
-            List<string> categoryUrls = await DiscoverCategoryUrlsAsync(cancellationToken);
+            _logger.LogDebug("Discovered {Count} total recipe URLs using breadth-first search", discoveredRecipes.Count);
 
-            _logger.LogDebug("Found {CategoryCount} category pages to explore", categoryUrls.Count);
-
-            // Crawl each category page for more recipes
-            foreach (string categoryUrl in categoryUrls)
-            {
-                if (discoveredUrls.Count >= maxResults)
-                    break;
-
-                await DiscoverFromPage(categoryUrl, discoveredUrls, cancellationToken);
-
-                // Add small delay between category pages to be respectful
-                await Task.Delay(500, cancellationToken);
-            }
-
-            _logger.LogDebug("Discovered {Count} total recipe URLs from {CategoryCount} category pages",
-                discoveredUrls.Count, categoryUrls.Count + 1);
-
-            return discoveredUrls.Take(maxResults).ToList();
+            return discoveredRecipes.Take(maxResults).ToList();
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error discovering recipe URLs: {Message}", ex.Message);
-            return discoveredUrls.Take(maxResults).ToList();
+            return discoveredRecipes.Take(maxResults).ToList();
         }
     }
 
@@ -254,127 +240,136 @@ public class HelloFreshHttpService : IHelloFreshHttpService
     }
 
     /// <summary>
-    ///     Discovers category URLs from the main recipes page
+    ///     Performs breadth-first search with recipe priority to discover recipe URLs efficiently
     /// </summary>
-    private async Task<List<string>> DiscoverCategoryUrlsAsync(CancellationToken cancellationToken = default)
+    /// <param name="startUrl">The starting URL (root or category page)</param>
+    /// <param name="discoveredRecipes">Collection to store discovered recipe URLs</param>
+    /// <param name="maxResults">Maximum number of recipes to discover</param>
+    /// <param name="cancellationToken">Cancellation token for graceful shutdown</param>
+    private async Task PerformBreadthFirstSearchAsync(
+        string startUrl,
+        HashSet<string> discoveredRecipes,
+        int maxResults,
+        CancellationToken cancellationToken)
     {
-        var categoryUrls = new List<string>();
+        var pagesToVisit = new Queue<(string Url, int Depth)>();
+        var visitedPages = new HashSet<string>();
+        const int maxDepth = 3; // Limit category depth to prevent infinite exploration
 
-        try
+        pagesToVisit.Enqueue((startUrl, 0));
+
+        _logger.LogInformation("BFS: Starting breadth-first search from {StartUrl} with max depth {MaxDepth}",
+            startUrl, maxDepth);
+
+        while (pagesToVisit.Count > 0 && discoveredRecipes.Count < maxResults && !cancellationToken.IsCancellationRequested)
         {
-            _logger.LogDebug("Discovering category URLs from main recipes page");
+            (string currentPageUrl, int currentDepth) = pagesToVisit.Dequeue();
 
-            string? mainPageContent = await FetchRecipeHtmlAsync("https://www.hellofresh.com/recipes", cancellationToken);
-            if (string.IsNullOrEmpty(mainPageContent))
+            // Skip if we've already visited this page or exceeded max depth
+            if (!visitedPages.Add(currentPageUrl) || currentDepth > maxDepth)
+                continue;
+
+            _logger.LogDebug("BFS: Exploring page {PageUrl} at depth {Depth} (recipes found: {RecipeCount}/{MaxResults})",
+                currentPageUrl, currentDepth, discoveredRecipes.Count, maxResults);
+
+            try
             {
-                _logger.LogWarning("Could not fetch main recipes page for category discovery");
-                return categoryUrls;
-            }
-
-            var doc = new HtmlDocument();
-            doc.LoadHtml(mainPageContent);
-
-            // Look for category links - these are typically in navigation menus or filter sections
-            var selectors = new[]
-            {
-                "//a[contains(@href, '/recipes/') and not(contains(@href, '/recipes/recipes'))]/@href", // Category links
-                "//nav//a[contains(@href, '/recipes/')]/@href", // Navigation links
-                "//div[contains(@class, 'filter') or contains(@class, 'category')]//a[contains(@href, '/recipes/')]/@href", // Filter/category sections
-                "//a[contains(@href, 'recipes') and (contains(text(), 'recipes') or contains(@aria-label, 'recipes'))]/@href" // Fallback
-            };
-
-            foreach (string selector in selectors)
-            {
-                HtmlNodeCollection nodes = doc.DocumentNode.SelectNodes(selector);
-                if (nodes is null) continue;
-
-                foreach (HtmlNode node in nodes)
+                // Fetch page content
+                string? pageContent = await FetchRecipeHtmlAsync(currentPageUrl, cancellationToken);
+                if (string.IsNullOrEmpty(pageContent))
                 {
-                    string? href = node.GetAttributeValue("href", null);
-                    if (string.IsNullOrEmpty(href)) continue;
+                    _logger.LogWarning("BFS: Could not fetch content from {PageUrl}", currentPageUrl);
+                    continue;
+                }
 
-                    string cleanUrl = CleanUrl(href);
+                // Extract URLs from current page - prioritize recipes over categories
+                List<string> extractedUrls = ExtractAllUrlsFromHtml(pageContent, maxResults - discoveredRecipes.Count);
 
-                    // Only add if it's a valid category URL and not already discovered
-                    if (IsValidHelloFreshCategoryUrl(cleanUrl) &&
-                        !categoryUrls.Contains(cleanUrl) &&
-                        cleanUrl != "https://www.hellofresh.com/recipes") // Skip main page
-                        categoryUrls.Add(cleanUrl);
+                // PHASE 1: Collect ALL recipes from this page first (Recipe Priority!)
+                var newRecipes = new List<string>();
+                var newCategoryPages = new List<string>();
+
+                foreach (string url in extractedUrls)
+                {
+                    if (IsValidHelloFreshRecipeUrl(url) && discoveredRecipes.Add(url))
+                    {
+                        newRecipes.Add(url);
+                        _logger.LogDebug("BFS: Found new recipe: {RecipeUrl}", url);
+
+                        // Early termination if we've reached our target
+                        if (discoveredRecipes.Count >= maxResults)
+                        {
+                            _logger.LogInformation("BFS: Reached target of {MaxResults} recipes at depth {Depth}",
+                                maxResults, currentDepth);
+                            return;
+                        }
+                    }
+                    else if (IsValidHelloFreshCategoryUrl(url) && !visitedPages.Contains(url) && currentDepth < maxDepth)
+                    {
+                        newCategoryPages.Add(url);
+                    }
+                }
+
+                _logger.LogInformation("BFS: From {PageUrl} (depth {Depth}) found {RecipeCount} recipes, {CategoryCount} new category pages",
+                    currentPageUrl, currentDepth, newRecipes.Count, newCategoryPages.Count);
+
+                // PHASE 2: Only add category pages to queue if we still need more recipes
+                if (discoveredRecipes.Count < maxResults && currentDepth < maxDepth)
+                {
+                    foreach (string categoryUrl in newCategoryPages)
+                    {
+                        pagesToVisit.Enqueue((categoryUrl, currentDepth + 1));
+                    }
+
+                    _logger.LogDebug("BFS: Added {CategoryCount} category pages to queue for depth {NextDepth}",
+                        newCategoryPages.Count, currentDepth + 1);
+                }
+                else if (discoveredRecipes.Count >= maxResults)
+                {
+                    _logger.LogInformation("BFS: Target reached, skipping category exploration");
+                    break;
+                }
+                else if (currentDepth >= maxDepth)
+                {
+                    _logger.LogDebug("BFS: Max depth reached, skipping deeper category exploration");
                 }
             }
-
-            // Add some common category URLs that might not be in navigation
-            var commonCategories = new[]
+            catch (Exception ex)
             {
-                "https://www.hellofresh.com/recipes/quick-easy",
-                "https://www.hellofresh.com/recipes/vegetarian",
-                "https://www.hellofresh.com/recipes/american-recipes",
-                "https://www.hellofresh.com/recipes/italian-recipes",
-                "https://www.hellofresh.com/recipes/mexican-recipes",
-                "https://www.hellofresh.com/recipes/asian-recipes",
-                "https://www.hellofresh.com/recipes/mediterranean-recipes",
-                "https://www.hellofresh.com/recipes/comfort-food",
-                "https://www.hellofresh.com/recipes/healthy-recipes",
-                "https://www.hellofresh.com/recipes/family-friendly"
-            };
-
-            foreach (string categoryUrl in commonCategories)
-            {
-                if (!categoryUrls.Contains(categoryUrl)) categoryUrls.Add(categoryUrl);
+                _logger.LogWarning(ex, "BFS: Error processing page {PageUrl}: {Message}", currentPageUrl, ex.Message);
+                // Continue with next page rather than failing completely
             }
-
-            _logger.LogDebug("Discovered {Count} category URLs", categoryUrls.Count);
-            return categoryUrls;
         }
-        catch (Exception ex)
+
+        // Log final results
+        if (cancellationToken.IsCancellationRequested)
         {
-            _logger.LogError(ex, "Error discovering category URLs: {Message}", ex.Message);
-            return categoryUrls;
+            _logger.LogInformation("BFS: Search cancelled gracefully. Found {RecipeCount} recipes before cancellation",
+                discoveredRecipes.Count);
         }
-    }
-
-    /// <summary>
-    ///     Discovers recipe URLs from a specific page (could be main page or category page)
-    /// </summary>
-    private async Task DiscoverFromPage(string pageUrl, HashSet<string> discoveredUrls, CancellationToken cancellationToken)
-    {
-        try
+        else if (discoveredRecipes.Count >= maxResults)
         {
-            _logger.LogDebug("Discovering recipes from page: {PageUrl}", pageUrl);
-
-            string? pageContent = await FetchRecipeHtmlAsync(pageUrl, cancellationToken);
-            
-            if (string.IsNullOrEmpty(pageContent))
-            {
-                _logger.LogWarning("Could not fetch content from page: {PageUrl}", pageUrl);
-                return;
-            }
-
-            List<string> urls = ExtractRecipeUrlsFromHtml(pageContent);
-            
-            int newUrls = urls.Count(discoveredUrls.Add);
-
-            _logger.LogDebug("Found {NewUrls} new recipe URLs from {PageUrl} (total: {TotalUrls})",
-                newUrls, pageUrl, discoveredUrls.Count);
+            _logger.LogInformation("BFS: Successfully reached target of {MaxResults} recipes", maxResults);
         }
-        catch (Exception ex)
+        else
         {
-            _logger.LogWarning(ex, "Error discovering recipes from page {PageUrl}: {Message}", pageUrl, ex.Message);
+            _logger.LogInformation("BFS: Exhausted all pages up to depth {MaxDepth}. Found {RecipeCount} recipes total",
+                maxDepth, discoveredRecipes.Count);
         }
     }
 
     /// <summary>
     ///     Validates if the URL is a valid HelloFresh recipe URL (individual recipe, not category)
     /// </summary>
-    private static bool IsValidHelloFreshUrl(string url)
+    private static bool IsValidHelloFreshRecipeUrl(string url)
     {
-        if (string.IsNullOrWhiteSpace(url)) 
+        if (string.IsNullOrWhiteSpace(url))
             return false;
 
         try
         {
             var uri = new Uri(url);
-            
+
             if (!uri.Host.EndsWith("hellofresh.com", StringComparison.OrdinalIgnoreCase) ||
                 !uri.AbsolutePath.StartsWith("/recipes", StringComparison.OrdinalIgnoreCase))
                 return false;
@@ -386,12 +381,12 @@ public class HelloFreshHttpService : IHelloFreshHttpService
 
             // Individual recipes should have at least 2 segments: ["recipes", "recipe-name"]
             // and the recipe name usually contains numbers/IDs or is longer
-            if (pathSegments.Length < 2 || pathSegments[0] != "recipes") 
+            if (pathSegments.Length < 2 || pathSegments[0] != "recipes")
                 return false;
-            
+
             string recipePath = pathSegments[1];
             string potentialId = recipePath.Split("-")[^1];
-            
+
             // Check if individual recipe by looking for a hexadecimal ID
             // HelloFresh uses hexadecimal IDs (like MongoDB ObjectIds) that are typically 24 characters
             // but could be other lengths. Check if it's a valid hex string with reasonable length.
@@ -412,12 +407,12 @@ public class HelloFreshHttpService : IHelloFreshHttpService
     {
         if (string.IsNullOrWhiteSpace(id))
             return false;
-        
+
         // Check length - most hex IDs are between 16-32 characters
         // MongoDB ObjectIds are 24 characters, UUIDs without hyphens are 32
         if (id.Length < 16 || id.Length > 32)
             return false;
-        
+
         // Check if all characters are valid hexadecimal
         return id.All(c => char.IsAsciiHexDigit(c));
     }
@@ -432,7 +427,7 @@ public class HelloFreshHttpService : IHelloFreshHttpService
         try
         {
             var uri = new Uri(url);
-            
+
             if (!uri.Host.EndsWith("hellofresh.com", StringComparison.OrdinalIgnoreCase) ||
                 !uri.AbsolutePath.StartsWith("/recipes", StringComparison.OrdinalIgnoreCase))
                 return false;
@@ -444,7 +439,7 @@ public class HelloFreshHttpService : IHelloFreshHttpService
             // /recipes/vegetarian
             // But exclude individual recipe URLs
             return uri.AbsolutePath == "/recipes" ||
-                   (uri.AbsolutePath.StartsWith("/recipes/") && !IsValidHelloFreshUrl(url));
+                   (uri.AbsolutePath.StartsWith("/recipes/") && !IsValidHelloFreshRecipeUrl(url));
         }
         catch
         {
@@ -484,9 +479,12 @@ public class HelloFreshHttpService : IHelloFreshHttpService
     }
 
     /// <summary>
-    ///     Extracts recipe URLs from HTML content using HtmlAgilityPack
+    ///     Extracts all recipe and category URLs from HTML content using HtmlAgilityPack
     /// </summary>
-    private List<string> ExtractRecipeUrlsFromHtml(string htmlContent)
+    /// <param name="htmlContent">The HTML content to parse</param>
+    /// <param name="maxUrls">Maximum number of URLs to extract</param>
+    /// <returns>List of discovered URLs (both recipes and categories)</returns>
+    private List<string> ExtractAllUrlsFromHtml(string htmlContent, int maxUrls = 50)
     {
         var urls = new HashSet<string>();
 
@@ -494,6 +492,25 @@ public class HelloFreshHttpService : IHelloFreshHttpService
         {
             var doc = new HtmlDocument();
             doc.LoadHtml(htmlContent);
+
+            // Debug: Log some info about the page structure
+            HtmlNodeCollection? allLinks = doc.DocumentNode.SelectNodes("//a[@href]");
+            HtmlNodeCollection? recipeLinks = doc.DocumentNode.SelectNodes("//a[contains(@href, '/recipes/')]");
+
+            _logger.LogDebug("URL Extraction Debug: Found {AllLinks} total links, {RecipeLinks} recipe-related links",
+                allLinks?.Count ?? 0, recipeLinks?.Count ?? 0);
+
+            // Check if this looks like a JavaScript-heavy page
+            bool hasReactOrNext = htmlContent.Contains("__NEXT_DATA__") || htmlContent.Contains("React") ||
+                                  htmlContent.Contains("_app") || htmlContent.Contains("chunk");
+
+            if (hasReactOrNext)
+            {
+                _logger.LogWarning("Detected JavaScript framework (React/Next.js) - content may be dynamically loaded");
+
+                // Try to extract URLs from __NEXT_DATA__ if present
+                ExtractUrlsFromNextData(htmlContent, urls);
+            }
 
             // Look for recipe links using multiple comprehensive selectors
             var selectors = new[]
@@ -520,6 +537,9 @@ public class HelloFreshHttpService : IHelloFreshHttpService
 
             foreach (string selector in selectors)
             {
+                if (urls.Count >= maxUrls)
+                    break;
+
                 if (selector.Contains("script[@type='application/ld+json']"))
                 {
                     // Special handling for JSON-LD structured data
@@ -530,17 +550,26 @@ public class HelloFreshHttpService : IHelloFreshHttpService
                 HtmlNodeCollection nodes = doc.DocumentNode.SelectNodes(selector);
                 if (nodes is null) continue;
 
+                _logger.LogDebug("Selector '{Selector}' found {Count} nodes", selector, nodes.Count);
+
                 foreach (HtmlNode node in nodes)
                 {
+                    if (urls.Count >= maxUrls)
+                        break;
+
                     string? href = node.GetAttributeValue("href", null);
                     if (string.IsNullOrEmpty(href)) continue;
 
                     // Clean up the URL
                     string cleanUrl = CleanUrl(href);
 
-                    // Validate and add unique URLs (only individual recipes, not categories)
-                    if (IsValidHelloFreshUrl(cleanUrl)) 
+                    // Add any valid HelloFresh URL (both recipes and categories)
+                    if (IsValidHelloFreshRecipeUrl(cleanUrl) || IsValidHelloFreshCategoryUrl(cleanUrl))
+                    {
                         urls.Add(cleanUrl);
+                        _logger.LogDebug("Added URL: {Url} (Recipe: {IsRecipe})",
+                            cleanUrl, IsValidHelloFreshRecipeUrl(cleanUrl));
+                    }
                 }
             }
 
@@ -557,26 +586,101 @@ public class HelloFreshHttpService : IHelloFreshHttpService
 
                 foreach (string pattern in patterns)
                 {
+                    if (urls.Count >= maxUrls)
+                        break;
+
                     MatchCollection matches = Regex.Matches(htmlContent, pattern, RegexOptions.IgnoreCase);
+                    _logger.LogDebug("Regex pattern '{Pattern}' found {Count} matches", pattern, matches.Count);
 
                     foreach (Match match in matches)
                     {
+                        if (urls.Count >= maxUrls)
+                            break;
+
                         string url = match.Groups[1].Value;
                         string cleanUrl = CleanUrl(url);
 
-                        if (IsValidHelloFreshUrl(cleanUrl) && !urls.Contains(cleanUrl)) urls.Add(cleanUrl);
+                        if (IsValidHelloFreshRecipeUrl(cleanUrl) || IsValidHelloFreshCategoryUrl(cleanUrl))
+                        {
+                            urls.Add(cleanUrl);
+                            _logger.LogDebug("Added URL from regex: {Url}", cleanUrl);
+                        }
                     }
                 }
             }
 
-            _logger.LogDebug("Extracted {Count} recipe URLs from HTML", urls.Count);
+            _logger.LogDebug("Extracted {Count} URLs from HTML (Recipes: {RecipeCount}, Categories: {CategoryCount})",
+                urls.Count,
+                urls.Count(u => IsValidHelloFreshRecipeUrl(u)),
+                urls.Count(u => IsValidHelloFreshCategoryUrl(u)));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error extracting recipe URLs from HTML: {Message}", ex.Message);
+            _logger.LogError(ex, "Error extracting URLs from HTML: {Message}", ex.Message);
         }
 
         return urls.ToList();
+    }
+
+    /// <summary>
+    ///     Extracts URLs from __NEXT_DATA__ JSON embedded in Next.js pages
+    /// </summary>
+    private void ExtractUrlsFromNextData(string htmlContent, HashSet<string> urls)
+    {
+        try
+        {
+            // Look for __NEXT_DATA__ script tag
+            const string nextDataPattern = @"<script\s+id=""__NEXT_DATA__""[^>]*>(.*?)</script>";
+            Match nextDataMatch = Regex.Match(htmlContent, nextDataPattern, RegexOptions.IgnoreCase | RegexOptions.Singleline);
+
+            if (!nextDataMatch.Success)
+            {
+                _logger.LogDebug("No __NEXT_DATA__ found in page");
+                return;
+            }
+
+            string jsonContent = nextDataMatch.Groups[1].Value;
+            if (string.IsNullOrWhiteSpace(jsonContent))
+            {
+                _logger.LogDebug("Empty __NEXT_DATA__ content");
+                return;
+            }
+
+            // Look for recipe URLs in the JSON data
+            var urlPatterns = new[]
+            {
+                @"""href"":\s*""([^""]*recipes/[^""]+)""",  // href properties
+                @"""url"":\s*""([^""]*recipes/[^""]+)""",   // url properties  
+                @"""slug"":\s*""([^""]*recipes/[^""]+)""",  // slug properties
+                @"""path"":\s*""([^""]*recipes/[^""]+)""",  // path properties
+                @"""link"":\s*""([^""]*recipes/[^""]+)""",  // link properties
+                @"""to"":\s*""([^""]*recipes/[^""]+)""",    // navigation to properties
+                @"""pathname"":\s*""([^""]*recipes/[^""]+)""" // pathname properties
+            };
+
+            foreach (string pattern in urlPatterns)
+            {
+                MatchCollection matches = Regex.Matches(jsonContent, pattern, RegexOptions.IgnoreCase);
+
+                foreach (Match match in matches)
+                {
+                    string url = match.Groups[1].Value;
+                    string cleanUrl = CleanUrl(url);
+
+                    if (IsValidHelloFreshRecipeUrl(cleanUrl) || IsValidHelloFreshCategoryUrl(cleanUrl))
+                    {
+                        urls.Add(cleanUrl);
+                        _logger.LogDebug("Found URL in __NEXT_DATA__: {Url}", cleanUrl);
+                    }
+                }
+            }
+
+            _logger.LogDebug("Extracted {Count} URLs from __NEXT_DATA__", urls.Count);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Error extracting URLs from __NEXT_DATA__: {Message}", ex.Message);
+        }
     }
 
     /// <summary>
@@ -603,10 +707,10 @@ public class HelloFreshHttpService : IHelloFreshHttpService
                     string url = match.Groups[1].Value;
                     string cleanUrl = CleanUrl(url);
 
-                    if (!IsValidHelloFreshUrl(cleanUrl)) continue;
-                    
+                    if (!IsValidHelloFreshRecipeUrl(cleanUrl)) continue;
+
                     _logger.LogDebug("Found recipe URL in JSON-LD: {Url}", cleanUrl);
-                    
+
                     urls.Add(cleanUrl);
                 }
             }
