@@ -8,11 +8,8 @@ namespace EasyMeals.Shared.Data.Repositories;
 /// EF Core implementation of ICrawlStateRepository
 /// Provides optimized operations for crawl state management and monitoring
 /// </summary>
-public class CrawlStateRepository : Repository<CrawlStateEntity>, ICrawlStateRepository
+public class CrawlStateRepository(EasyMealsDbContext context) : Repository<CrawlStateEntity>(context), Repository<CrawlStateEntity>, ICrawlStateRepository
 {
-    public CrawlStateRepository(EasyMealsDbContext context) : base(context)
-    {
-    }
 
     /// <inheritdoc />
     public async Task<CrawlStateEntity?> GetBySourceProviderAsync(string sourceProvider, CancellationToken cancellationToken = default)

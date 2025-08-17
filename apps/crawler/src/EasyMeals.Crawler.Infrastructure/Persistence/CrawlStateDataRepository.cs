@@ -1,9 +1,9 @@
 using System.Text.Json;
-using EasyMeals.Crawler.Domain.Interfaces;
 using EasyMeals.Crawler.Domain.ValueObjects;
 using EasyMeals.Shared.Data.Entities;
 using EasyMeals.Shared.Data.Repositories;
 using Microsoft.Extensions.Logging;
+using ICrawlStateRepository = EasyMeals.Shared.Data.Repositories.ICrawlStateRepository;
 
 namespace EasyMeals.Crawler.Infrastructure.Persistence;
 
@@ -12,47 +12,37 @@ namespace EasyMeals.Crawler.Infrastructure.Persistence;
 /// Bridges between the crawler's domain model and the shared data infrastructure
 /// Follows domain-focused naming conventions while maintaining clean architecture
 /// </summary>
-public class CrawlStateDataRepository : EasyMeals.Crawler.Domain.Interfaces.ICrawlStateRepository
+public class CrawlStateDataRepository(
+    ICrawlStateRepository sharedRepository,
+    IUnitOfWork unitOfWork,
+    ILogger<CrawlStateDataRepository> logger) : EasyMeals.Crawler.Domain.Interfaces.ICrawlStateRepository
 {
-    private readonly EasyMeals.Shared.Data.Repositories.ICrawlStateRepository _sharedRepository;
-    private readonly IUnitOfWork _unitOfWork;
-    private readonly ILogger<CrawlStateDataRepository> _logger;
     private const string SourceProvider = "HelloFresh";
-
-    public CrawlStateDataRepository(
-        EasyMeals.Shared.Data.Repositories.ICrawlStateRepository sharedRepository,
-        IUnitOfWork unitOfWork,
-        ILogger<CrawlStateDataRepository> logger)
-    {
-        _sharedRepository = sharedRepository;
-        _unitOfWork = unitOfWork;
-        _logger = logger;
-    }
 
     /// <inheritdoc />
     public async Task<CrawlState> LoadStateAsync(CancellationToken cancellationToken = default)
     {
         try
         {
-            var stateEntity = await _sharedRepository.GetBySourceProviderAsync(SourceProvider, cancellationToken);
+            var stateEntity = await sharedRepository.GetBySourceProviderAsync(SourceProvider, cancellationToken);
 
             if (stateEntity is null)
             {
-                _logger.LogInformation("No existing crawl state found. Creating new state.");
+                logger.LogInformation("No existing crawl state found. Creating new state.");
                 return new CrawlState();
             }
 
             // Map from data entity to domain value object
             var state = MapFromEntity(stateEntity);
 
-            _logger.LogDebug("Loaded crawl state: {PendingCount} pending, {CompletedCount} completed, {FailedCount} failed",
+            logger.LogDebug("Loaded crawl state: {PendingCount} pending, {CompletedCount} completed, {FailedCount} failed",
                 state.PendingUrls.Count(), state.CompletedRecipeIds.Count, state.FailedUrls.Count);
 
             return state;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error loading crawl state via shared data infrastructure. Creating new state.");
+            logger.LogError(ex, "Error loading crawl state via shared data infrastructure. Creating new state.");
             return new CrawlState();
         }
     }
@@ -60,24 +50,29 @@ public class CrawlStateDataRepository : EasyMeals.Crawler.Domain.Interfaces.ICra
     /// <inheritdoc />
     public async Task<bool> SaveStateAsync(CrawlState state, CancellationToken cancellationToken = default)
     {
+        await unitOfWork.BeginTransactionAsync(cancellationToken);
+        
         try
         {
             // Map from domain value object to data entity
             var stateEntity = MapToEntity(state);
 
             // Use the shared repository's upsert functionality
-            var result = await _sharedRepository.SaveStateAsync(stateEntity, cancellationToken);
+            var result = await sharedRepository.SaveStateAsync(stateEntity, cancellationToken);
 
             if (result)
-                _logger.LogDebug("Successfully saved crawl state via shared data infrastructure");
+                logger.LogDebug("Successfully saved crawl state via shared data infrastructure");
             else
-                _logger.LogWarning("Failed to save crawl state via shared data infrastructure");
+                logger.LogWarning("Failed to save crawl state via shared data infrastructure");
 
+            await unitOfWork.CommitTransactionAsync(cancellationToken);
+            
             return result;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error saving crawl state via shared data infrastructure");
+            logger.LogError(ex, "Error saving crawl state via shared data infrastructure");
+            await unitOfWork.RollbackTransactionAsync(cancellationToken);
             return false;
         }
     }
