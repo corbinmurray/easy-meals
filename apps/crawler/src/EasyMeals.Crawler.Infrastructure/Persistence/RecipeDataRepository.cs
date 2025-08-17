@@ -8,19 +8,20 @@ using System.Text.Json;
 namespace EasyMeals.Crawler.Infrastructure.Persistence;
 
 /// <summary>
-///     EF Core implementation of the crawler's IRecipeRepository
-///     Bridges between the crawler's domain model and the shared data infrastructure
+/// Data repository implementation for crawler's recipe management
+/// Bridges between the crawler's domain model and the shared data infrastructure
+/// Follows domain-focused naming conventions while maintaining clean architecture
 /// </summary>
-public class EfCoreRecipeRepositoryAdapter : EasyMeals.Crawler.Domain.Interfaces.IRecipeRepository
+public class RecipeDataRepository : EasyMeals.Crawler.Domain.Interfaces.IRecipeRepository
 {
     private readonly EasyMeals.Shared.Data.Repositories.IRecipeRepository _sharedRepository;
     private readonly IUnitOfWork _unitOfWork;
-    private readonly ILogger<EfCoreRecipeRepositoryAdapter> _logger;
+    private readonly ILogger<RecipeDataRepository> _logger;
 
-    public EfCoreRecipeRepositoryAdapter(
+    public RecipeDataRepository(
         EasyMeals.Shared.Data.Repositories.IRecipeRepository sharedRepository,
         IUnitOfWork unitOfWork,
-        ILogger<EfCoreRecipeRepositoryAdapter> logger)
+        ILogger<RecipeDataRepository> logger)
     {
         _sharedRepository = sharedRepository;
         _unitOfWork = unitOfWork;
@@ -59,7 +60,7 @@ public class EfCoreRecipeRepositoryAdapter : EasyMeals.Crawler.Domain.Interfaces
         try
         {
             var recipeEntities = recipes.Select(MapToEntity).ToList();
-            
+
             await _sharedRepository.AddRangeAsync(recipeEntities, cancellationToken);
             var saved = await _unitOfWork.SaveChangesAsync(cancellationToken);
 
@@ -71,7 +72,7 @@ public class EfCoreRecipeRepositoryAdapter : EasyMeals.Crawler.Domain.Interfaces
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error saving recipes batch via shared data infrastructure");
-            
+
             // Fallback to individual saves
             var count = 0;
             foreach (var recipe in recipes)

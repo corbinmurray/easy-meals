@@ -3,7 +3,7 @@ using EasyMeals.Crawler.Application.Services;
 using EasyMeals.Crawler.Domain.Interfaces;
 using EasyMeals.Crawler.Infrastructure.Persistence;
 using EasyMeals.Crawler.Infrastructure.Services;
-using EasyMeals.Data.Extensions;
+using EasyMeals.Shared.Data.Extensions;
 
 HostApplicationBuilder builder = Host.CreateApplicationBuilder(args);
 
@@ -13,13 +13,13 @@ builder.Services.AddHostedService<Worker>();
 // Application Services
 builder.Services.AddScoped<CrawlOrchestrationService>();
 
-// Add shared EF Core data layer (using In-Memory for now, easily switchable)
-builder.Services.AddEasyMealsDataInMemory("CrawlerDb");
+// Add shared EF Core data infrastructure (using In-Memory for now, easily switchable)
+builder.Services.AddEasyMealsDataInMemory();
 
 // Domain Services (Infrastructure implementations)
-// Use EF Core adapters that bridge to the shared data layer
-builder.Services.AddScoped<IRecipeRepository, EfCoreRecipeRepositoryAdapter>();
-builder.Services.AddScoped<ICrawlStateRepository, EfCoreCrawlStateRepositoryAdapter>();
+// Use EF Core adapters that bridge to the shared data infrastructure
+builder.Services.AddScoped<EasyMeals.Crawler.Domain.Interfaces.IRecipeRepository, EfCoreRecipeRepositoryAdapter>();
+builder.Services.AddScoped<EasyMeals.Crawler.Domain.Interfaces.ICrawlStateRepository, EfCoreCrawlStateRepositoryAdapter>();
 builder.Services.AddScoped<IRecipeExtractor, HelloFreshRecipeExtractor>();
 
 // HTTP Services for web scraping
@@ -44,9 +44,8 @@ builder.Logging.AddDebug();
 IHost host = builder.Build();
 
 var logger = host.Services.GetRequiredService<ILogger<Program>>();
-logger.LogInformation("HelloFresh Crawler starting up with shared EF Core data layer...");
+logger.LogInformation("HelloFresh Crawler starting up with shared EF Core data infrastructure...");
 
-// Ensure database is created (for development)
-await host.Services.EnsureDatabaseCreatedAsync();
+// Ensure database is created (for development) - no longer needed with new infrastructure
 
 host.Run();

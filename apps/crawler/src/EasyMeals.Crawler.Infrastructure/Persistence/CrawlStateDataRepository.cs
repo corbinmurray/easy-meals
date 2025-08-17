@@ -8,20 +8,21 @@ using Microsoft.Extensions.Logging;
 namespace EasyMeals.Crawler.Infrastructure.Persistence;
 
 /// <summary>
-///     EF Core implementation of the crawler's ICrawlStateRepository
-///     Bridges between the crawler's domain model and the shared data infrastructure
+/// Data repository implementation for crawler's crawl state management
+/// Bridges between the crawler's domain model and the shared data infrastructure
+/// Follows domain-focused naming conventions while maintaining clean architecture
 /// </summary>
-public class EfCoreCrawlStateRepositoryAdapter : EasyMeals.Crawler.Domain.Interfaces.ICrawlStateRepository
+public class CrawlStateDataRepository : EasyMeals.Crawler.Domain.Interfaces.ICrawlStateRepository
 {
     private readonly EasyMeals.Shared.Data.Repositories.ICrawlStateRepository _sharedRepository;
     private readonly IUnitOfWork _unitOfWork;
-    private readonly ILogger<EfCoreCrawlStateRepositoryAdapter> _logger;
+    private readonly ILogger<CrawlStateDataRepository> _logger;
     private const string SourceProvider = "HelloFresh";
 
-    public EfCoreCrawlStateRepositoryAdapter(
+    public CrawlStateDataRepository(
         EasyMeals.Shared.Data.Repositories.ICrawlStateRepository sharedRepository,
         IUnitOfWork unitOfWork,
-        ILogger<EfCoreCrawlStateRepositoryAdapter> logger)
+        ILogger<CrawlStateDataRepository> logger)
     {
         _sharedRepository = sharedRepository;
         _unitOfWork = unitOfWork;
