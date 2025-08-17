@@ -17,9 +17,9 @@ builder.Services.AddScoped<CrawlOrchestrationService>();
 builder.Services.AddEasyMealsDataInMemory();
 
 // Domain Services (Infrastructure implementations)
-// Use EF Core adapters that bridge to the shared data infrastructure
-builder.Services.AddScoped<EasyMeals.Crawler.Domain.Interfaces.IRecipeRepository, EfCoreRecipeRepositoryAdapter>();
-builder.Services.AddScoped<EasyMeals.Crawler.Domain.Interfaces.ICrawlStateRepository, EfCoreCrawlStateRepositoryAdapter>();
+// Use data repositories that bridge to the shared data infrastructure
+builder.Services.AddScoped<EasyMeals.Crawler.Domain.Interfaces.IRecipeRepository, RecipeDataRepository>();
+builder.Services.AddScoped<EasyMeals.Crawler.Domain.Interfaces.ICrawlStateRepository, CrawlStateDataRepository>();
 builder.Services.AddScoped<IRecipeExtractor, HelloFreshRecipeExtractor>();
 
 // HTTP Services for web scraping
