@@ -13,12 +13,12 @@ namespace EasyMeals.Crawler.Infrastructure.Services;
 /// </summary>
 public class HelloFreshHttpService : IHelloFreshHttpService
 {
+    private const string HelloFreshBaseUrl = "https://www.hellofresh.com";
+    private const string HelloFreshRecipeDiscoveryUrl = HelloFreshBaseUrl + "/recipes";
     private readonly HttpClient _httpClient;
     private readonly ILogger<HelloFreshHttpService> _logger;
     private readonly TimeSpan _minRequestInterval = TimeSpan.FromSeconds(1);
     private readonly SemaphoreSlim _rateLimitSemaphore;
-    private const string HelloFreshBaseUrl = "https://www.hellofresh.com";
-    private const string HelloFreshRecipeDiscoveryUrl = HelloFreshBaseUrl + "/recipes";
 
     private readonly string[] _userAgents =
     [
@@ -43,7 +43,8 @@ public class HelloFreshHttpService : IHelloFreshHttpService
         _httpClient.DefaultRequestHeaders.Clear();
 
         // Set standard browser headers - but let HttpClient handle compression automatically
-        _httpClient.DefaultRequestHeaders.Add("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7");
+        _httpClient.DefaultRequestHeaders.Add("Accept",
+            "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7");
         _httpClient.DefaultRequestHeaders.Add("Accept-Language", "en-US,en;q=0.9");
         _httpClient.DefaultRequestHeaders.Add("Accept-Encoding", "gzip, deflate, br");
 
@@ -214,7 +215,8 @@ public class HelloFreshHttpService : IHelloFreshHttpService
 
         try
         {
-            _logger.LogDebug("Discovering HelloFresh recipe URLs using breadth-first search with recipe priority, max results: {MaxResults}", maxResults);
+            _logger.LogDebug("Discovering HelloFresh recipe URLs using breadth-first search with recipe priority, max results: {MaxResults}",
+                maxResults);
 
             // Use breadth-first search with recipe priority
             await PerformBreadthFirstSearchAsync(HelloFreshRecipeDiscoveryUrl, discoveredRecipes, maxResults, cancellationToken);
@@ -343,19 +345,13 @@ public class HelloFreshHttpService : IHelloFreshHttpService
 
         // Log final results
         if (cancellationToken.IsCancellationRequested)
-        {
             _logger.LogInformation("BFS: Search cancelled gracefully. Found {RecipeCount} recipes before cancellation",
                 discoveredRecipes.Count);
-        }
         else if (discoveredRecipes.Count >= maxResults)
-        {
             _logger.LogInformation("BFS: Successfully reached target of {MaxResults} recipes", maxResults);
-        }
         else
-        {
             _logger.LogInformation("BFS: Exhausted all pages up to depth {MaxDepth}. Found {RecipeCount} recipes total",
                 maxDepth, discoveredRecipes.Count);
-        }
     }
 
     /// <summary>
@@ -649,12 +645,12 @@ public class HelloFreshHttpService : IHelloFreshHttpService
             // Look for recipe URLs in the JSON data
             var urlPatterns = new[]
             {
-                @"""href"":\s*""([^""]*recipes/[^""]+)""",  // href properties
-                @"""url"":\s*""([^""]*recipes/[^""]+)""",   // url properties  
-                @"""slug"":\s*""([^""]*recipes/[^""]+)""",  // slug properties
-                @"""path"":\s*""([^""]*recipes/[^""]+)""",  // path properties
-                @"""link"":\s*""([^""]*recipes/[^""]+)""",  // link properties
-                @"""to"":\s*""([^""]*recipes/[^""]+)""",    // navigation to properties
+                @"""href"":\s*""([^""]*recipes/[^""]+)""", // href properties
+                @"""url"":\s*""([^""]*recipes/[^""]+)""", // url properties  
+                @"""slug"":\s*""([^""]*recipes/[^""]+)""", // slug properties
+                @"""path"":\s*""([^""]*recipes/[^""]+)""", // path properties
+                @"""link"":\s*""([^""]*recipes/[^""]+)""", // link properties
+                @"""to"":\s*""([^""]*recipes/[^""]+)""", // navigation to properties
                 @"""pathname"":\s*""([^""]*recipes/[^""]+)""" // pathname properties
             };
 

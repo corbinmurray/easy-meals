@@ -9,16 +9,16 @@ using ICrawlStateRepository = EasyMeals.Shared.Data.Repositories.ICrawlStateRepo
 namespace EasyMeals.Crawler.Infrastructure.Persistence;
 
 /// <summary>
-/// Source provider agnostic data repository implementation for crawler's crawl state management
-/// Bridges between the crawler's domain model and the shared MongoDB infrastructure
-/// Follows domain-focused naming conventions while leveraging MongoDB document features
-/// Supports multiple source providers through configuration injection
+///     Source provider agnostic data repository implementation for crawler's crawl state management
+///     Bridges between the crawler's domain model and the shared MongoDB infrastructure
+///     Follows domain-focused naming conventions while leveraging MongoDB document features
+///     Supports multiple source providers through configuration injection
 /// </summary>
 public class CrawlStateDataRepository(
     ICrawlStateRepository sharedRepository,
     IUnitOfWork unitOfWork,
     IOptions<CrawlerOptions> crawlerOptions,
-    ILogger<CrawlStateDataRepository> logger) : EasyMeals.Crawler.Domain.Interfaces.ICrawlStateRepository
+    ILogger<CrawlStateDataRepository> logger) : Domain.Interfaces.ICrawlStateRepository
 {
     private readonly CrawlerOptions _crawlerOptions = crawlerOptions.Value;
 
@@ -27,7 +27,7 @@ public class CrawlStateDataRepository(
     {
         try
         {
-            var stateDocument = await sharedRepository.GetBySourceProviderAsync(_crawlerOptions.SourceProvider, cancellationToken);
+            CrawlStateDocument? stateDocument = await sharedRepository.GetBySourceProviderAsync(_crawlerOptions.SourceProvider, cancellationToken);
 
             if (stateDocument is null)
             {
@@ -37,7 +37,7 @@ public class CrawlStateDataRepository(
             }
 
             // Map from MongoDB document to domain value object
-            var state = MapFromDocument(stateDocument);
+            CrawlState state = MapFromDocument(stateDocument);
 
             logger.LogDebug("Loaded crawl state for '{SourceProvider}': {PendingCount} pending, {CompletedCount} completed, {FailedCount} failed",
                 _crawlerOptions.SourceProvider, state.PendingUrls.Count(), state.CompletedRecipeIds.Count, state.FailedUrls.Count);
@@ -46,7 +46,8 @@ public class CrawlStateDataRepository(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error loading crawl state for source provider '{SourceProvider}' via shared MongoDB infrastructure. Creating new state.",
+            logger.LogError(ex,
+                "Error loading crawl state for source provider '{SourceProvider}' via shared MongoDB infrastructure. Creating new state.",
                 _crawlerOptions.SourceProvider);
             return new CrawlState();
         }
@@ -58,10 +59,10 @@ public class CrawlStateDataRepository(
         try
         {
             // Map from domain value object to MongoDB document
-            var stateDocument = MapToDocument(state);
+            CrawlStateDocument stateDocument = MapToDocument(state);
 
             // Use the shared repository's MongoDB-optimized upsert functionality
-            var result = await sharedRepository.SaveStateAsync(stateDocument, cancellationToken);
+            bool result = await sharedRepository.SaveStateAsync(stateDocument, cancellationToken);
 
             if (result)
             {
@@ -87,10 +88,10 @@ public class CrawlStateDataRepository(
     }
 
     /// <summary>
-    /// Maps from crawler domain value object to MongoDB document
-    /// Leverages MongoDB's native support for arrays and embedded documents
-    /// Follows DDD principles by encapsulating mapping logic
-    /// Uses configured source provider for multi-provider support
+    ///     Maps from crawler domain value object to MongoDB document
+    ///     Leverages MongoDB's native support for arrays and embedded documents
+    ///     Follows DDD principles by encapsulating mapping logic
+    ///     Uses configured source provider for multi-provider support
     /// </summary>
     private CrawlStateDocument MapToDocument(CrawlState state)
     {
@@ -116,13 +117,13 @@ public class CrawlStateDataRepository(
     }
 
     /// <summary>
-    /// Maps from MongoDB document to crawler domain value object
-    /// Handles MongoDB document structure and supports immutable value object pattern
+    ///     Maps from MongoDB document to crawler domain value object
+    ///     Handles MongoDB document structure and supports immutable value object pattern
     /// </summary>
     private static CrawlState MapFromDocument(CrawlStateDocument document)
     {
         // Extract failed URLs from the document structure
-        var failedUrls = document.FailedUrls?.Select(f => f.Url).ToHashSet() ?? new HashSet<string>();
+        HashSet<string> failedUrls = document.FailedUrls?.Select(f => f.Url).ToHashSet() ?? new HashSet<string>();
 
         return new CrawlState
         {

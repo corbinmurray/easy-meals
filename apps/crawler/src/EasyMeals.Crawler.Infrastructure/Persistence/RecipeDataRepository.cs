@@ -1,6 +1,5 @@
 using EasyMeals.Crawler.Domain.Configurations;
 using EasyMeals.Crawler.Domain.Entities;
-using EasyMeals.Crawler.Domain.Interfaces;
 using EasyMeals.Shared.Data.Documents;
 using EasyMeals.Shared.Data.Repositories;
 using Microsoft.Extensions.Logging;
@@ -9,29 +8,19 @@ using Microsoft.Extensions.Options;
 namespace EasyMeals.Crawler.Infrastructure.Persistence;
 
 /// <summary>
-/// Source provider agnostic data repository implementation for crawler's recipe management
-/// Bridges between the crawler's domain model and the shared MongoDB infrastructure
-/// Leverages MongoDB's document structure and embedded document capabilities
-/// Supports multiple source providers through configuration injection
+///     Source provider agnostic data repository implementation for crawler's recipe management
+///     Bridges between the crawler's domain model and the shared MongoDB infrastructure
+///     Leverages MongoDB's document structure and embedded document capabilities
+///     Supports multiple source providers through configuration injection
 /// </summary>
-public class RecipeDataRepository : EasyMeals.Crawler.Domain.Interfaces.IRecipeRepository
+public class RecipeDataRepository(
+    IRecipeRepository sharedRepository,
+    IUnitOfWork unitOfWork,
+    IOptions<CrawlerOptions> crawlerOptions,
+    ILogger<RecipeDataRepository> logger)
+    : Domain.Interfaces.IRecipeRepository
 {
-    private readonly EasyMeals.Shared.Data.Repositories.IRecipeRepository _sharedRepository;
-    private readonly IUnitOfWork _unitOfWork;
-    private readonly ILogger<RecipeDataRepository> _logger;
-    private readonly CrawlerOptions _crawlerOptions;
-
-    public RecipeDataRepository(
-        EasyMeals.Shared.Data.Repositories.IRecipeRepository sharedRepository,
-        IUnitOfWork unitOfWork,
-        IOptions<CrawlerOptions> crawlerOptions,
-        ILogger<RecipeDataRepository> logger)
-    {
-        _sharedRepository = sharedRepository;
-        _unitOfWork = unitOfWork;
-        _crawlerOptions = crawlerOptions.Value;
-        _logger = logger;
-    }
+    private readonly CrawlerOptions _crawlerOptions = crawlerOptions.Value;
 
     /// <inheritdoc />
     public async Task<bool> SaveRecipeAsync(Recipe recipe, CancellationToken cancellationToken = default)
@@ -39,21 +28,21 @@ public class RecipeDataRepository : EasyMeals.Crawler.Domain.Interfaces.IRecipeR
         try
         {
             // Map from crawler domain model to MongoDB document
-            var recipeDocument = MapToDocument(recipe);
+            RecipeDocument recipeDocument = MapToDocument(recipe);
 
             // Use the shared MongoDB repository
-            await _sharedRepository.AddAsync(recipeDocument, cancellationToken);
-            await _unitOfWork.SaveChangesAsync(cancellationToken);
+            await sharedRepository.AddAsync(recipeDocument, cancellationToken);
+            await unitOfWork.SaveChangesAsync(cancellationToken);
 
-            _logger.LogDebug("Successfully saved recipe via shared MongoDB infrastructure: {Title} ({Id}) from {SourceProvider}",
+            logger.LogDebug("Successfully saved recipe via shared MongoDB infrastructure: {Title} ({Id}) from {SourceProvider}",
                 recipe.Title, recipe.Id, _crawlerOptions.SourceProvider);
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error saving recipe via shared MongoDB infrastructure: {Title} ({Id}) from {SourceProvider}",
+            logger.LogError(ex, "Error saving recipe via shared MongoDB infrastructure: {Title} ({Id}) from {SourceProvider}",
                 recipe.Title, recipe.Id, _crawlerOptions.SourceProvider);
-            await _unitOfWork.RollbackTransactionAsync(cancellationToken);
+            await unitOfWork.RollbackTransactionAsync(cancellationToken);
             return false;
         }
     }
@@ -61,36 +50,37 @@ public class RecipeDataRepository : EasyMeals.Crawler.Domain.Interfaces.IRecipeR
     /// <inheritdoc />
     public async Task<int> SaveRecipesAsync(IEnumerable<Recipe> recipes, CancellationToken cancellationToken = default)
     {
-        var recipesList = recipes.ToList();
+        List<Recipe> recipesList = recipes.ToList();
         if (!recipesList.Any())
             return 0;
 
         try
         {
             // Map all recipes to MongoDB documents
-            var recipeDocuments = recipesList.Select(MapToDocument).ToList();
+            List<RecipeDocument> recipeDocuments = recipesList.Select(MapToDocument).ToList();
 
             // Use MongoDB bulk insert for efficiency - use AddRangeAsync instead of AddManyAsync
-            await _sharedRepository.AddRangeAsync(recipeDocuments, cancellationToken);
-            await _unitOfWork.SaveChangesAsync(cancellationToken);
+            await sharedRepository.AddRangeAsync(recipeDocuments, cancellationToken);
+            await unitOfWork.SaveChangesAsync(cancellationToken);
 
-            _logger.LogInformation("Successfully saved {Count} recipes via shared MongoDB infrastructure from {SourceProvider}",
+            logger.LogInformation("Successfully saved {Count} recipes via shared MongoDB infrastructure from {SourceProvider}",
                 recipesList.Count, _crawlerOptions.SourceProvider);
             return recipesList.Count;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error saving recipe batch via shared MongoDB infrastructure from {SourceProvider}. Attempting individual saves.",
+            logger.LogError(ex, "Error saving recipe batch via shared MongoDB infrastructure from {SourceProvider}. Attempting individual saves.",
                 _crawlerOptions.SourceProvider);
-            await _unitOfWork.RollbackTransactionAsync(cancellationToken);
+            await unitOfWork.RollbackTransactionAsync(cancellationToken);
 
             // Fallback to individual saves for partial success
             var count = 0;
-            foreach (var recipe in recipesList)
+            foreach (Recipe recipe in recipesList)
             {
-                var saved = await SaveRecipeAsync(recipe, cancellationToken);
+                bool saved = await SaveRecipeAsync(recipe, cancellationToken);
                 if (saved) count++;
             }
+
             return count;
         }
     }
@@ -102,22 +92,22 @@ public class RecipeDataRepository : EasyMeals.Crawler.Domain.Interfaces.IRecipeR
         {
             // For crawler purposes, we'll check by source URL since that's more meaningful
             // The recipeId in crawler context is typically the source URL or a derived identifier
-            var exists = await _sharedRepository.ExistsBySourceUrlAsync(recipeId, cancellationToken);
+            bool exists = await sharedRepository.ExistsBySourceUrlAsync(recipeId, cancellationToken);
             return exists;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error checking recipe existence via shared MongoDB infrastructure: {RecipeId} from {SourceProvider}",
+            logger.LogError(ex, "Error checking recipe existence via shared MongoDB infrastructure: {RecipeId} from {SourceProvider}",
                 recipeId, _crawlerOptions.SourceProvider);
             return false;
         }
     }
 
     /// <summary>
-    /// Maps from crawler domain model to MongoDB document
-    /// Leverages MongoDB's native support for embedded documents and arrays
-    /// Follows DDD principles by keeping domain logic separate from infrastructure concerns
-    /// Uses configured source provider for multi-provider support
+    ///     Maps from crawler domain model to MongoDB document
+    ///     Leverages MongoDB's native support for embedded documents and arrays
+    ///     Follows DDD principles by keeping domain logic separate from infrastructure concerns
+    ///     Uses configured source provider for multi-provider support
     /// </summary>
     private RecipeDocument MapToDocument(Recipe recipe)
     {
@@ -143,17 +133,19 @@ public class RecipeDataRepository : EasyMeals.Crawler.Domain.Interfaces.IRecipeR
             CookTimeMinutes = recipe.CookTimeMinutes,
             Servings = recipe.Servings,
             // Map nutrition info to embedded document
-            NutritionInfo = recipe.NutritionInfo?.Any() == true ? new NutritionalInfoDocument
-            {
-                // Map common nutritional fields - adjust based on your data structure
-                Calories = TryParseNutritionValueAsInt(recipe.NutritionInfo, "calories"),
-                ProteinGrams = TryParseNutritionValue(recipe.NutritionInfo, "protein"),
-                CarbohydratesGrams = TryParseNutritionValue(recipe.NutritionInfo, "carbs"),
-                FatGrams = TryParseNutritionValue(recipe.NutritionInfo, "fat"),
-                FiberGrams = TryParseNutritionValue(recipe.NutritionInfo, "fiber"),
-                SugarGrams = TryParseNutritionValue(recipe.NutritionInfo, "sugar"),
-                SodiumMg = TryParseNutritionValue(recipe.NutritionInfo, "sodium")
-            } : null,
+            NutritionInfo = recipe.NutritionInfo?.Any() == true
+                ? new NutritionalInfoDocument
+                {
+                    // Map common nutritional fields - adjust based on your data structure
+                    Calories = TryParseNutritionValueAsInt(recipe.NutritionInfo, "calories"),
+                    ProteinGrams = TryParseNutritionValue(recipe.NutritionInfo, "protein"),
+                    CarbohydratesGrams = TryParseNutritionValue(recipe.NutritionInfo, "carbs"),
+                    FatGrams = TryParseNutritionValue(recipe.NutritionInfo, "fat"),
+                    FiberGrams = TryParseNutritionValue(recipe.NutritionInfo, "fiber"),
+                    SugarGrams = TryParseNutritionValue(recipe.NutritionInfo, "sugar"),
+                    SodiumMg = TryParseNutritionValue(recipe.NutritionInfo, "sodium")
+                }
+                : null,
             Tags = recipe.Tags ?? new List<string>(), // Native MongoDB array
             SourceUrl = recipe.SourceUrl,
             SourceProvider = _crawlerOptions.SourceProvider,
@@ -162,48 +154,44 @@ public class RecipeDataRepository : EasyMeals.Crawler.Domain.Interfaces.IRecipeR
     }
 
     /// <summary>
-    /// Helper method to safely parse nutritional values from string dictionary
-    /// Supports robust data conversion for nutritional information
+    ///     Helper method to safely parse nutritional values from string dictionary
+    ///     Supports robust data conversion for nutritional information
     /// </summary>
     private static decimal? TryParseNutritionValue(Dictionary<string, string> nutritionInfo, string key)
     {
-        if (nutritionInfo?.TryGetValue(key, out var value) == true &&
-            decimal.TryParse(value, out var result))
-        {
+        if (nutritionInfo?.TryGetValue(key, out string? value) == true &&
+            decimal.TryParse(value, out decimal result))
             return result;
-        }
         return null;
     }
 
     /// <summary>
-    /// Helper method to safely parse nutritional values as integers (e.g., calories)
-    /// Supports robust data conversion for nutritional information
+    ///     Helper method to safely parse nutritional values as integers (e.g., calories)
+    ///     Supports robust data conversion for nutritional information
     /// </summary>
     private static int? TryParseNutritionValueAsInt(Dictionary<string, string> nutritionInfo, string key)
     {
-        if (nutritionInfo?.TryGetValue(key, out var value) == true &&
-            int.TryParse(value, out var result))
-        {
+        if (nutritionInfo?.TryGetValue(key, out string? value) == true &&
+            int.TryParse(value, out int result))
             return result;
-        }
         return null;
     }
 
     /// <summary>
-    /// Maps from MongoDB document to crawler domain model
-    /// Supports read operations and maintains clean separation of concerns
-    /// Note: This method is included for completeness but may not be needed in current crawler workflow
+    ///     Maps from MongoDB document to crawler domain model
+    ///     Supports read operations and maintains clean separation of concerns
+    ///     Note: This method is included for completeness but may not be needed in current crawler workflow
     /// </summary>
     private static Recipe MapFromDocument(RecipeDocument document)
     {
         return new Recipe
         {
-            Id = document.Id.ToString(),
+            Id = document.Id,
             Title = document.Title,
             Description = document.Description,
             // Convert embedded ingredients back to simple strings for domain model compatibility
             Ingredients = document.Ingredients?.Select(i =>
-                string.IsNullOrEmpty(i.Amount) ? i.Name : $"{i.Amount} {i.Unit} {i.Name}".Trim())
+                    string.IsNullOrEmpty(i.Amount) ? i.Name : $"{i.Amount} {i.Unit} {i.Name}".Trim())
                 .ToList() ?? new List<string>(),
             // Convert embedded instructions back to simple strings
             Instructions = document.Instructions?.OrderBy(i => i.StepNumber)
@@ -214,17 +202,18 @@ public class RecipeDataRepository : EasyMeals.Crawler.Domain.Interfaces.IRecipeR
             CookTimeMinutes = document.CookTimeMinutes,
             Servings = document.Servings,
             // Convert embedded nutrition info back to dictionary
-            NutritionInfo = document.NutritionInfo != null ? new Dictionary<string, string>
-            {
-                ["calories"] = document.NutritionInfo.Calories?.ToString() ?? string.Empty,
-                ["protein"] = document.NutritionInfo.ProteinGrams?.ToString() ?? string.Empty,
-                ["carbs"] = document.NutritionInfo.CarbohydratesGrams?.ToString() ?? string.Empty,
-                ["fat"] = document.NutritionInfo.FatGrams?.ToString() ?? string.Empty,
-                ["fiber"] = document.NutritionInfo.FiberGrams?.ToString() ?? string.Empty,
-                ["sugar"] = document.NutritionInfo.SugarGrams?.ToString() ?? string.Empty,
-                ["sodium"] = document.NutritionInfo.SodiumMg?.ToString() ?? string.Empty
-            }.Where(kvp => !string.IsNullOrEmpty(kvp.Value)).ToDictionary(kvp => kvp.Key, kvp => kvp.Value)
-            : new Dictionary<string, string>(),
+            NutritionInfo = document.NutritionInfo != null
+                ? new Dictionary<string, string>
+                {
+                    ["calories"] = document.NutritionInfo.Calories?.ToString() ?? string.Empty,
+                    ["protein"] = document.NutritionInfo.ProteinGrams?.ToString() ?? string.Empty,
+                    ["carbs"] = document.NutritionInfo.CarbohydratesGrams?.ToString() ?? string.Empty,
+                    ["fat"] = document.NutritionInfo.FatGrams?.ToString() ?? string.Empty,
+                    ["fiber"] = document.NutritionInfo.FiberGrams?.ToString() ?? string.Empty,
+                    ["sugar"] = document.NutritionInfo.SugarGrams?.ToString() ?? string.Empty,
+                    ["sodium"] = document.NutritionInfo.SodiumMg?.ToString() ?? string.Empty
+                }.Where(kvp => !string.IsNullOrEmpty(kvp.Value)).ToDictionary(kvp => kvp.Key, kvp => kvp.Value)
+                : new Dictionary<string, string>(),
             Tags = document.Tags ?? new List<string>(),
             SourceUrl = document.SourceUrl,
             CreatedAt = document.CreatedAt,

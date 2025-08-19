@@ -5,7 +5,7 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using MongoDB.Bson;
 using MongoDB.Driver;
 
-namespace EasyMeals.Shared.Data.Extensions;
+namespace EasyMeals.Shared.Data.DependencyInjection;
 
 /// <summary>
 ///     Extension methods for configuring EasyMeals MongoDB data services
