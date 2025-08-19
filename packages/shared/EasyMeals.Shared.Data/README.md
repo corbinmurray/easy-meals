@@ -1,284 +1,505 @@
-# EasyMeals.Shared.Data
+# EasyMeals.Shared.Data - MongoDB Integration
 
-A comprehensive shared data infrastructure package for EasyMeals applications, built following Domain-Driven Design (DDD) principles and SOLID design patterns.
+A comprehensive MongoDB data access library for the EasyMeals application, providing type-safe document models, repository patterns, and optimized indexing strategies.
 
-## Features
+## Overview
 
-- 🏗️ **Shared Database Context** - Common way for multiple .NET apps to connect to the EasyMeals database
-- 🔧 **Extensible Entity Framework** - Applications can declare their own entities while sharing infrastructure
-- 📦 **Repository Pattern** - Generic and specific repositories with Unit of Work support
-- 🔌 **Dependency Injection** - Seamless DI integration with multiple database provider support
-- 📊 **Health Checks** - Built-in database connectivity monitoring
-- 🎯 **Domain-Driven Design** - Proper aggregate boundaries, audit trails, and business rule enforcement
+This library implements the migration from Entity Framework Core to MongoDB, maintaining backward compatibility while leveraging MongoDB's document-oriented features for improved performance and scalability.
+
+### Key Features
+
+- **Document-based Models**: Native MongoDB document structures with embedded relationships
+- **Repository Pattern**: Generic and specific repositories following Domain-Driven Design principles
+- **Unit of Work**: Transaction support for data consistency across operations
+- **Optimized Indexing**: Comprehensive indexing strategy for high-performance queries
+- **Type Safety**: Strongly-typed queries and operations using C# expressions
+- **Health Monitoring**: Built-in health checks for production monitoring
 
 ## Quick Start
 
-### 1. Basic Setup (SQL Server)
+### 1. Installation
 
-```csharp
-// In Program.cs
-services.AddEasyMealsDataSqlServer(connectionString);
+Add the package reference to your project:
 
-// Optional: Ensure database is created
-services.EnsureEasyMealsDatabase();
-
-// Optional: Add health checks
-services.AddEasyMealsDataHealthChecks();
+```xml
+<PackageReference Include="EasyMeals.Shared.Data" Version="1.0.0" />
 ```
 
-### 2. Alternative Database Providers
+### 2. Basic Configuration
+
+#### In your `Program.cs` or `Startup.cs`:
 
 ```csharp
-// PostgreSQL
-services.AddEasyMealsDataPostgreSQL(connectionString);
+using EasyMeals.Shared.Data.Extensions;
 
-// In-Memory (for testing)
-services.AddEasyMealsDataInMemory();
+// Basic configuration with connection string
+services.AddEasyMealsDataMongoDB(
+    connectionString: "mongodb://localhost:27017",
+    databaseName: "easymealsprod"
+);
 
-// Custom provider
-services.AddEasyMealsDataCore(options => {
-    options.UseSqlServer(connectionString);
-    // Add custom configurations
-});
+// Add health checks (optional but recommended)
+services.AddEasyMealsDataHealthChecks();
+
+// Ensure database and indexes are created (run once during deployment)
+await services.EnsureEasyMealsDatabaseAsync();
+```
+
+#### Advanced Configuration:
+
+```csharp
+// Custom MongoDB client settings
+var clientSettings = new MongoClientSettings
+{
+    Server = new MongoServerAddress("mongodb.example.com", 27017),
+    ConnectTimeout = TimeSpan.FromSeconds(30),
+    ServerSelectionTimeout = TimeSpan.FromSeconds(30),
+    Credential = MongoCredential.CreateCredential("mydb", "username", "password")
+};
+
+services.AddEasyMealsDataMongoDB(clientSettings, "easymealsprod");
+```
+
+#### For Testing:
+
+```csharp
+// In-memory database for unit tests
+services.AddEasyMealsDataInMemory("test_database");
 ```
 
 ### 3. Using Repositories
 
+#### Recipe Repository:
+
 ```csharp
 public class RecipeService
 {
-    private readonly IUnitOfWork _unitOfWork;
     private readonly IRecipeRepository _recipeRepository;
-
-    public RecipeService(IUnitOfWork unitOfWork, IRecipeRepository recipeRepository)
-    {
-        _unitOfWork = unitOfWork;
-        _recipeRepository = recipeRepository;
-    }
-
-    public async Task<RecipeEntity?> GetRecipeAsync(string id)
-    {
-        return await _recipeRepository.GetByIdAsync(id);
-    }
-
-    public async Task<PagedResult<RecipeEntity>> SearchRecipesAsync(
-        string searchTerm, int pageNumber, int pageSize)
-    {
-        return await _recipeRepository.SearchAsync(searchTerm, pageNumber, pageSize);
-    }
-
-    public async Task CreateRecipeAsync(RecipeEntity recipe)
-    {
-        await _recipeRepository.AddAsync(recipe);
-        await _unitOfWork.SaveChangesAsync();
-    }
-}
-```
-
-### 4. Using Generic Repository Pattern
-
-```csharp
-public class GenericService<TEntity> where TEntity : class
-{
-    private readonly IRepository<TEntity> _repository;
     private readonly IUnitOfWork _unitOfWork;
 
-    public GenericService(IRepository<TEntity> repository, IUnitOfWork unitOfWork)
+    public RecipeService(IRecipeRepository recipeRepository, IUnitOfWork unitOfWork)
     {
-        _repository = repository;
+        _recipeRepository = recipeRepository;
         _unitOfWork = unitOfWork;
     }
 
-    public async Task<PagedResult<TEntity>> GetPagedAsync(int pageNumber, int pageSize)
+    // Create a new recipe
+    public async Task<string> CreateRecipeAsync(RecipeDocument recipe)
     {
-        return await _repository.GetPagedAsync(pageNumber, pageSize);
+        var recipeId = await _recipeRepository.AddAsync(recipe);
+        await _unitOfWork.CommitAsync();
+        return recipeId;
+    }
+
+    // Find recipes by title
+    public async Task<IEnumerable<RecipeDocument>> SearchRecipesAsync(string searchTerm)
+    {
+        return await _recipeRepository.SearchByTextAsync(searchTerm);
+    }
+
+    // Get active recipes with pagination
+    public async Task<PagedResult<RecipeDocument>> GetActiveRecipesAsync(int pageNumber, int pageSize)
+    {
+        return await _recipeRepository.GetPagedAsync(
+            filter: r => r.IsActive && !r.IsDeleted,
+            pageNumber: pageNumber,
+            pageSize: pageSize,
+            orderBy: r => r.CreatedAt,
+            ascending: false
+        );
+    }
+
+    // Update recipe with optimistic concurrency
+    public async Task UpdateRecipeAsync(RecipeDocument recipe)
+    {
+        await _recipeRepository.UpdateAsync(recipe);
+        await _unitOfWork.CommitAsync();
     }
 }
 ```
 
-## Advanced Usage
-
-### Application-Specific Entity Extensions
-
-Your applications can extend the shared infrastructure by adding their own entities:
+#### Crawl State Repository:
 
 ```csharp
-// 1. Create your application-specific DbContext
-public class MyAppDbContext : EasyMealsAppDbContext<MyAppDbContext>
+public class CrawlerService
 {
-    public MyAppDbContext(DbContextOptions<MyAppDbContext> options) : base(options) { }
+    private readonly ICrawlStateRepository _crawlStateRepository;
+    private readonly IUnitOfWork _unitOfWork;
 
-    // Add your application-specific DbSets
-    public DbSet<MyCustomEntity> MyEntities { get; set; } = null!;
-
-    protected override void ConfigureApplicationEntities(ModelBuilder modelBuilder)
+    public CrawlerService(ICrawlStateRepository crawlStateRepository, IUnitOfWork unitOfWork)
     {
-        // Configure your application-specific entities
-        modelBuilder.Entity<MyCustomEntity>().ToTable("MyEntities");
+        _crawlStateRepository = crawlStateRepository;
+        _unitOfWork = unitOfWork;
+    }
 
-        // Add indexes, relationships, constraints, etc.
-        modelBuilder.Entity<MyCustomEntity>()
-            .HasIndex(e => e.SomeProperty)
-            .HasDatabaseName("IX_MyEntities_SomeProperty");
+    // Claim next crawl job
+    public async Task<CrawlStateDocument?> ClaimNextCrawlJobAsync(string sessionId)
+    {
+        var crawlState = await _crawlStateRepository.ClaimNextAvailableAsync(sessionId);
+        if (crawlState != null)
+        {
+            await _unitOfWork.CommitAsync();
+        }
+        return crawlState;
+    }
+
+    // Update crawl progress
+    public async Task UpdateCrawlProgressAsync(string sourceProvider, List<string> newUrls)
+    {
+        await _crawlStateRepository.AddPendingUrlsAsync(sourceProvider, newUrls);
+        await _unitOfWork.CommitAsync();
     }
 }
-
-// 2. Register in your DI container
-services.AddApplicationData<MyAppDbContext>(options =>
-{
-    options.UseSqlServer(connectionString);
-}, services =>
-{
-    // Register your application-specific repositories
-    services.AddScoped<IMyEntityRepository, MyEntityRepository>();
-});
 ```
 
-### Custom Entity Base Classes
+## Document Models
 
-Extend the base entity classes for consistent behavior:
+### RecipeDocument
+
+The main recipe aggregate containing all recipe information:
 
 ```csharp
-// For entities that need audit trails
-public class MyEntity : BaseEntity
-{
-    public string Name { get; set; } = string.Empty;
-    public string Description { get; set; } = string.Empty;
-}
-
-// For entities that support soft delete
-public class MySoftDeletableEntity : BaseSoftDeletableEntity
+[BsonCollection("recipes")]
+public class RecipeDocument : BaseDocument
 {
     public string Title { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public string SourceUrl { get; set; } = string.Empty;
+    public string SourceProvider { get; set; } = string.Empty;
+    public string? ImageUrl { get; set; }
+    public int? PrepTimeMinutes { get; set; }
+    public int? CookTimeMinutes { get; set; }
+    public int? Servings { get; set; }
+    public string? Difficulty { get; set; }
+    public string? Cuisine { get; set; }
+    public double? Rating { get; set; }
+    public int? ReviewCount { get; set; }
+    public List<string> Tags { get; set; } = new();
 
-    // Automatically gets audit trail and soft delete functionality
+    // Embedded documents
+    public List<IngredientDocument> Ingredients { get; set; } = new();
+    public List<InstructionDocument> Instructions { get; set; } = new();
+    public NutritionalInfoDocument? NutritionInfo { get; set; }
+
+    // Computed properties
+    public int? TotalTimeMinutes => (PrepTimeMinutes ?? 0) + (CookTimeMinutes ?? 0);
+    public bool HasNutritionInfo => NutritionInfo != null;
 }
 ```
 
-### Transaction Management
+### CrawlStateDocument
+
+Manages distributed crawling state:
 
 ```csharp
-public async Task ComplexBusinessOperationAsync()
+[BsonCollection("crawlstates")]
+public class CrawlStateDocument : BaseDocument
 {
-    await _unitOfWork.BeginTransactionAsync();
+    public string SourceProvider { get; set; } = string.Empty;
+    public List<string> PendingUrls { get; set; } = new();
+    public List<string> ProcessedUrls { get; set; } = new();
+    public DateTime? LastCrawlTime { get; set; }
+    public DateTime? NextScheduledCrawl { get; set; }
+    public int Priority { get; set; } = 1;
+    public string? CurrentSessionId { get; set; }
+    public Dictionary<string, object> Metadata { get; set; } = new();
+}
+```
 
+## Querying and Filtering
+
+### Text Search
+
+MongoDB's text search capabilities are leveraged for recipe discovery:
+
+```csharp
+// Search across title and description
+var results = await _recipeRepository.SearchByTextAsync("chicken pasta");
+
+// Complex filtering
+var italianRecipes = await _recipeRepository.GetManyAsync(
+    filter: r => r.Cuisine == "Italian" &&
+                 r.Tags.Contains("quick") &&
+                 r.PrepTimeMinutes <= 30
+);
+```
+
+### Advanced Queries
+
+```csharp
+// Aggregation pipeline example
+var popularRecipesByCuisine = await _recipeRepository.Collection
+    .Aggregate()
+    .Match(r => r.IsActive && r.Rating >= 4.0)
+    .Group(r => r.Cuisine, g => new
+    {
+        Cuisine = g.Key,
+        Count = g.Count(),
+        AvgRating = g.Average(r => r.Rating)
+    })
+    .SortByDescending(g => g.Count)
+    .ToListAsync();
+```
+
+## Index Strategy
+
+The library includes a comprehensive indexing strategy optimized for common query patterns:
+
+### Recipe Indexes
+
+- **Text Search**: Title and description for full-text search
+- **Source Provider**: Compound index with active status for crawler queries
+- **Unique URLs**: Prevents duplicate recipes from same source
+- **Tags**: Multikey index for efficient tag-based filtering
+- **Time Constraints**: Compound index for prep/cook time filtering
+- **Nutritional Criteria**: Sparse index for nutrition-based queries
+
+### Crawl State Indexes
+
+- **Source Provider**: Unique constraint ensuring one state per provider
+- **Priority Queue**: Optimized for job scheduling and claiming
+- **Session Management**: Efficient session-based locking
+
+### Manual Index Management
+
+```csharp
+// Create all indexes (usually done during deployment)
+await MongoIndexConfiguration.CreateAllIndexesAsync(database);
+
+// Create specific indexes
+await MongoIndexConfiguration.CreateRecipeIndexesAsync(database);
+await MongoIndexConfiguration.CreateCrawlStateIndexesAsync(database);
+
+// Drop indexes (for migrations)
+await MongoIndexConfiguration.DropAllCustomIndexesAsync(database);
+
+// Monitor index performance
+var stats = await MongoIndexConfiguration.GetIndexStatsAsync(database);
+```
+
+## Transaction Support
+
+The Unit of Work pattern provides transaction support:
+
+```csharp
+public async Task ProcessRecipeBatchAsync(List<RecipeDocument> recipes)
+{
+    using var session = await _unitOfWork.StartSessionAsync();
     try
     {
-        // Multiple operations within transaction
-        await _recipeRepository.AddAsync(recipe);
-        await _crawlStateRepository.SaveStateAsync(state);
+        foreach (var recipe in recipes)
+        {
+            await _recipeRepository.AddAsync(recipe);
+        }
 
-        // Commit all changes atomically
-        await _unitOfWork.CommitTransactionAsync();
+        // Update crawl state
+        await _crawlStateRepository.MarkUrlsProcessedAsync(
+            "example-provider",
+            recipes.Select(r => r.SourceUrl).ToList()
+        );
+
+        await _unitOfWork.CommitAsync();
     }
-    catch
+    catch (Exception)
     {
-        // Rollback on any error
-        await _unitOfWork.RollbackTransactionAsync();
+        await _unitOfWork.RollbackAsync();
         throw;
     }
 }
 ```
 
-## Architecture
+## Health Monitoring
 
-### Entities
-
-- **BaseEntity** - Provides Id and audit trail (CreatedAt, UpdatedAt)
-- **BaseSoftDeletableEntity** - Adds soft delete capability (IsDeleted, DeletedAt)
-- **RecipeEntity** - Core recipe data with full business functionality
-- **CrawlStateEntity** - Manages distributed crawling operations
-
-### Repositories
-
-- **IRepository<T>** - Generic repository interface with CRUD operations
-- **IRecipeRepository** - Recipe-specific operations (search, filtering, etc.)
-- **ICrawlStateRepository** - Crawl state management operations
-- **IUnitOfWork** - Transaction management and repository coordination
-
-### Design Patterns
-
-- **Repository Pattern** - Abstracts data access logic
-- **Unit of Work Pattern** - Manages transactions and entity state
-- **Template Method Pattern** - Allows applications to extend shared functionality
-- **Dependency Inversion Principle** - Depends on abstractions, not implementations
-
-## Configuration Options
-
-### Database Providers
-
-| Provider   | Method                         | Use Case                               |
-| ---------- | ------------------------------ | -------------------------------------- |
-| SQL Server | `AddEasyMealsDataSqlServer()`  | Production, enterprise scenarios       |
-| PostgreSQL | `AddEasyMealsDataPostgreSQL()` | High-performance, JSON-heavy workloads |
-| In-Memory  | `AddEasyMealsDataInMemory()`   | Testing, development                   |
-| Custom     | `AddEasyMealsDataCore()`       | Any EF Core provider                   |
-
-### Health Checks
+Production health checks are included:
 
 ```csharp
-services.AddEasyMealsDataHealthChecks(
-    name: "database",
-    tags: ["database", "critical"]
-);
+// In Program.cs
+services.AddEasyMealsDataHealthChecks();
+
+// The health check endpoint will verify:
+// - MongoDB connectivity
+// - Database availability
+// - Basic operations
 ```
 
-### Connection Resilience
+## Migration from Entity Framework
 
-The package automatically configures connection resilience:
+### Compatibility Layer
 
-- **Retry Logic** - 3 retry attempts with exponential backoff
-- **Connection Pooling** - Optimized for high-throughput scenarios
-- **Timeout Handling** - Proper timeout configuration for different operations
+The repository interfaces remain unchanged, ensuring seamless migration:
 
-## Best Practices
+```csharp
+// These interfaces work with both EF Core and MongoDB implementations
+IRecipeRepository recipeRepo;
+ICrawlStateRepository crawlRepo;
+IUnitOfWork unitOfWork;
+```
 
-1. **Use Unit of Work** for transaction management
-2. **Leverage Repository Interfaces** for testability
-3. **Follow DDD Principles** - keep business logic in domain, not repositories
-4. **Use Pagination** for large datasets
-5. **Implement Health Checks** for production monitoring
-6. **Extend Thoughtfully** - only add entities that truly belong in shared context
+### Data Migration
+
+To migrate existing data from SQL Server to MongoDB:
+
+1. **Export existing data** using Entity Framework
+2. **Transform relationships** to embedded documents
+3. **Import using MongoDB bulk operations**
+
+Example migration script:
+
+```csharp
+public async Task MigrateRecipesAsync()
+{
+    // Read from SQL Server (old EF context)
+    var sqlRecipes = await _oldContext.Recipes
+        .Include(r => r.Ingredients)
+        .Include(r => r.Instructions)
+        .ToListAsync();
+
+    // Transform to MongoDB documents
+    var mongoRecipes = sqlRecipes.Select(r => new RecipeDocument
+    {
+        Title = r.Title,
+        Description = r.Description,
+        // ... map other properties
+        Ingredients = r.Ingredients.Select(i => new IngredientDocument
+        {
+            Name = i.Name,
+            Amount = i.Amount,
+            Unit = i.Unit
+        }).ToList()
+    });
+
+    // Bulk insert to MongoDB
+    await _recipeRepository.AddManyAsync(mongoRecipes);
+    await _unitOfWork.CommitAsync();
+}
+```
 
 ## Performance Considerations
 
-- **Indexes** - All critical query paths have optimized indexes
-- **Soft Delete Filtering** - Global query filters prevent loading deleted entities
-- **Audit Trail Automation** - Automatic timestamp management
-- **Connection Pooling** - Configured for optimal performance
-- **Async Operations** - All data operations are async for scalability
+### Indexing Best Practices
 
-## Testing
+- **Compound Indexes**: Order fields by selectivity (most selective first)
+- **Text Indexes**: Use weights to prioritize title matches over descriptions
+- **Sparse Indexes**: For optional fields to save space
+- **Background Creation**: Indexes are created in background to avoid blocking
 
-Use the in-memory provider for unit and integration tests:
+### Query Optimization
 
 ```csharp
-// In test setup
-services.AddEasyMealsDataInMemory("TestDb");
+// Efficient: Uses compound index
+var recipes = await _recipeRepository.GetManyAsync(
+    r => r.SourceProvider == "example" && r.IsActive && !r.IsDeleted
+);
 
-// Tests automatically get isolated database instances
+// Less efficient: Missing index support
+var recipes = await _recipeRepository.GetManyAsync(
+    r => r.Description.Contains("complex search term")
+);
 ```
 
-## Migration from Legacy
+### Bulk Operations
 
-If migrating from the old `apps/shared/EasyMeals.Data`:
+```csharp
+// Use bulk operations for large datasets
+await _recipeRepository.AddManyAsync(largeRecipeList);
 
-1. Update package references to `EasyMeals.Shared.Data`
-2. Update namespace imports
-3. Replace direct DbContext usage with Repository pattern
-4. Update DI registration calls
+// Better than individual operations
+foreach (var recipe in largeRecipeList)
+{
+    await _recipeRepository.AddAsync(recipe); // Avoid this pattern
+}
+```
 
-## Contributing
+## Configuration Options
 
-When adding new shared entities:
+### Connection String Options
 
-1. Extend `BaseEntity` or `BaseSoftDeletableEntity`
-2. Create entity configuration in `Configurations/`
-3. Add specific repository interface if needed
-4. Update `EasyMealsDbContext` with new DbSet
-5. Add appropriate indexes and constraints
-6. Include comprehensive unit tests following `MethodName_Condition_ExpectedResult()` pattern
+```bash
+# Basic connection
+mongodb://localhost:27017/easymealsprod
+
+# With authentication
+mongodb://username:password@cluster.mongodb.net/easymealsprod
+
+# Replica set
+mongodb://host1:27017,host2:27017,host3:27017/easymealsprod?replicaSet=rs0
+
+# With options
+mongodb://localhost:27017/easymealsprod?maxPoolSize=50&wtimeoutMS=2500
+```
+
+### Client Settings
+
+```csharp
+var settings = new MongoClientSettings
+{
+    // Connection pooling
+    MaxConnectionPoolSize = 100,
+    MinConnectionPoolSize = 5,
+    MaxConnectionIdleTime = TimeSpan.FromMinutes(10),
+
+    // Timeouts
+    ConnectTimeout = TimeSpan.FromSeconds(30),
+    ServerSelectionTimeout = TimeSpan.FromSeconds(30),
+    SocketTimeout = TimeSpan.FromMinutes(5),
+
+    // Write concern
+    WriteConcern = WriteConcern.WMajority,
+
+    // Read preference
+    ReadPreference = ReadPreference.Secondary
+};
+```
+
+## Troubleshooting
+
+### Common Issues
+
+1. **Connection Timeout**
+
+   ```
+   Solution: Check network connectivity and increase timeouts
+   ```
+
+2. **Duplicate Key Error**
+
+   ```
+   Cause: Violating unique index constraint
+   Solution: Check for existing documents before insert
+   ```
+
+3. **Index Creation Failures**
+   ```
+   Cause: Conflicting indexes or data
+   Solution: Drop existing indexes before recreation
+   ```
+
+### Logging
+
+Enable detailed logging for debugging:
+
+```csharp
+// In appsettings.json
+{
+  "Logging": {
+    "LogLevel": {
+      "EasyMeals.Shared.Data": "Debug",
+      "MongoDB.Driver": "Information"
+    }
+  }
+}
+```
+
+## Examples Repository
+
+See the `EXAMPLES.md` file for comprehensive code examples covering:
+
+- Complex aggregation pipelines
+- Custom repository implementations
+- Advanced querying patterns
+- Performance optimization techniques
+- Testing strategies
 
 ## License
 
-This package is part of the EasyMeals monorepo and follows the same licensing terms.
+This project is licensed under the MIT License. See LICENSE file for details.
