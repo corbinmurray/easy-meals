@@ -1,47 +1,53 @@
+using EasyMeals.Crawler.Domain.Configurations;
 using EasyMeals.Crawler.Domain.ValueObjects;
 using EasyMeals.Shared.Data.Documents;
 using EasyMeals.Shared.Data.Repositories;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using ICrawlStateRepository = EasyMeals.Shared.Data.Repositories.ICrawlStateRepository;
 
 namespace EasyMeals.Crawler.Infrastructure.Persistence;
 
 /// <summary>
-/// MongoDB-optimized data repository implementation for crawler's crawl state management
+/// Source provider agnostic data repository implementation for crawler's crawl state management
 /// Bridges between the crawler's domain model and the shared MongoDB infrastructure
 /// Follows domain-focused naming conventions while leveraging MongoDB document features
+/// Supports multiple source providers through configuration injection
 /// </summary>
 public class CrawlStateDataRepository(
     ICrawlStateRepository sharedRepository,
     IUnitOfWork unitOfWork,
+    IOptions<CrawlerOptions> crawlerOptions,
     ILogger<CrawlStateDataRepository> logger) : EasyMeals.Crawler.Domain.Interfaces.ICrawlStateRepository
 {
-    private const string SourceProvider = "HelloFresh";
+    private readonly CrawlerOptions _crawlerOptions = crawlerOptions.Value;
 
     /// <inheritdoc />
     public async Task<CrawlState> LoadStateAsync(CancellationToken cancellationToken = default)
     {
         try
         {
-            var stateDocument = await sharedRepository.GetBySourceProviderAsync(SourceProvider, cancellationToken);
+            var stateDocument = await sharedRepository.GetBySourceProviderAsync(_crawlerOptions.SourceProvider, cancellationToken);
 
             if (stateDocument is null)
             {
-                logger.LogInformation("No existing crawl state found. Creating new state.");
+                logger.LogInformation("No existing crawl state found for source provider '{SourceProvider}'. Creating new state.",
+                    _crawlerOptions.SourceProvider);
                 return new CrawlState();
             }
 
             // Map from MongoDB document to domain value object
             var state = MapFromDocument(stateDocument);
 
-            logger.LogDebug("Loaded crawl state: {PendingCount} pending, {CompletedCount} completed, {FailedCount} failed",
-                state.PendingUrls.Count(), state.CompletedRecipeIds.Count, state.FailedUrls.Count);
+            logger.LogDebug("Loaded crawl state for '{SourceProvider}': {PendingCount} pending, {CompletedCount} completed, {FailedCount} failed",
+                _crawlerOptions.SourceProvider, state.PendingUrls.Count(), state.CompletedRecipeIds.Count, state.FailedUrls.Count);
 
             return state;
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error loading crawl state via shared MongoDB infrastructure. Creating new state.");
+            logger.LogError(ex, "Error loading crawl state for source provider '{SourceProvider}' via shared MongoDB infrastructure. Creating new state.",
+                _crawlerOptions.SourceProvider);
             return new CrawlState();
         }
     }
@@ -59,20 +65,23 @@ public class CrawlStateDataRepository(
 
             if (result)
             {
-                await unitOfWork.CommitAsync(cancellationToken);
-                logger.LogDebug("Successfully saved crawl state via shared MongoDB infrastructure");
+                await unitOfWork.SaveChangesAsync(cancellationToken);
+                logger.LogDebug("Successfully saved crawl state for source provider '{SourceProvider}' via shared MongoDB infrastructure",
+                    _crawlerOptions.SourceProvider);
             }
             else
             {
-                logger.LogWarning("Failed to save crawl state via shared MongoDB infrastructure");
+                logger.LogWarning("Failed to save crawl state for source provider '{SourceProvider}' via shared MongoDB infrastructure",
+                    _crawlerOptions.SourceProvider);
             }
 
             return result;
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error saving crawl state via shared MongoDB infrastructure");
-            await unitOfWork.RollbackAsync(cancellationToken);
+            logger.LogError(ex, "Error saving crawl state for source provider '{SourceProvider}' via shared MongoDB infrastructure",
+                _crawlerOptions.SourceProvider);
+            await unitOfWork.RollbackTransactionAsync(cancellationToken);
             return false;
         }
     }
@@ -81,24 +90,28 @@ public class CrawlStateDataRepository(
     /// Maps from crawler domain value object to MongoDB document
     /// Leverages MongoDB's native support for arrays and embedded documents
     /// Follows DDD principles by encapsulating mapping logic
+    /// Uses configured source provider for multi-provider support
     /// </summary>
-    private static CrawlStateDocument MapToDocument(CrawlState state)
+    private CrawlStateDocument MapToDocument(CrawlState state)
     {
         return new CrawlStateDocument
         {
-            SourceProvider = SourceProvider,
+            SourceProvider = _crawlerOptions.SourceProvider,
             PendingUrls = state.PendingUrls.ToList(), // Native MongoDB array
-            ProcessedUrls = state.CompletedRecipeIds.ToList(), // Native MongoDB array
+            CompletedRecipeIds = state.CompletedRecipeIds.ToHashSet(), // Use the correct property name
             LastCrawlTime = state.LastCrawlTime,
-            Priority = 1, // Default priority for HelloFresh
+            Priority = _crawlerOptions.DefaultPriority,
             IsActive = true,
-            Metadata = new Dictionary<string, object>
+            TotalProcessed = state.TotalProcessed,
+            TotalSuccessful = state.TotalSuccessful,
+            TotalFailed = state.TotalFailed,
+            FailedUrls = state.FailedUrls.Select(url => new FailedUrlDocument
             {
-                ["totalProcessed"] = state.TotalProcessed,
-                ["totalSuccessful"] = state.TotalSuccessful,
-                ["totalFailed"] = state.TotalFailed,
-                ["failedUrls"] = state.FailedUrls.ToList()
-            }
+                Url = url,
+                ErrorMessage = "Crawl failed",
+                FailedAt = DateTime.UtcNow,
+                RetryCount = 0
+            }).ToList()
         };
     }
 
@@ -108,29 +121,18 @@ public class CrawlStateDataRepository(
     /// </summary>
     private static CrawlState MapFromDocument(CrawlStateDocument document)
     {
-        // Extract metadata with safe defaults
-        var metadata = document.Metadata ?? new Dictionary<string, object>();
-        var totalProcessed = metadata.TryGetValue("totalProcessed", out var tp) ? Convert.ToInt32(tp) : 0;
-        var totalSuccessful = metadata.TryGetValue("totalSuccessful", out var ts) ? Convert.ToInt32(ts) : 0;
-        var totalFailed = metadata.TryGetValue("totalFailed", out var tf) ? Convert.ToInt32(tf) : 0;
-
-        var failedUrls = new HashSet<string>();
-        if (metadata.TryGetValue("failedUrls", out var fu) && fu is IEnumerable<object> failedList)
-        {
-            failedUrls = failedList.Select(x => x?.ToString() ?? string.Empty)
-                                  .Where(x => !string.IsNullOrEmpty(x))
-                                  .ToHashSet();
-        }
+        // Extract failed URLs from the document structure
+        var failedUrls = document.FailedUrls?.Select(f => f.Url).ToHashSet() ?? new HashSet<string>();
 
         return new CrawlState
         {
             PendingUrls = document.PendingUrls ?? new List<string>(),
-            CompletedRecipeIds = (document.ProcessedUrls ?? new List<string>()).ToHashSet(),
+            CompletedRecipeIds = document.CompletedRecipeIds ?? new HashSet<string>(),
             FailedUrls = failedUrls,
             LastCrawlTime = document.LastCrawlTime,
-            TotalProcessed = totalProcessed,
-            TotalSuccessful = totalSuccessful,
-            TotalFailed = totalFailed
+            TotalProcessed = document.TotalProcessed,
+            TotalSuccessful = document.TotalSuccessful,
+            TotalFailed = document.TotalFailed
         };
     }
 }

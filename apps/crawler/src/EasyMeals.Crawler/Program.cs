@@ -1,11 +1,16 @@
 using EasyMeals.Crawler;
 using EasyMeals.Crawler.Application.Services;
+using EasyMeals.Crawler.Domain.Configurations;
 using EasyMeals.Crawler.Domain.Interfaces;
 using EasyMeals.Crawler.Infrastructure.Persistence;
 using EasyMeals.Crawler.Infrastructure.Services;
 using EasyMeals.Shared.Data.Extensions;
 
 HostApplicationBuilder builder = Host.CreateApplicationBuilder(args);
+
+// Configure options for source provider agnostic crawler
+builder.Services.Configure<CrawlerOptions>(
+    builder.Configuration.GetSection(CrawlerOptions.SectionName));
 
 // Configure services following Clean Architecture and DI best practices
 builder.Services.AddHostedService<Worker>();
@@ -44,7 +49,9 @@ builder.Logging.AddDebug();
 IHost host = builder.Build();
 
 var logger = host.Services.GetRequiredService<ILogger<Program>>();
-logger.LogInformation("HelloFresh Crawler starting up with shared EF Core data infrastructure...");
+var crawlerOptions = host.Services.GetRequiredService<Microsoft.Extensions.Options.IOptions<CrawlerOptions>>().Value;
+logger.LogInformation("Recipe Crawler starting up with shared MongoDB infrastructure for source provider: {SourceProvider}...",
+    crawlerOptions.SourceProvider);
 
 // Ensure database is created (for development) - no longer needed with new infrastructure
 
