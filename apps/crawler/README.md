@@ -43,6 +43,7 @@ Update your `appsettings.json` to specify the source provider:
 To add support for a new provider (e.g., "BlueApron"):
 
 1. **Update Configuration**:
+
    ```json
    {
      "Crawler": {
@@ -56,6 +57,7 @@ To add support for a new provider (e.g., "BlueApron"):
    ```
 
 2. **Create Provider-Specific Extractor**:
+
    ```csharp
    public class BlueApronRecipeExtractor : IRecipeExtractor
    {
@@ -64,6 +66,7 @@ To add support for a new provider (e.g., "BlueApron"):
    ```
 
 3. **Register in DI Container**:
+
    ```csharp
    // In Program.cs
    builder.Services.AddScoped<IRecipeExtractor, BlueApronRecipeExtractor>();
@@ -80,16 +83,19 @@ To add support for a new provider (e.g., "BlueApron"):
 ## Architecture
 
 ### Domain Layer
+
 - **Entities**: `Recipe` - Core recipe entity
 - **Value Objects**: `CrawlState` - Immutable state representation
 - **Interfaces**: Repository and service contracts
 - **Configurations**: `CrawlerOptions` - Source provider configuration
 
 ### Application Layer
+
 - **Services**: `CrawlOrchestrationService` - Coordinates crawling operations
 - **Use Cases**: Business logic for crawling workflows
 
 ### Infrastructure Layer
+
 - **Persistence**: Source provider agnostic repositories
   - `CrawlStateDataRepository` - Manages crawl state persistence
   - `RecipeDataRepository` - Handles recipe data storage
