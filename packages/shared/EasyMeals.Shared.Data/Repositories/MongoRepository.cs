@@ -15,7 +15,7 @@ public class MongoRepository<TDocument> : IMongoRepository<TDocument>
     where TDocument : BaseDocument
 {
     protected readonly IMongoCollection<TDocument> _collection;
-    private readonly IClientSessionHandle? _session;
+    protected readonly IClientSessionHandle? _session;
 
     public MongoRepository(IMongoDatabase database, IClientSessionHandle? session = null)
     {
