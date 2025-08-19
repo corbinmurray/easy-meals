@@ -1,6 +1,5 @@
-using System.Text.Json;
 using EasyMeals.Crawler.Domain.ValueObjects;
-using EasyMeals.Shared.Data.Entities;
+using EasyMeals.Shared.Data.Documents;
 using EasyMeals.Shared.Data.Repositories;
 using Microsoft.Extensions.Logging;
 using ICrawlStateRepository = EasyMeals.Shared.Data.Repositories.ICrawlStateRepository;
@@ -8,9 +7,9 @@ using ICrawlStateRepository = EasyMeals.Shared.Data.Repositories.ICrawlStateRepo
 namespace EasyMeals.Crawler.Infrastructure.Persistence;
 
 /// <summary>
-/// Data repository implementation for crawler's crawl state management
-/// Bridges between the crawler's domain model and the shared data infrastructure
-/// Follows domain-focused naming conventions while maintaining clean architecture
+/// MongoDB-optimized data repository implementation for crawler's crawl state management
+/// Bridges between the crawler's domain model and the shared MongoDB infrastructure
+/// Follows domain-focused naming conventions while leveraging MongoDB document features
 /// </summary>
 public class CrawlStateDataRepository(
     ICrawlStateRepository sharedRepository,
@@ -24,16 +23,16 @@ public class CrawlStateDataRepository(
     {
         try
         {
-            var stateEntity = await sharedRepository.GetBySourceProviderAsync(SourceProvider, cancellationToken);
+            var stateDocument = await sharedRepository.GetBySourceProviderAsync(SourceProvider, cancellationToken);
 
-            if (stateEntity is null)
+            if (stateDocument is null)
             {
                 logger.LogInformation("No existing crawl state found. Creating new state.");
                 return new CrawlState();
             }
 
-            // Map from data entity to domain value object
-            var state = MapFromEntity(stateEntity);
+            // Map from MongoDB document to domain value object
+            var state = MapFromDocument(stateDocument);
 
             logger.LogDebug("Loaded crawl state: {PendingCount} pending, {CompletedCount} completed, {FailedCount} failed",
                 state.PendingUrls.Count(), state.CompletedRecipeIds.Count, state.FailedUrls.Count);
@@ -42,7 +41,7 @@ public class CrawlStateDataRepository(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error loading crawl state via shared data infrastructure. Creating new state.");
+            logger.LogError(ex, "Error loading crawl state via shared MongoDB infrastructure. Creating new state.");
             return new CrawlState();
         }
     }
@@ -50,71 +49,88 @@ public class CrawlStateDataRepository(
     /// <inheritdoc />
     public async Task<bool> SaveStateAsync(CrawlState state, CancellationToken cancellationToken = default)
     {
-        await unitOfWork.BeginTransactionAsync(cancellationToken);
-        
         try
         {
-            // Map from domain value object to data entity
-            var stateEntity = MapToEntity(state);
+            // Map from domain value object to MongoDB document
+            var stateDocument = MapToDocument(state);
 
-            // Use the shared repository's upsert functionality
-            var result = await sharedRepository.SaveStateAsync(stateEntity, cancellationToken);
+            // Use the shared repository's MongoDB-optimized upsert functionality
+            var result = await sharedRepository.SaveStateAsync(stateDocument, cancellationToken);
 
             if (result)
-                logger.LogDebug("Successfully saved crawl state via shared data infrastructure");
+            {
+                await unitOfWork.CommitAsync(cancellationToken);
+                logger.LogDebug("Successfully saved crawl state via shared MongoDB infrastructure");
+            }
             else
-                logger.LogWarning("Failed to save crawl state via shared data infrastructure");
+            {
+                logger.LogWarning("Failed to save crawl state via shared MongoDB infrastructure");
+            }
 
-            await unitOfWork.CommitTransactionAsync(cancellationToken);
-            
             return result;
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error saving crawl state via shared data infrastructure");
-            await unitOfWork.RollbackTransactionAsync(cancellationToken);
+            logger.LogError(ex, "Error saving crawl state via shared MongoDB infrastructure");
+            await unitOfWork.RollbackAsync(cancellationToken);
             return false;
         }
     }
 
     /// <summary>
-    /// Maps from crawler domain value object to shared data entity
+    /// Maps from crawler domain value object to MongoDB document
+    /// Leverages MongoDB's native support for arrays and embedded documents
     /// Follows DDD principles by encapsulating mapping logic
     /// </summary>
-    private static CrawlStateEntity MapToEntity(CrawlState state)
+    private static CrawlStateDocument MapToDocument(CrawlState state)
     {
-        return new CrawlStateEntity
+        return new CrawlStateDocument
         {
             SourceProvider = SourceProvider,
-            PendingUrlsJson = JsonSerializer.Serialize(state.PendingUrls),
-            CompletedRecipeIdsJson = JsonSerializer.Serialize(state.CompletedRecipeIds),
-            FailedUrlsJson = JsonSerializer.Serialize(state.FailedUrls),
+            PendingUrls = state.PendingUrls.ToList(), // Native MongoDB array
+            ProcessedUrls = state.CompletedRecipeIds.ToList(), // Native MongoDB array
             LastCrawlTime = state.LastCrawlTime,
-            TotalProcessed = state.TotalProcessed,
-            TotalSuccessful = state.TotalSuccessful,
-            TotalFailed = state.TotalFailed
+            Priority = 1, // Default priority for HelloFresh
+            IsActive = true,
+            Metadata = new Dictionary<string, object>
+            {
+                ["totalProcessed"] = state.TotalProcessed,
+                ["totalSuccessful"] = state.TotalSuccessful,
+                ["totalFailed"] = state.TotalFailed,
+                ["failedUrls"] = state.FailedUrls.ToList()
+            }
         };
     }
 
     /// <summary>
-    /// Maps from shared data entity to crawler domain value object
-    /// Supports immutable value object pattern with proper deserialization
+    /// Maps from MongoDB document to crawler domain value object
+    /// Handles MongoDB document structure and supports immutable value object pattern
     /// </summary>
-    private static CrawlState MapFromEntity(CrawlStateEntity entity)
+    private static CrawlState MapFromDocument(CrawlStateDocument document)
     {
-        var pendingUrls = JsonSerializer.Deserialize<List<string>>(entity.PendingUrlsJson) ?? [];
-        var completedIds = JsonSerializer.Deserialize<HashSet<string>>(entity.CompletedRecipeIdsJson) ?? [];
-        var failedUrls = JsonSerializer.Deserialize<HashSet<string>>(entity.FailedUrlsJson) ?? [];
+        // Extract metadata with safe defaults
+        var metadata = document.Metadata ?? new Dictionary<string, object>();
+        var totalProcessed = metadata.TryGetValue("totalProcessed", out var tp) ? Convert.ToInt32(tp) : 0;
+        var totalSuccessful = metadata.TryGetValue("totalSuccessful", out var ts) ? Convert.ToInt32(ts) : 0;
+        var totalFailed = metadata.TryGetValue("totalFailed", out var tf) ? Convert.ToInt32(tf) : 0;
+
+        var failedUrls = new HashSet<string>();
+        if (metadata.TryGetValue("failedUrls", out var fu) && fu is IEnumerable<object> failedList)
+        {
+            failedUrls = failedList.Select(x => x?.ToString() ?? string.Empty)
+                                  .Where(x => !string.IsNullOrEmpty(x))
+                                  .ToHashSet();
+        }
 
         return new CrawlState
         {
-            PendingUrls = pendingUrls,
-            CompletedRecipeIds = completedIds,
+            PendingUrls = document.PendingUrls ?? new List<string>(),
+            CompletedRecipeIds = (document.ProcessedUrls ?? new List<string>()).ToHashSet(),
             FailedUrls = failedUrls,
-            LastCrawlTime = entity.LastCrawlTime,
-            TotalProcessed = entity.TotalProcessed,
-            TotalSuccessful = entity.TotalSuccessful,
-            TotalFailed = entity.TotalFailed
+            LastCrawlTime = document.LastCrawlTime,
+            TotalProcessed = totalProcessed,
+            TotalSuccessful = totalSuccessful,
+            TotalFailed = totalFailed
         };
     }
 }

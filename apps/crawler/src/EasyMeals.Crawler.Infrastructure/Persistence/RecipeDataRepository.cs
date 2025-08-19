@@ -1,16 +1,15 @@
 using EasyMeals.Crawler.Domain.Entities;
 using EasyMeals.Crawler.Domain.Interfaces;
-using EasyMeals.Shared.Data.Entities;
+using EasyMeals.Shared.Data.Documents;
 using EasyMeals.Shared.Data.Repositories;
 using Microsoft.Extensions.Logging;
-using System.Text.Json;
 
 namespace EasyMeals.Crawler.Infrastructure.Persistence;
 
 /// <summary>
-/// Data repository implementation for crawler's recipe management
-/// Bridges between the crawler's domain model and the shared data infrastructure
-/// Follows domain-focused naming conventions while maintaining clean architecture
+/// MongoDB-optimized data repository implementation for crawler's recipe management
+/// Bridges between the crawler's domain model and the shared MongoDB infrastructure
+/// Leverages MongoDB's document structure and embedded document capabilities
 /// </summary>
 public class RecipeDataRepository : EasyMeals.Crawler.Domain.Interfaces.IRecipeRepository
 {
@@ -33,23 +32,22 @@ public class RecipeDataRepository : EasyMeals.Crawler.Domain.Interfaces.IRecipeR
     {
         try
         {
-            // Map from crawler domain model to shared data entity
-            var recipeEntity = MapToEntity(recipe);
+            // Map from crawler domain model to MongoDB document
+            var recipeDocument = MapToDocument(recipe);
 
-            // Use the shared data repository
-            await _sharedRepository.AddAsync(recipeEntity, cancellationToken);
-            var result = await _unitOfWork.SaveChangesAsync(cancellationToken) > 0;
+            // Use the shared MongoDB repository
+            await _sharedRepository.AddAsync(recipeDocument, cancellationToken);
+            await _unitOfWork.CommitAsync(cancellationToken);
 
-            if (result)
-                _logger.LogDebug("Successfully saved recipe via shared data infrastructure: {Title} ({Id})", recipe.Title, recipe.Id);
-            else
-                _logger.LogWarning("Failed to save recipe via shared data infrastructure: {Title} ({Id})", recipe.Title, recipe.Id);
-
-            return result;
+            _logger.LogDebug("Successfully saved recipe via shared MongoDB infrastructure: {Title} ({Id})",
+                recipe.Title, recipe.Id);
+            return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error saving recipe via shared data infrastructure: {Title} ({Id})", recipe.Title, recipe.Id);
+            _logger.LogError(ex, "Error saving recipe via shared MongoDB infrastructure: {Title} ({Id})",
+                recipe.Title, recipe.Id);
+            await _unitOfWork.RollbackAsync(cancellationToken);
             return false;
         }
     }
@@ -57,25 +55,31 @@ public class RecipeDataRepository : EasyMeals.Crawler.Domain.Interfaces.IRecipeR
     /// <inheritdoc />
     public async Task<int> SaveRecipesAsync(IEnumerable<Recipe> recipes, CancellationToken cancellationToken = default)
     {
+        var recipesList = recipes.ToList();
+        if (!recipesList.Any())
+            return 0;
+
         try
         {
-            var recipeEntities = recipes.Select(MapToEntity).ToList();
+            // Map all recipes to MongoDB documents
+            var recipeDocuments = recipesList.Select(MapToDocument).ToList();
 
-            await _sharedRepository.AddRangeAsync(recipeEntities, cancellationToken);
-            var saved = await _unitOfWork.SaveChangesAsync(cancellationToken);
+            // Use MongoDB bulk insert for efficiency
+            await _sharedRepository.AddManyAsync(recipeDocuments, cancellationToken);
+            await _unitOfWork.CommitAsync(cancellationToken);
 
-            _logger.LogInformation("Saved {Count} out of {Total} recipes via shared data infrastructure",
-                saved, recipes.Count());
-
-            return saved;
+            _logger.LogInformation("Successfully saved {Count} recipes via shared MongoDB infrastructure",
+                recipesList.Count);
+            return recipesList.Count;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error saving recipes batch via shared data infrastructure");
+            _logger.LogError(ex, "Error saving recipe batch via shared MongoDB infrastructure. Attempting individual saves.");
+            await _unitOfWork.RollbackAsync(cancellationToken);
 
-            // Fallback to individual saves
+            // Fallback to individual saves for partial success
             var count = 0;
-            foreach (var recipe in recipes)
+            foreach (var recipe in recipesList)
             {
                 var saved = await SaveRecipeAsync(recipe, cancellationToken);
                 if (saved) count++;
@@ -96,59 +100,113 @@ public class RecipeDataRepository : EasyMeals.Crawler.Domain.Interfaces.IRecipeR
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error checking recipe existence via shared data infrastructure: {RecipeId}", recipeId);
+            _logger.LogError(ex, "Error checking recipe existence via shared MongoDB infrastructure: {RecipeId}",
+                recipeId);
             return false;
         }
     }
 
     /// <summary>
-    /// Maps from crawler domain model to shared data entity
+    /// Maps from crawler domain model to MongoDB document
+    /// Leverages MongoDB's native support for embedded documents and arrays
     /// Follows DDD principles by keeping domain logic separate from infrastructure concerns
     /// </summary>
-    private static RecipeEntity MapToEntity(Recipe recipe)
+    private static RecipeDocument MapToDocument(Recipe recipe)
     {
-        return new RecipeEntity
+        return new RecipeDocument
         {
             Title = recipe.Title,
             Description = recipe.Description,
-            IngredientsJson = JsonSerializer.Serialize(recipe.Ingredients),
-            InstructionsJson = JsonSerializer.Serialize(recipe.Instructions),
+            // Map ingredients to embedded documents (native MongoDB structure)
+            Ingredients = recipe.Ingredients?.Select(ingredient => new IngredientDocument
+            {
+                Name = ingredient, // Simplified mapping - adjust based on your domain model
+                Amount = string.Empty, // You may need to parse this from the ingredient string
+                Unit = string.Empty
+            }).ToList() ?? new List<IngredientDocument>(),
+            // Map instructions to embedded documents
+            Instructions = recipe.Instructions?.Select((instruction, index) => new InstructionDocument
+            {
+                StepNumber = index + 1,
+                Description = instruction
+            }).ToList() ?? new List<InstructionDocument>(),
             ImageUrl = recipe.ImageUrl,
             PrepTimeMinutes = recipe.PrepTimeMinutes,
             CookTimeMinutes = recipe.CookTimeMinutes,
             Servings = recipe.Servings,
-            NutritionInfoJson = JsonSerializer.Serialize(recipe.NutritionInfo),
-            TagsJson = JsonSerializer.Serialize(recipe.Tags),
+            // Map nutrition info to embedded document
+            NutritionInfo = recipe.NutritionInfo?.Any() == true ? new NutritionalInfoDocument
+            {
+                // Map common nutritional fields - adjust based on your data structure
+                Calories = TryParseNutritionValue(recipe.NutritionInfo, "calories"),
+                ProteinGrams = TryParseNutritionValue(recipe.NutritionInfo, "protein"),
+                CarbsGrams = TryParseNutritionValue(recipe.NutritionInfo, "carbs"),
+                FatGrams = TryParseNutritionValue(recipe.NutritionInfo, "fat"),
+                FiberGrams = TryParseNutritionValue(recipe.NutritionInfo, "fiber"),
+                SugarGrams = TryParseNutritionValue(recipe.NutritionInfo, "sugar"),
+                SodiumMilligrams = TryParseNutritionValue(recipe.NutritionInfo, "sodium")
+            } : null,
+            Tags = recipe.Tags ?? new List<string>(), // Native MongoDB array
             SourceUrl = recipe.SourceUrl,
             SourceProvider = "HelloFresh",
-            IsActive = true,
-            CreatedAt = recipe.CreatedAt,
-            UpdatedAt = recipe.UpdatedAt
+            IsActive = true
         };
     }
 
     /// <summary>
-    /// Maps from shared data entity to crawler domain model
-    /// Supports read operations and maintains clean separation of concerns
+    /// Helper method to safely parse nutritional values from string dictionary
+    /// Supports robust data conversion for nutritional information
     /// </summary>
-    private static Recipe MapFromEntity(RecipeEntity entity)
+    private static decimal? TryParseNutritionValue(Dictionary<string, string> nutritionInfo, string key)
+    {
+        if (nutritionInfo?.TryGetValue(key, out var value) == true &&
+            decimal.TryParse(value, out var result))
+        {
+            return result;
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// Maps from MongoDB document to crawler domain model
+    /// Supports read operations and maintains clean separation of concerns
+    /// Note: This method is included for completeness but may not be needed in current crawler workflow
+    /// </summary>
+    private static Recipe MapFromDocument(RecipeDocument document)
     {
         return new Recipe
         {
-            Id = entity.Id.ToString(),
-            Title = entity.Title,
-            Description = entity.Description,
-            Ingredients = JsonSerializer.Deserialize<List<string>>(entity.IngredientsJson) ?? [],
-            Instructions = JsonSerializer.Deserialize<List<string>>(entity.InstructionsJson) ?? [],
-            ImageUrl = entity.ImageUrl,
-            PrepTimeMinutes = entity.PrepTimeMinutes,
-            CookTimeMinutes = entity.CookTimeMinutes,
-            Servings = entity.Servings,
-            NutritionInfo = JsonSerializer.Deserialize<Dictionary<string, string>>(entity.NutritionInfoJson) ?? new(),
-            Tags = JsonSerializer.Deserialize<List<string>>(entity.TagsJson) ?? [],
-            SourceUrl = entity.SourceUrl,
-            CreatedAt = entity.CreatedAt,
-            UpdatedAt = entity.UpdatedAt
+            Id = document.Id.ToString(),
+            Title = document.Title,
+            Description = document.Description,
+            // Convert embedded ingredients back to simple strings for domain model compatibility
+            Ingredients = document.Ingredients?.Select(i =>
+                string.IsNullOrEmpty(i.Amount) ? i.Name : $"{i.Amount} {i.Unit} {i.Name}".Trim())
+                .ToList() ?? new List<string>(),
+            // Convert embedded instructions back to simple strings
+            Instructions = document.Instructions?.OrderBy(i => i.StepNumber)
+                .Select(i => i.Description)
+                .ToList() ?? new List<string>(),
+            ImageUrl = document.ImageUrl,
+            PrepTimeMinutes = document.PrepTimeMinutes,
+            CookTimeMinutes = document.CookTimeMinutes,
+            Servings = document.Servings,
+            // Convert embedded nutrition info back to dictionary
+            NutritionInfo = document.NutritionInfo != null ? new Dictionary<string, string>
+            {
+                ["calories"] = document.NutritionInfo.Calories?.ToString() ?? string.Empty,
+                ["protein"] = document.NutritionInfo.ProteinGrams?.ToString() ?? string.Empty,
+                ["carbs"] = document.NutritionInfo.CarbsGrams?.ToString() ?? string.Empty,
+                ["fat"] = document.NutritionInfo.FatGrams?.ToString() ?? string.Empty,
+                ["fiber"] = document.NutritionInfo.FiberGrams?.ToString() ?? string.Empty,
+                ["sugar"] = document.NutritionInfo.SugarGrams?.ToString() ?? string.Empty,
+                ["sodium"] = document.NutritionInfo.SodiumMilligrams?.ToString() ?? string.Empty
+            }.Where(kvp => !string.IsNullOrEmpty(kvp.Value)).ToDictionary(kvp => kvp.Key, kvp => kvp.Value)
+            : new Dictionary<string, string>(),
+            Tags = document.Tags ?? new List<string>(),
+            SourceUrl = document.SourceUrl,
+            CreatedAt = document.CreatedAt,
+            UpdatedAt = document.UpdatedAt
         };
     }
 }
