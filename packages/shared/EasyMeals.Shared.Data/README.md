@@ -1,10 +1,12 @@
 # EasyMeals.Shared.Data - MongoDB Integration
 
-A comprehensive MongoDB data access library for the EasyMeals application, providing type-safe document models, repository patterns, and optimized indexing strategies.
+A comprehensive MongoDB data access library for the EasyMeals application, providing type-safe document models, repository patterns, and optimized
+indexing strategies.
 
 ## Overview
 
-This library implements the migration from Entity Framework Core to MongoDB, maintaining backward compatibility while leveraging MongoDB's document-oriented features for improved performance and scalability.
+This library implements the migration from Entity Framework Core to MongoDB, maintaining backward compatibility while leveraging MongoDB's
+document-oriented features for improved performance and scalability.
 
 ### Key Features
 

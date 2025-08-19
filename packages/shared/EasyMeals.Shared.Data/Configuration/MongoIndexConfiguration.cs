@@ -1,19 +1,19 @@
-using MongoDB.Driver;
-using MongoDB.Bson;
 using EasyMeals.Shared.Data.Documents;
+using MongoDB.Bson;
+using MongoDB.Driver;
 
 namespace EasyMeals.Shared.Data.Configuration;
 
 /// <summary>
-/// MongoDB index configuration for optimal query performance
-/// Implements comprehensive indexing strategy for recipes and crawl states
-/// Follows MongoDB best practices for query optimization
+///     MongoDB index configuration for optimal query performance
+///     Implements comprehensive indexing strategy for recipes and crawl states
+///     Follows MongoDB best practices for query optimization
 /// </summary>
 public static class MongoIndexConfiguration
 {
     /// <summary>
-    /// Creates all necessary indexes for optimal performance
-    /// Should be called during application startup or deployment
+    ///     Creates all necessary indexes for optimal performance
+    ///     Should be called during application startup or deployment
     /// </summary>
     /// <param name="database">MongoDB database instance</param>
     /// <returns>Task representing the async operation</returns>
@@ -29,12 +29,12 @@ public static class MongoIndexConfiguration
     }
 
     /// <summary>
-    /// Creates optimized indexes for the recipes collection
-    /// Supports efficient queries for search, filtering, and sorting
+    ///     Creates optimized indexes for the recipes collection
+    ///     Supports efficient queries for search, filtering, and sorting
     /// </summary>
     public static async Task CreateRecipeIndexesAsync(IMongoDatabase database)
     {
-        var collection = database.GetCollection<RecipeDocument>("recipes");
+        IMongoCollection<RecipeDocument>? collection = database.GetCollection<RecipeDocument>("recipes");
 
         var indexes = new[]
         {
@@ -162,12 +162,12 @@ public static class MongoIndexConfiguration
     }
 
     /// <summary>
-    /// Creates optimized indexes for the crawl states collection
-    /// Supports efficient distributed crawling operations
+    ///     Creates optimized indexes for the crawl states collection
+    ///     Supports efficient distributed crawling operations
     /// </summary>
     public static async Task CreateCrawlStateIndexesAsync(IMongoDatabase database)
     {
-        var collection = database.GetCollection<CrawlStateDocument>("crawlstates");
+        IMongoCollection<CrawlStateDocument>? collection = database.GetCollection<CrawlStateDocument>("crawlstates");
 
         var indexes = new[]
         {
@@ -261,8 +261,8 @@ public static class MongoIndexConfiguration
     }
 
     /// <summary>
-    /// Drops all custom indexes (useful for migrations or cleanup)
-    /// Preserves MongoDB system indexes
+    ///     Drops all custom indexes (useful for migrations or cleanup)
+    ///     Preserves MongoDB system indexes
     /// </summary>
     public static async Task DropAllCustomIndexesAsync(IMongoDatabase database)
     {
@@ -271,11 +271,11 @@ public static class MongoIndexConfiguration
     }
 
     /// <summary>
-    /// Drops custom indexes for recipes collection
+    ///     Drops custom indexes for recipes collection
     /// </summary>
     public static async Task DropRecipeIndexesAsync(IMongoDatabase database)
     {
-        var collection = database.GetCollection<RecipeDocument>("recipes");
+        IMongoCollection<RecipeDocument>? collection = database.GetCollection<RecipeDocument>("recipes");
 
         var indexNames = new[]
         {
@@ -291,7 +291,7 @@ public static class MongoIndexConfiguration
             "idx_difficulty"
         };
 
-        foreach (var indexName in indexNames)
+        foreach (string indexName in indexNames)
         {
             try
             {
@@ -305,11 +305,11 @@ public static class MongoIndexConfiguration
     }
 
     /// <summary>
-    /// Drops custom indexes for crawl states collection
+    ///     Drops custom indexes for crawl states collection
     /// </summary>
     public static async Task DropCrawlStateIndexesAsync(IMongoDatabase database)
     {
-        var collection = database.GetCollection<CrawlStateDocument>("crawlstates");
+        IMongoCollection<CrawlStateDocument>? collection = database.GetCollection<CrawlStateDocument>("crawlstates");
 
         var indexNames = new[]
         {
@@ -322,7 +322,7 @@ public static class MongoIndexConfiguration
             "idx_pending_work"
         };
 
-        foreach (var indexName in indexNames)
+        foreach (string indexName in indexNames)
         {
             try
             {
@@ -336,20 +336,20 @@ public static class MongoIndexConfiguration
     }
 
     /// <summary>
-    /// Gets index statistics for performance monitoring
+    ///     Gets index statistics for performance monitoring
     /// </summary>
     public static async Task<Dictionary<string, BsonDocument>> GetIndexStatsAsync(IMongoDatabase database)
     {
         var stats = new Dictionary<string, BsonDocument>();
 
         // Get recipe collection index stats
-        var recipesCollection = database.GetCollection<RecipeDocument>("recipes");
+        IMongoCollection<RecipeDocument>? recipesCollection = database.GetCollection<RecipeDocument>("recipes");
         var recipeStats = await recipesCollection.Database.RunCommandAsync<BsonDocument>(
             new BsonDocument("collStats", "recipes"));
         stats["recipes"] = recipeStats;
 
         // Get crawl states collection index stats
-        var crawlStatesCollection = database.GetCollection<CrawlStateDocument>("crawlstates");
+        IMongoCollection<CrawlStateDocument>? crawlStatesCollection = database.GetCollection<CrawlStateDocument>("crawlstates");
         var crawlStats = await crawlStatesCollection.Database.RunCommandAsync<BsonDocument>(
             new BsonDocument("collStats", "crawlstates"));
         stats["crawlstates"] = crawlStats;

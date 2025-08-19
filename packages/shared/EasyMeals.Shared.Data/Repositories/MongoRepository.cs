@@ -1,14 +1,15 @@
 using System.Linq.Expressions;
-using MongoDB.Driver;
-using EasyMeals.Shared.Data.Documents;
 using EasyMeals.Shared.Data.Attributes;
+using EasyMeals.Shared.Data.Documents;
+using MongoDB.Bson;
+using MongoDB.Driver;
 
 namespace EasyMeals.Shared.Data.Repositories;
 
 /// <summary>
-/// MongoDB repository implementation following Repository pattern from DDD
-/// Provides optimized MongoDB operations while maintaining aggregate boundaries
-/// Implements both generic repository interface and MongoDB-specific operations
+///     MongoDB repository implementation following Repository pattern from DDD
+///     Provides optimized MongoDB operations while maintaining aggregate boundaries
+///     Implements both generic repository interface and MongoDB-specific operations
 /// </summary>
 /// <typeparam name="TDocument">The document type managed by this repository</typeparam>
 public class MongoRepository<TDocument> : IMongoRepository<TDocument>
@@ -19,32 +20,18 @@ public class MongoRepository<TDocument> : IMongoRepository<TDocument>
 
     public MongoRepository(IMongoDatabase database, IClientSessionHandle? session = null)
     {
-        var collectionName = GetCollectionName();
+        string collectionName = GetCollectionName();
         _collection = database.GetCollection<TDocument>(collectionName);
         _session = session;
     }
 
-    /// <summary>
-    /// Gets the MongoDB collection name for the document type
-    /// Uses BsonCollection attribute or derives from type name
-    /// </summary>
-    private static string GetCollectionName()
-    {
-        var attribute = typeof(TDocument).GetCustomAttributes(typeof(BsonCollectionAttribute), true)
-            .FirstOrDefault() as BsonCollectionAttribute;
-
-        return attribute?.CollectionName ?? typeof(TDocument).Name.ToLowerInvariant();
-    }
-
     public virtual async Task<TDocument?> GetByIdAsync(string id, CancellationToken cancellationToken = default)
     {
-        var filter = Builders<TDocument>.Filter.Eq(doc => doc.Id, id);
+        FilterDefinition<TDocument>? filter = Builders<TDocument>.Filter.Eq(doc => doc.Id, id);
 
         if (typeof(ISoftDeletableDocument).IsAssignableFrom(typeof(TDocument)))
-        {
             filter = Builders<TDocument>.Filter.And(filter,
                 Builders<TDocument>.Filter.Ne("isDeleted", true));
-        }
 
         return _session != null
             ? await _collection.Find(_session, filter).FirstOrDefaultAsync(cancellationToken)
@@ -55,17 +42,15 @@ public class MongoRepository<TDocument> : IMongoRepository<TDocument>
         Expression<Func<TDocument, bool>>? predicate = null,
         CancellationToken cancellationToken = default)
     {
-        var filter = predicate != null
+        FilterDefinition<TDocument>? filter = predicate != null
             ? Builders<TDocument>.Filter.Where(predicate)
             : Builders<TDocument>.Filter.Empty;
 
         if (typeof(ISoftDeletableDocument).IsAssignableFrom(typeof(TDocument)))
-        {
             filter = Builders<TDocument>.Filter.And(filter,
                 Builders<TDocument>.Filter.Ne("isDeleted", true));
-        }
 
-        var cursor = _session != null
+        IAsyncCursor<TDocument>? cursor = _session != null
             ? await _collection.FindAsync(_session, filter, cancellationToken: cancellationToken)
             : await _collection.FindAsync(filter, cancellationToken: cancellationToken);
 
@@ -78,32 +63,30 @@ public class MongoRepository<TDocument> : IMongoRepository<TDocument>
         Expression<Func<TDocument, bool>>? predicate = null,
         CancellationToken cancellationToken = default)
     {
-        var filter = predicate != null
+        FilterDefinition<TDocument>? filter = predicate != null
             ? Builders<TDocument>.Filter.Where(predicate)
             : Builders<TDocument>.Filter.Empty;
 
         if (typeof(ISoftDeletableDocument).IsAssignableFrom(typeof(TDocument)))
-        {
             filter = Builders<TDocument>.Filter.And(filter,
                 Builders<TDocument>.Filter.Ne("isDeleted", true));
-        }
 
-        var totalCount = _session != null
+        long totalCount = _session != null
             ? await _collection.CountDocumentsAsync(_session, filter, cancellationToken: cancellationToken)
             : await _collection.CountDocumentsAsync(filter, cancellationToken: cancellationToken);
 
-        var skip = (pageNumber - 1) * pageSize;
+        int skip = (pageNumber - 1) * pageSize;
         var findOptions = new FindOptions<TDocument>
         {
             Skip = skip,
             Limit = pageSize
         };
 
-        var cursor = _session != null
+        IAsyncCursor<TDocument>? cursor = _session != null
             ? await _collection.FindAsync(_session, filter, findOptions, cancellationToken)
             : await _collection.FindAsync(filter, findOptions, cancellationToken);
 
-        var items = await cursor.ToListAsync(cancellationToken);
+        List<TDocument>? items = await cursor.ToListAsync(cancellationToken);
 
         return new PagedResult<TDocument>
         {
@@ -118,13 +101,11 @@ public class MongoRepository<TDocument> : IMongoRepository<TDocument>
         Expression<Func<TDocument, bool>> predicate,
         CancellationToken cancellationToken = default)
     {
-        var filter = Builders<TDocument>.Filter.Where(predicate);
+        FilterDefinition<TDocument>? filter = Builders<TDocument>.Filter.Where(predicate);
 
         if (typeof(ISoftDeletableDocument).IsAssignableFrom(typeof(TDocument)))
-        {
             filter = Builders<TDocument>.Filter.And(filter,
                 Builders<TDocument>.Filter.Ne("isDeleted", true));
-        }
 
         return _session != null
             ? await _collection.Find(_session, filter).FirstOrDefaultAsync(cancellationToken)
@@ -135,15 +116,13 @@ public class MongoRepository<TDocument> : IMongoRepository<TDocument>
         Expression<Func<TDocument, bool>> predicate,
         CancellationToken cancellationToken = default)
     {
-        var filter = Builders<TDocument>.Filter.Where(predicate);
+        FilterDefinition<TDocument>? filter = Builders<TDocument>.Filter.Where(predicate);
 
         if (typeof(ISoftDeletableDocument).IsAssignableFrom(typeof(TDocument)))
-        {
             filter = Builders<TDocument>.Filter.And(filter,
                 Builders<TDocument>.Filter.Ne("isDeleted", true));
-        }
 
-        var count = _session != null
+        long count = _session != null
             ? await _collection.CountDocumentsAsync(_session, filter, new CountOptions { Limit = 1 }, cancellationToken)
             : await _collection.CountDocumentsAsync(filter, new CountOptions { Limit = 1 }, cancellationToken);
 
@@ -154,17 +133,15 @@ public class MongoRepository<TDocument> : IMongoRepository<TDocument>
         Expression<Func<TDocument, bool>>? predicate = null,
         CancellationToken cancellationToken = default)
     {
-        var filter = predicate != null
+        FilterDefinition<TDocument>? filter = predicate != null
             ? Builders<TDocument>.Filter.Where(predicate)
             : Builders<TDocument>.Filter.Empty;
 
         if (typeof(ISoftDeletableDocument).IsAssignableFrom(typeof(TDocument)))
-        {
             filter = Builders<TDocument>.Filter.And(filter,
                 Builders<TDocument>.Filter.Ne("isDeleted", true));
-        }
 
-        var count = _session != null
+        long count = _session != null
             ? await _collection.CountDocumentsAsync(_session, filter, cancellationToken: cancellationToken)
             : await _collection.CountDocumentsAsync(filter, cancellationToken: cancellationToken);
 
@@ -183,8 +160,8 @@ public class MongoRepository<TDocument> : IMongoRepository<TDocument>
 
     public virtual async Task AddRangeAsync(IEnumerable<TDocument> entities, CancellationToken cancellationToken = default)
     {
-        var documents = entities.ToList();
-        foreach (var doc in documents)
+        List<TDocument> documents = entities.ToList();
+        foreach (TDocument doc in documents)
         {
             doc.MarkAsModified();
         }
@@ -201,7 +178,7 @@ public class MongoRepository<TDocument> : IMongoRepository<TDocument>
     public virtual void Update(TDocument entity)
     {
         entity.MarkAsModified();
-        var filter = Builders<TDocument>.Filter.Eq(doc => doc.Id, entity.Id);
+        FilterDefinition<TDocument>? filter = Builders<TDocument>.Filter.Eq(doc => doc.Id, entity.Id);
 
         if (_session != null)
             _collection.ReplaceOne(_session, filter, entity);
@@ -211,7 +188,7 @@ public class MongoRepository<TDocument> : IMongoRepository<TDocument>
 
     public virtual void UpdateRange(IEnumerable<TDocument> entities)
     {
-        foreach (var entity in entities)
+        foreach (TDocument entity in entities)
         {
             Update(entity);
         }
@@ -219,7 +196,7 @@ public class MongoRepository<TDocument> : IMongoRepository<TDocument>
 
     public virtual void Remove(TDocument entity)
     {
-        var filter = Builders<TDocument>.Filter.Eq(doc => doc.Id, entity.Id);
+        FilterDefinition<TDocument>? filter = Builders<TDocument>.Filter.Eq(doc => doc.Id, entity.Id);
 
         if (_session != null)
             _collection.DeleteOne(_session, filter);
@@ -229,8 +206,8 @@ public class MongoRepository<TDocument> : IMongoRepository<TDocument>
 
     public virtual void RemoveRange(IEnumerable<TDocument> entities)
     {
-        var ids = entities.Select(e => e.Id).ToList();
-        var filter = Builders<TDocument>.Filter.In(doc => doc.Id, ids);
+        List<string> ids = entities.Select(e => e.Id).ToList();
+        FilterDefinition<TDocument>? filter = Builders<TDocument>.Filter.In(doc => doc.Id, ids);
 
         if (_session != null)
             _collection.DeleteMany(_session, filter);
@@ -243,27 +220,22 @@ public class MongoRepository<TDocument> : IMongoRepository<TDocument>
         Expression<Func<TDocument, TProjection>>? projection = null,
         CancellationToken cancellationToken = default)
     {
-        var mongoFilter = filter != null
+        FilterDefinition<TDocument>? mongoFilter = filter != null
             ? Builders<TDocument>.Filter.Where(filter)
             : Builders<TDocument>.Filter.Empty;
 
         if (typeof(ISoftDeletableDocument).IsAssignableFrom(typeof(TDocument)))
-        {
             mongoFilter = Builders<TDocument>.Filter.And(mongoFilter,
                 Builders<TDocument>.Filter.Ne("isDeleted", true));
-        }
 
-        var findFluent = _session != null
+        IFindFluent<TDocument, TDocument>? findFluent = _session != null
             ? _collection.Find(_session, mongoFilter)
             : _collection.Find(mongoFilter);
 
-        if (projection != null)
-        {
-            return await findFluent.Project(projection).ToListAsync(cancellationToken);
-        }
+        if (projection != null) return await findFluent.Project(projection).ToListAsync(cancellationToken);
 
         // If no projection specified, return the documents as TProjection (requires compatible types)
-        var cursor = await findFluent.ToListAsync(cancellationToken);
+        List<TDocument>? cursor = await findFluent.ToListAsync(cancellationToken);
         return cursor.Cast<TProjection>();
     }
 
@@ -272,12 +244,12 @@ public class MongoRepository<TDocument> : IMongoRepository<TDocument>
         object update,
         CancellationToken cancellationToken = default)
     {
-        var mongoFilter = Builders<TDocument>.Filter.Where(filter);
-        var updateDefinition = Builders<TDocument>.Update.Set("updatedAt", DateTime.UtcNow);
+        FilterDefinition<TDocument>? mongoFilter = Builders<TDocument>.Filter.Where(filter);
+        UpdateDefinition<TDocument>? updateDefinition = Builders<TDocument>.Update.Set("updatedAt", DateTime.UtcNow);
 
         // This is a simplified implementation - in practice, you'd want to handle
         // different update types more robustly
-        var result = _session != null
+        UpdateResult? result = _session != null
             ? await _collection.UpdateManyAsync(_session, mongoFilter, updateDefinition, cancellationToken: cancellationToken)
             : await _collection.UpdateManyAsync(mongoFilter, updateDefinition, cancellationToken: cancellationToken);
 
@@ -289,12 +261,24 @@ public class MongoRepository<TDocument> : IMongoRepository<TDocument>
         CancellationToken cancellationToken = default)
     {
         // Convert the pipeline objects to BsonDocuments
-        var bsonPipeline = pipeline.Select(stage => MongoDB.Bson.BsonDocument.Parse(stage.ToString()!)).ToArray();
+        BsonDocument[] bsonPipeline = pipeline.Select(stage => BsonDocument.Parse(stage.ToString()!)).ToArray();
 
-        var cursor = _session != null
+        IAsyncCursor<TResult>? cursor = _session != null
             ? await _collection.AggregateAsync<TResult>(_session, bsonPipeline, cancellationToken: cancellationToken)
             : await _collection.AggregateAsync<TResult>(bsonPipeline, cancellationToken: cancellationToken);
 
         return await cursor.ToListAsync(cancellationToken);
+    }
+
+    /// <summary>
+    ///     Gets the MongoDB collection name for the document type
+    ///     Uses BsonCollection attribute or derives from type name
+    /// </summary>
+    private static string GetCollectionName()
+    {
+        var attribute = typeof(TDocument).GetCustomAttributes(typeof(BsonCollectionAttribute), true)
+            .FirstOrDefault() as BsonCollectionAttribute;
+
+        return attribute?.CollectionName ?? typeof(TDocument).Name.ToLowerInvariant();
     }
 }

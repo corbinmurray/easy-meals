@@ -1,23 +1,22 @@
-using MongoDB.Driver;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
-using Microsoft.Extensions.Diagnostics.HealthChecks;
-using EasyMeals.Shared.Data.Repositories;
-using EasyMeals.Shared.Data.Documents;
 using EasyMeals.Shared.Data.Configuration;
+using EasyMeals.Shared.Data.Repositories;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
+using MongoDB.Bson;
+using MongoDB.Driver;
 
 namespace EasyMeals.Shared.Data.Extensions;
 
 /// <summary>
-/// Extension methods for configuring EasyMeals MongoDB data services
-/// Provides fluent configuration following the Dependency Inversion Principle
-/// Supports MongoDB client configuration and flexible connection options
+///     Extension methods for configuring EasyMeals MongoDB data services
+///     Provides fluent configuration following the Dependency Inversion Principle
+///     Supports MongoDB client configuration and flexible connection options
 /// </summary>
 public static class ServiceCollectionExtensions
 {
     /// <summary>
-    /// Adds EasyMeals data services with MongoDB using connection string
-    /// Standard configuration for production and development environments
+    ///     Adds EasyMeals data services with MongoDB using connection string
+    ///     Standard configuration for production and development environments
     /// </summary>
     /// <param name="services">The service collection</param>
     /// <param name="connectionString">MongoDB connection string</param>
@@ -30,12 +29,12 @@ public static class ServiceCollectionExtensions
         string? databaseName = null,
         Action<MongoClientSettings>? configureClient = null)
     {
-        var dbName = databaseName ?? "easymealsprod";
+        string dbName = databaseName ?? "easymealsprod";
 
         return services.AddEasyMealsDataCore(clientSettings =>
         {
             // Parse connection string and apply custom settings
-            var settings = MongoClientSettings.FromConnectionString(connectionString);
+            MongoClientSettings? settings = MongoClientSettings.FromConnectionString(connectionString);
 
             // Apply custom configuration if provided
             configureClient?.Invoke(settings);
@@ -45,8 +44,8 @@ public static class ServiceCollectionExtensions
     }
 
     /// <summary>
-    /// Adds EasyMeals data services with MongoDB using custom client settings
-    /// Advanced configuration for specialized deployment scenarios
+    ///     Adds EasyMeals data services with MongoDB using custom client settings
+    ///     Advanced configuration for specialized deployment scenarios
     /// </summary>
     /// <param name="services">The service collection</param>
     /// <param name="clientSettings">MongoDB client settings</param>
@@ -61,8 +60,8 @@ public static class ServiceCollectionExtensions
     }
 
     /// <summary>
-    /// Adds EasyMeals data services with in-memory MongoDB for testing
-    /// Uses Testcontainers or local MongoDB instance for development
+    ///     Adds EasyMeals data services with in-memory MongoDB for testing
+    ///     Uses Testcontainers or local MongoDB instance for development
     /// </summary>
     /// <param name="services">The service collection</param>
     /// <param name="databaseName">Database name (optional, defaults to test database)</param>
@@ -71,7 +70,7 @@ public static class ServiceCollectionExtensions
         this IServiceCollection services,
         string? databaseName = null)
     {
-        var dbName = databaseName ?? $"easymealstests_{Guid.NewGuid():N}";
+        string dbName = databaseName ?? $"easymealstests_{Guid.NewGuid():N}";
 
         return services.AddEasyMealsDataCore(clientSettings =>
         {
@@ -88,8 +87,8 @@ public static class ServiceCollectionExtensions
     }
 
     /// <summary>
-    /// Core configuration method for MongoDB data services
-    /// Registers all necessary services and repository implementations
+    ///     Core configuration method for MongoDB data services
+    ///     Registers all necessary services and repository implementations
     /// </summary>
     private static IServiceCollection AddEasyMealsDataCore(
         this IServiceCollection services,
@@ -99,7 +98,7 @@ public static class ServiceCollectionExtensions
         // Register MongoDB client as singleton
         services.AddSingleton<IMongoClient>(serviceProvider =>
         {
-            var settings = configureClientSettings(new MongoClientSettings());
+            MongoClientSettings settings = configureClientSettings(new MongoClientSettings());
             return new MongoClient(settings);
         });
 
@@ -126,14 +125,14 @@ public static class ServiceCollectionExtensions
     }
 
     /// <summary>
-    /// Ensures the MongoDB database exists and creates indexes
-    /// Essential for deployment scenarios and development setup
+    ///     Ensures the MongoDB database exists and creates indexes
+    ///     Essential for deployment scenarios and development setup
     /// </summary>
     /// <param name="services">Service collection</param>
     /// <returns>Service collection for chaining</returns>
     public static async Task<IServiceCollection> EnsureEasyMealsDatabaseAsync(this IServiceCollection services)
     {
-        using var scope = services.BuildServiceProvider(validateScopes: false).CreateScope();
+        using IServiceScope scope = services.BuildServiceProvider(false).CreateScope();
         var database = scope.ServiceProvider.GetRequiredService<IMongoDatabase>();
 
         // The database will be created automatically when first accessed
@@ -144,8 +143,8 @@ public static class ServiceCollectionExtensions
     }
 
     /// <summary>
-    /// Adds health checks for EasyMeals MongoDB connectivity
-    /// Essential for production monitoring and service health validation
+    ///     Adds health checks for EasyMeals MongoDB connectivity
+    ///     Essential for production monitoring and service health validation
     /// </summary>
     /// <param name="services">Service collection</param>
     /// <param name="name">Health check name (optional)</param>
@@ -158,7 +157,7 @@ public static class ServiceCollectionExtensions
     {
         services.AddHealthChecks()
             .AddCheck<MongoDbHealthCheck>(
-                name: name ?? "easymealsmongodb",
+                name ?? "easymealsmongodb",
                 tags: tags ?? ["database", "mongodb", "ready"]);
 
         return services;
@@ -166,17 +165,14 @@ public static class ServiceCollectionExtensions
 }
 
 /// <summary>
-/// MongoDB health check implementation
-/// Verifies database connectivity and basic operations
+///     MongoDB health check implementation
+///     Verifies database connectivity and basic operations
 /// </summary>
 public class MongoDbHealthCheck : IHealthCheck
 {
     private readonly IMongoDatabase _database;
 
-    public MongoDbHealthCheck(IMongoDatabase database)
-    {
-        _database = database ?? throw new ArgumentNullException(nameof(database));
-    }
+    public MongoDbHealthCheck(IMongoDatabase database) => _database = database ?? throw new ArgumentNullException(nameof(database));
 
     public async Task<HealthCheckResult> CheckHealthAsync(
         HealthCheckContext context,
@@ -185,8 +181,8 @@ public class MongoDbHealthCheck : IHealthCheck
         try
         {
             // Perform a simple ping operation
-            await _database.RunCommandAsync<MongoDB.Bson.BsonDocument>(
-                new MongoDB.Bson.BsonDocument("ping", 1),
+            await _database.RunCommandAsync<BsonDocument>(
+                new BsonDocument("ping", 1),
                 cancellationToken: cancellationToken);
 
             return HealthCheckResult.Healthy("MongoDB connection is healthy");

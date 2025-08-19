@@ -1,27 +1,25 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-  </PropertyGroup>
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
 
-  <ItemGroup>
-    <PackageReference Include="MongoDB.Driver" Version="2.29.0" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.1" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions"
-      Version="8.0.2" />
-    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="8.0.0" />
-    <PackageReference Include="Testcontainers.MongoDb" Version="3.10.0" />
-  </ItemGroup>
+    <ItemGroup>
+        <PackageReference Include="MongoDB.Driver" Version="2.29.0"/>
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.1"/>
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions"
+                          Version="8.0.2"/>
+        <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="8.0.0"/>
+        <PackageReference Include="Testcontainers.MongoDb" Version="3.10.0"/>
+    </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Configurations\" />
-    <Folder Include="Documents\" />
-    <Folder Include="Attributes\" />
-    <Folder Include="Extensions\" />
-    <Folder Include="Repositories\" />
-    <Folder Include="Tests\" />
-  </ItemGroup>
+    <ItemGroup>
+        <Folder Include="Documents\"/>
+        <Folder Include="Attributes\"/>
+        <Folder Include="Extensions\"/>
+        <Folder Include="Repositories\"/>
+    </ItemGroup>
 
 </Project>

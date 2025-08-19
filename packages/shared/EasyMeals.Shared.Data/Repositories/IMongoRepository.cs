@@ -4,16 +4,16 @@ using EasyMeals.Shared.Data.Documents;
 namespace EasyMeals.Shared.Data.Repositories;
 
 /// <summary>
-/// MongoDB-specific repository interface extending the generic repository pattern
-/// Provides MongoDB-optimized operations while maintaining DDD principles
+///     MongoDB-specific repository interface extending the generic repository pattern
+///     Provides MongoDB-optimized operations while maintaining DDD principles
 /// </summary>
 /// <typeparam name="TDocument">The document type managed by this repository</typeparam>
 public interface IMongoRepository<TDocument> : IRepository<TDocument>
     where TDocument : BaseDocument
 {
     /// <summary>
-    /// Gets documents with MongoDB-specific projection support
-    /// Allows field selection for performance optimization
+    ///     Gets documents with MongoDB-specific projection support
+    ///     Allows field selection for performance optimization
     /// </summary>
     /// <typeparam name="TProjection">The projection type</typeparam>
     /// <param name="filter">Filter expression</param>
@@ -26,8 +26,8 @@ public interface IMongoRepository<TDocument> : IRepository<TDocument>
         CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Performs bulk update operations
-    /// Optimized for large-scale data modifications
+    ///     Performs bulk update operations
+    ///     Optimized for large-scale data modifications
     /// </summary>
     /// <param name="filter">Filter for documents to update</param>
     /// <param name="update">Update definition</param>
@@ -39,8 +39,8 @@ public interface IMongoRepository<TDocument> : IRepository<TDocument>
         CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Performs MongoDB aggregation operations
-    /// Supports complex data processing pipelines
+    ///     Performs MongoDB aggregation operations
+    ///     Supports complex data processing pipelines
     /// </summary>
     /// <typeparam name="TResult">Result type</typeparam>
     /// <param name="pipeline">Aggregation pipeline</param>

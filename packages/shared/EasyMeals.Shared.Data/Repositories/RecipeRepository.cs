@@ -1,24 +1,21 @@
-using System.Linq.Expressions;
-using MongoDB.Driver;
 using EasyMeals.Shared.Data.Documents;
+using MongoDB.Bson;
+using MongoDB.Driver;
 
 namespace EasyMeals.Shared.Data.Repositories;
 
 /// <summary>
-/// MongoDB-specific recipe repository implementation with optimized queries
-/// Provides efficient MongoDB operations for recipe management
-/// Follows DDD principles and maintains aggregate boundaries
+///     MongoDB-specific recipe repository implementation with optimized queries
+///     Provides efficient MongoDB operations for recipe management
+///     Follows DDD principles and maintains aggregate boundaries
 /// </summary>
-public class RecipeRepository : MongoRepository<RecipeDocument>, IRecipeRepository
+public class RecipeRepository(
+    IMongoDatabase database,
+    IClientSessionHandle? session = null) : MongoRepository<RecipeDocument>(database, session), IRecipeRepository
 {
-    public RecipeRepository(IMongoDatabase database, IClientSessionHandle? session = null)
-        : base(database, session)
-    {
-    }
-
     /// <summary>
-    /// Gets recipes by source provider with pagination
-    /// Uses MongoDB compound index for optimal performance
+    ///     Gets recipes by source provider with pagination
+    ///     Uses MongoDB compound index for optimal performance
     /// </summary>
     public async Task<PagedResult<RecipeDocument>> GetBySourceProviderAsync(
         string sourceProvider,
@@ -27,21 +24,18 @@ public class RecipeRepository : MongoRepository<RecipeDocument>, IRecipeReposito
         bool includeInactive = false,
         CancellationToken cancellationToken = default)
     {
-        var filterBuilder = Builders<RecipeDocument>.Filter;
-        var filter = filterBuilder.Eq(r => r.SourceProvider, sourceProvider);
+        FilterDefinitionBuilder<RecipeDocument>? filterBuilder = Builders<RecipeDocument>.Filter;
+        FilterDefinition<RecipeDocument>? filter = filterBuilder.Eq(r => r.SourceProvider, sourceProvider);
 
-        if (!includeInactive)
-        {
-            filter = filterBuilder.And(filter, filterBuilder.Eq(r => r.IsActive, true));
-        }
+        if (!includeInactive) filter = filterBuilder.And(filter, filterBuilder.Eq(r => r.IsActive, true));
 
         // Add soft delete filter
         filter = filterBuilder.And(filter, filterBuilder.Ne(r => r.IsDeleted, true));
 
-        var totalCount = await _collection.CountDocumentsAsync(filter, cancellationToken: cancellationToken);
+        long totalCount = await _collection.CountDocumentsAsync(filter, cancellationToken: cancellationToken);
 
-        var skip = (pageNumber - 1) * pageSize;
-        var recipes = await _collection
+        int skip = (pageNumber - 1) * pageSize;
+        List<RecipeDocument>? recipes = await _collection
             .Find(filter)
             .Sort(Builders<RecipeDocument>.Sort.Descending(r => r.CreatedAt))
             .Skip(skip)
@@ -58,29 +52,23 @@ public class RecipeRepository : MongoRepository<RecipeDocument>, IRecipeReposito
     }
 
     /// <summary>
-    /// Gets active recipes with specific cooking time constraints
-    /// Uses MongoDB range queries for efficient time-based filtering
+    ///     Gets active recipes with specific cooking time constraints
+    ///     Uses MongoDB range queries for efficient time-based filtering
     /// </summary>
     public async Task<IEnumerable<RecipeDocument>> GetByTimeConstraintsAsync(
         int? maxPrepTime = null,
         int? maxCookTime = null,
         CancellationToken cancellationToken = default)
     {
-        var filterBuilder = Builders<RecipeDocument>.Filter;
-        var filter = filterBuilder.And(
+        FilterDefinitionBuilder<RecipeDocument>? filterBuilder = Builders<RecipeDocument>.Filter;
+        FilterDefinition<RecipeDocument>? filter = filterBuilder.And(
             filterBuilder.Eq(r => r.IsActive, true),
             filterBuilder.Ne(r => r.IsDeleted, true)
         );
 
-        if (maxPrepTime.HasValue)
-        {
-            filter = filterBuilder.And(filter, filterBuilder.Lte(r => r.PrepTimeMinutes, maxPrepTime.Value));
-        }
+        if (maxPrepTime.HasValue) filter = filterBuilder.And(filter, filterBuilder.Lte(r => r.PrepTimeMinutes, maxPrepTime.Value));
 
-        if (maxCookTime.HasValue)
-        {
-            filter = filterBuilder.And(filter, filterBuilder.Lte(r => r.CookTimeMinutes, maxCookTime.Value));
-        }
+        if (maxCookTime.HasValue) filter = filterBuilder.And(filter, filterBuilder.Lte(r => r.CookTimeMinutes, maxCookTime.Value));
 
         return await _collection
             .Find(filter)
@@ -89,8 +77,8 @@ public class RecipeRepository : MongoRepository<RecipeDocument>, IRecipeReposito
     }
 
     /// <summary>
-    /// Searches recipes by title, description, or ingredients using MongoDB text search
-    /// Leverages MongoDB full-text search capabilities for comprehensive results
+    ///     Searches recipes by title, description, or ingredients using MongoDB text search
+    ///     Leverages MongoDB full-text search capabilities for comprehensive results
     /// </summary>
     public async Task<PagedResult<RecipeDocument>> SearchAsync(
         string searchTerm,
@@ -98,25 +86,25 @@ public class RecipeRepository : MongoRepository<RecipeDocument>, IRecipeReposito
         int pageSize,
         CancellationToken cancellationToken = default)
     {
-        var filterBuilder = Builders<RecipeDocument>.Filter;
+        FilterDefinitionBuilder<RecipeDocument>? filterBuilder = Builders<RecipeDocument>.Filter;
 
         // Use regex search for title and description
-        var titleFilter = filterBuilder.Regex(r => r.Title, new MongoDB.Bson.BsonRegularExpression(searchTerm, "i"));
-        var descriptionFilter = filterBuilder.Regex(r => r.Description, new MongoDB.Bson.BsonRegularExpression(searchTerm, "i"));
+        FilterDefinition<RecipeDocument>? titleFilter = filterBuilder.Regex(r => r.Title, new BsonRegularExpression(searchTerm, "i"));
+        FilterDefinition<RecipeDocument>? descriptionFilter = filterBuilder.Regex(r => r.Description, new BsonRegularExpression(searchTerm, "i"));
 
-        var searchFilter = filterBuilder.Or(titleFilter, descriptionFilter);
+        FilterDefinition<RecipeDocument>? searchFilter = filterBuilder.Or(titleFilter, descriptionFilter);
 
         // Combine with active and non-deleted filters
-        var filter = filterBuilder.And(
+        FilterDefinition<RecipeDocument>? filter = filterBuilder.And(
             searchFilter,
             filterBuilder.Eq(r => r.IsActive, true),
             filterBuilder.Ne(r => r.IsDeleted, true)
         );
 
-        var totalCount = await _collection.CountDocumentsAsync(filter, cancellationToken: cancellationToken);
+        long totalCount = await _collection.CountDocumentsAsync(filter, cancellationToken: cancellationToken);
 
-        var skip = (pageNumber - 1) * pageSize;
-        var recipes = await _collection
+        int skip = (pageNumber - 1) * pageSize;
+        List<RecipeDocument>? recipes = await _collection
             .Find(filter)
             .Sort(Builders<RecipeDocument>.Sort.Descending(r => r.CreatedAt))
             .Skip(skip)
@@ -133,8 +121,8 @@ public class RecipeRepository : MongoRepository<RecipeDocument>, IRecipeReposito
     }
 
     /// <summary>
-    /// Gets recipes by tags with MongoDB array query optimization
-    /// Uses $in operator for efficient tag matching
+    ///     Gets recipes by tags with MongoDB array query optimization
+    ///     Uses $in operator for efficient tag matching
     /// </summary>
     public async Task<PagedResult<RecipeDocument>> GetByTagsAsync(
         IEnumerable<string> tags,
@@ -142,9 +130,8 @@ public class RecipeRepository : MongoRepository<RecipeDocument>, IRecipeReposito
         int pageSize,
         CancellationToken cancellationToken = default)
     {
-        var tagList = tags.ToList();
+        List<string> tagList = tags.ToList();
         if (!tagList.Any())
-        {
             return new PagedResult<RecipeDocument>
             {
                 Items = [],
@@ -152,19 +139,18 @@ public class RecipeRepository : MongoRepository<RecipeDocument>, IRecipeReposito
                 PageNumber = pageNumber,
                 PageSize = pageSize
             };
-        }
 
-        var filterBuilder = Builders<RecipeDocument>.Filter;
-        var filter = filterBuilder.And(
+        FilterDefinitionBuilder<RecipeDocument>? filterBuilder = Builders<RecipeDocument>.Filter;
+        FilterDefinition<RecipeDocument>? filter = filterBuilder.And(
             filterBuilder.AnyIn(r => r.Tags, tagList),
             filterBuilder.Eq(r => r.IsActive, true),
             filterBuilder.Ne(r => r.IsDeleted, true)
         );
 
-        var totalCount = await _collection.CountDocumentsAsync(filter, cancellationToken: cancellationToken);
+        long totalCount = await _collection.CountDocumentsAsync(filter, cancellationToken: cancellationToken);
 
-        var skip = (pageNumber - 1) * pageSize;
-        var recipes = await _collection
+        int skip = (pageNumber - 1) * pageSize;
+        List<RecipeDocument>? recipes = await _collection
             .Find(filter)
             .Sort(Builders<RecipeDocument>.Sort.Descending(r => r.CreatedAt))
             .Skip(skip)
@@ -181,8 +167,8 @@ public class RecipeRepository : MongoRepository<RecipeDocument>, IRecipeReposito
     }
 
     /// <summary>
-    /// Gets recipes by cuisine type with case-insensitive matching
-    /// Uses MongoDB regex for flexible cuisine filtering
+    ///     Gets recipes by cuisine type with case-insensitive matching
+    ///     Uses MongoDB regex for flexible cuisine filtering
     /// </summary>
     public async Task<PagedResult<RecipeDocument>> GetByCuisineAsync(
         string cuisine,
@@ -190,17 +176,17 @@ public class RecipeRepository : MongoRepository<RecipeDocument>, IRecipeReposito
         int pageSize,
         CancellationToken cancellationToken = default)
     {
-        var filterBuilder = Builders<RecipeDocument>.Filter;
-        var filter = filterBuilder.And(
-            filterBuilder.Regex(r => r.Cuisine, new MongoDB.Bson.BsonRegularExpression($"^{cuisine}$", "i")),
+        FilterDefinitionBuilder<RecipeDocument>? filterBuilder = Builders<RecipeDocument>.Filter;
+        FilterDefinition<RecipeDocument>? filter = filterBuilder.And(
+            filterBuilder.Regex(r => r.Cuisine, new BsonRegularExpression($"^{cuisine}$", "i")),
             filterBuilder.Eq(r => r.IsActive, true),
             filterBuilder.Ne(r => r.IsDeleted, true)
         );
 
-        var totalCount = await _collection.CountDocumentsAsync(filter, cancellationToken: cancellationToken);
+        long totalCount = await _collection.CountDocumentsAsync(filter, cancellationToken: cancellationToken);
 
-        var skip = (pageNumber - 1) * pageSize;
-        var recipes = await _collection
+        int skip = (pageNumber - 1) * pageSize;
+        List<RecipeDocument>? recipes = await _collection
             .Find(filter)
             .Sort(Builders<RecipeDocument>.Sort.Descending(r => r.Rating).Descending(r => r.CreatedAt))
             .Skip(skip)
@@ -217,16 +203,16 @@ public class RecipeRepository : MongoRepository<RecipeDocument>, IRecipeReposito
     }
 
     /// <summary>
-    /// Gets recipes created or updated within a specific time range
-    /// Uses MongoDB date range queries for efficient temporal filtering
+    ///     Gets recipes created or updated within a specific time range
+    ///     Uses MongoDB date range queries for efficient temporal filtering
     /// </summary>
     public async Task<IEnumerable<RecipeDocument>> GetByDateRangeAsync(
         DateTime fromDate,
         DateTime toDate,
         CancellationToken cancellationToken = default)
     {
-        var filterBuilder = Builders<RecipeDocument>.Filter;
-        var filter = filterBuilder.And(
+        FilterDefinitionBuilder<RecipeDocument>? filterBuilder = Builders<RecipeDocument>.Filter;
+        FilterDefinition<RecipeDocument>? filter = filterBuilder.And(
             filterBuilder.Or(
                 filterBuilder.And(
                     filterBuilder.Gte(r => r.CreatedAt, fromDate),
@@ -247,17 +233,17 @@ public class RecipeRepository : MongoRepository<RecipeDocument>, IRecipeReposito
     }
 
     /// <summary>
-    /// Checks if a recipe exists by source URL to prevent duplicates
-    /// Uses MongoDB indexed lookup for optimal performance
+    ///     Checks if a recipe exists by source URL to prevent duplicates
+    ///     Uses MongoDB indexed lookup for optimal performance
     /// </summary>
     public async Task<bool> ExistsBySourceUrlAsync(string sourceUrl, CancellationToken cancellationToken = default)
     {
-        var filter = Builders<RecipeDocument>.Filter.And(
+        FilterDefinition<RecipeDocument>? filter = Builders<RecipeDocument>.Filter.And(
             Builders<RecipeDocument>.Filter.Eq(r => r.SourceUrl, sourceUrl),
             Builders<RecipeDocument>.Filter.Ne(r => r.IsDeleted, true)
         );
 
-        var count = await _collection.CountDocumentsAsync(
+        long count = await _collection.CountDocumentsAsync(
             filter,
             new CountOptions { Limit = 1 },
             cancellationToken);
@@ -266,8 +252,8 @@ public class RecipeRepository : MongoRepository<RecipeDocument>, IRecipeReposito
     }
 
     /// <summary>
-    /// Gets recipes with nutritional information for health-conscious filtering
-    /// Uses MongoDB nested document queries for nutritional criteria
+    ///     Gets recipes with nutritional information for health-conscious filtering
+    ///     Uses MongoDB nested document queries for nutritional criteria
     /// </summary>
     public async Task<PagedResult<RecipeDocument>> GetByNutritionalCriteriaAsync(
         int? maxCalories = null,
@@ -276,29 +262,25 @@ public class RecipeRepository : MongoRepository<RecipeDocument>, IRecipeReposito
         int pageSize = 20,
         CancellationToken cancellationToken = default)
     {
-        var filterBuilder = Builders<RecipeDocument>.Filter;
-        var filter = filterBuilder.And(
+        FilterDefinitionBuilder<RecipeDocument>? filterBuilder = Builders<RecipeDocument>.Filter;
+        FilterDefinition<RecipeDocument>? filter = filterBuilder.And(
             filterBuilder.Eq(r => r.IsActive, true),
             filterBuilder.Ne(r => r.IsDeleted, true),
             filterBuilder.Ne(r => r.NutritionInfo, null)
         );
 
         if (maxCalories.HasValue)
-        {
             filter = filterBuilder.And(filter,
                 filterBuilder.Lte("nutritionInfo.calories", maxCalories.Value));
-        }
 
         if (minProtein.HasValue)
-        {
             filter = filterBuilder.And(filter,
                 filterBuilder.Gte("nutritionInfo.proteinGrams", minProtein.Value));
-        }
 
-        var totalCount = await _collection.CountDocumentsAsync(filter, cancellationToken: cancellationToken);
+        long totalCount = await _collection.CountDocumentsAsync(filter, cancellationToken: cancellationToken);
 
-        var skip = (pageNumber - 1) * pageSize;
-        var recipes = await _collection
+        int skip = (pageNumber - 1) * pageSize;
+        List<RecipeDocument>? recipes = await _collection
             .Find(filter)
             .Sort(Builders<RecipeDocument>.Sort.Ascending("nutritionInfo.calories"))
             .Skip(skip)
