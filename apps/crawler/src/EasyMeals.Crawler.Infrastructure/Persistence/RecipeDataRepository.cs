@@ -176,48 +176,4 @@ public class RecipeDataRepository(
             return result;
         return null;
     }
-
-    /// <summary>
-    ///     Maps from MongoDB document to crawler domain model
-    ///     Supports read operations and maintains clean separation of concerns
-    ///     Note: This method is included for completeness but may not be needed in current crawler workflow
-    /// </summary>
-    private static Recipe MapFromDocument(RecipeDocument document)
-    {
-        return new Recipe
-        {
-            Id = document.Id,
-            Title = document.Title,
-            Description = document.Description,
-            // Convert embedded ingredients back to simple strings for domain model compatibility
-            Ingredients = document.Ingredients?.Select(i =>
-                    string.IsNullOrEmpty(i.Amount) ? i.Name : $"{i.Amount} {i.Unit} {i.Name}".Trim())
-                .ToList() ?? new List<string>(),
-            // Convert embedded instructions back to simple strings
-            Instructions = document.Instructions?.OrderBy(i => i.StepNumber)
-                .Select(i => i.Description)
-                .ToList() ?? new List<string>(),
-            ImageUrl = document.ImageUrl,
-            PrepTimeMinutes = document.PrepTimeMinutes,
-            CookTimeMinutes = document.CookTimeMinutes,
-            Servings = document.Servings,
-            // Convert embedded nutrition info back to dictionary
-            NutritionInfo = document.NutritionInfo != null
-                ? new Dictionary<string, string>
-                {
-                    ["calories"] = document.NutritionInfo.Calories?.ToString() ?? string.Empty,
-                    ["protein"] = document.NutritionInfo.ProteinGrams?.ToString() ?? string.Empty,
-                    ["carbs"] = document.NutritionInfo.CarbohydratesGrams?.ToString() ?? string.Empty,
-                    ["fat"] = document.NutritionInfo.FatGrams?.ToString() ?? string.Empty,
-                    ["fiber"] = document.NutritionInfo.FiberGrams?.ToString() ?? string.Empty,
-                    ["sugar"] = document.NutritionInfo.SugarGrams?.ToString() ?? string.Empty,
-                    ["sodium"] = document.NutritionInfo.SodiumMg?.ToString() ?? string.Empty
-                }.Where(kvp => !string.IsNullOrEmpty(kvp.Value)).ToDictionary(kvp => kvp.Key, kvp => kvp.Value)
-                : new Dictionary<string, string>(),
-            Tags = document.Tags ?? new List<string>(),
-            SourceUrl = document.SourceUrl,
-            CreatedAt = document.CreatedAt,
-            UpdatedAt = document.UpdatedAt
-        };
-    }
 }
