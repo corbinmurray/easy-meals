@@ -29,14 +29,14 @@ public class RecipeDocument : BaseSoftDeletableDocument
 	///     Replaces JSON serialization with native MongoDB document embedding
 	/// </summary>
 	[BsonElement("ingredients")]
-	public List<IngredientDocument> Ingredients { get; set; } = new();
+	public List<IngredientDocument> Ingredients { get; set; } = [];
 
 	/// <summary>
 	///     List of cooking instructions with embedded structure
 	///     Supports complex instruction objects with timing and media
 	/// </summary>
 	[BsonElement("instructions")]
-	public List<InstructionDocument> Instructions { get; set; } = new();
+	public List<InstructionDocument> Instructions { get; set; } = [];
 
 	/// <summary>
 	///     URL to the main recipe image
@@ -75,7 +75,7 @@ public class RecipeDocument : BaseSoftDeletableDocument
 	///     Supports business requirements for recipe organization
 	/// </summary>
 	[BsonElement("tags")]
-	public List<string> Tags { get; set; } = new();
+	public List<string> Tags { get; set; } = [];
 
 	/// <summary>
 	///     Original source URL where the recipe was found

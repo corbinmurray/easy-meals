@@ -31,12 +31,12 @@ public sealed class UnitOfWork(IMongoClient mongoClient, IMongoDatabase database
 	/// </summary>
 	/// <typeparam name="TDocument">The document type</typeparam>
 	/// <returns>Repository instance for the document type</returns>
-	public IRepository<TDocument> Repository<TDocument>() where TDocument : BaseDocument
+	public IMongoRepository<TDocument> Repository<TDocument>() where TDocument : BaseDocument
 	{
 		if (!typeof(BaseDocument).IsAssignableFrom(typeof(TDocument)))
 			throw new ArgumentException($"Entity type {typeof(TDocument).Name} must inherit from BaseDocument");
 
-		return (IRepository<TDocument>)_repositories.GetOrAdd(typeof(TDocument), _ =>
+		return (IMongoRepository<TDocument>)_repositories.GetOrAdd(typeof(TDocument), _ =>
 		{
 			Type repositoryType = typeof(MongoRepository<>).MakeGenericType(typeof(TDocument));
 			return Activator.CreateInstance(repositoryType, Database, Session)!;

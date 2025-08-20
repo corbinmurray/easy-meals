@@ -187,7 +187,7 @@ public static class ServiceCollectionExtensions
 		services.AddScoped<IUnitOfWork, UnitOfWork>();
 
 		// Register generic repository pattern
-		services.AddScoped(typeof(IRepository<>), typeof(MongoRepository<>));
+		services.AddScoped(typeof(IMongoRepository<>), typeof(MongoRepository<>));
 		services.AddScoped(typeof(IMongoRepository<>), typeof(MongoRepository<>));
 
 		// Register shared repositories only if requested

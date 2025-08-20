@@ -21,8 +21,7 @@ public static class MongoIndexConfiguration
 	{
 		var tasks = new List<Task>
 		{
-			CreateRecipeIndexesAsync(database),
-			CreateCrawlStateIndexesAsync(database)
+			CreateRecipeIndexesAsync(database)
 		};
 
 		await Task.WhenAll(tasks);
@@ -162,112 +161,12 @@ public static class MongoIndexConfiguration
 	}
 
 	/// <summary>
-	///     Creates optimized indexes for the crawl states collection
-	///     Supports efficient distributed crawling operations
-	/// </summary>
-	public static async Task CreateCrawlStateIndexesAsync(IMongoDatabase database)
-	{
-		IMongoCollection<CrawlStateDocument>? collection = database.GetCollection<CrawlStateDocument>("crawlstates");
-
-		var indexes = new[]
-		{
-			// 1. Unique index for source provider (one state per provider)
-			new CreateIndexModel<CrawlStateDocument>(
-				Builders<CrawlStateDocument>.IndexKeys.Ascending(c => c.SourceProvider),
-				new CreateIndexOptions
-				{
-					Name = "idx_source_provider_unique",
-					Unique = true,
-					Background = true
-				}
-			),
-
-			// 2. Compound index for active crawling with priority ordering
-			new CreateIndexModel<CrawlStateDocument>(
-				Builders<CrawlStateDocument>.IndexKeys
-					.Ascending(c => c.IsActive)
-					.Descending(c => c.Priority)
-					.Ascending(c => c.LastCrawlTime),
-				new CreateIndexOptions
-				{
-					Name = "idx_active_priority_crawl",
-					Background = true
-				}
-			),
-
-			// 3. Index for scheduled crawling
-			new CreateIndexModel<CrawlStateDocument>(
-				Builders<CrawlStateDocument>.IndexKeys
-					.Ascending(c => c.NextScheduledCrawl)
-					.Ascending(c => c.IsActive),
-				new CreateIndexOptions
-				{
-					Name = "idx_scheduled_crawl",
-					Background = true
-				}
-			),
-
-			// 4. Index for stale state detection
-			new CreateIndexModel<CrawlStateDocument>(
-				Builders<CrawlStateDocument>.IndexKeys
-					.Ascending(c => c.UpdatedAt)
-					.Ascending(c => c.IsActive),
-				new CreateIndexOptions
-				{
-					Name = "idx_stale_detection",
-					Background = true
-				}
-			),
-
-			// 5. Index for priority-based processing
-			new CreateIndexModel<CrawlStateDocument>(
-				Builders<CrawlStateDocument>.IndexKeys
-					.Descending(c => c.Priority)
-					.Ascending(c => c.LastCrawlTime),
-				new CreateIndexOptions
-				{
-					Name = "idx_priority_processing",
-					Background = true
-				}
-			),
-
-			// 6. Index for session-based claiming
-			new CreateIndexModel<CrawlStateDocument>(
-				Builders<CrawlStateDocument>.IndexKeys
-					.Ascending(c => c.CurrentSessionId)
-					.Ascending(c => c.IsActive),
-				new CreateIndexOptions
-				{
-					Name = "idx_session_claiming",
-					Background = true,
-					Sparse = true
-				}
-			),
-
-			// 7. Compound index for pending work detection
-			new CreateIndexModel<CrawlStateDocument>(
-				Builders<CrawlStateDocument>.IndexKeys
-					.Ascending(c => c.IsActive)
-					.Descending(c => c.Priority),
-				new CreateIndexOptions
-				{
-					Name = "idx_pending_work",
-					Background = true
-				}
-			)
-		};
-
-		await collection.Indexes.CreateManyAsync(indexes);
-	}
-
-	/// <summary>
 	///     Drops all custom indexes (useful for migrations or cleanup)
 	///     Preserves MongoDB system indexes
 	/// </summary>
 	public static async Task DropAllCustomIndexesAsync(IMongoDatabase database)
 	{
 		await DropRecipeIndexesAsync(database);
-		await DropCrawlStateIndexesAsync(database);
 	}
 
 	/// <summary>
@@ -305,37 +204,6 @@ public static class MongoIndexConfiguration
 	}
 
 	/// <summary>
-	///     Drops custom indexes for crawl states collection
-	/// </summary>
-	public static async Task DropCrawlStateIndexesAsync(IMongoDatabase database)
-	{
-		IMongoCollection<CrawlStateDocument>? collection = database.GetCollection<CrawlStateDocument>("crawlstates");
-
-		var indexNames = new[]
-		{
-			"idx_source_provider_unique",
-			"idx_active_priority_crawl",
-			"idx_scheduled_crawl",
-			"idx_stale_detection",
-			"idx_priority_processing",
-			"idx_session_claiming",
-			"idx_pending_work"
-		};
-
-		foreach (string indexName in indexNames)
-		{
-			try
-			{
-				await collection.Indexes.DropOneAsync(indexName);
-			}
-			catch (MongoCommandException)
-			{
-				// Index doesn't exist, continue
-			}
-		}
-	}
-
-	/// <summary>
 	///     Gets index statistics for performance monitoring
 	/// </summary>
 	public static async Task<Dictionary<string, BsonDocument>> GetIndexStatsAsync(IMongoDatabase database)
@@ -347,12 +215,6 @@ public static class MongoIndexConfiguration
 		var recipeStats = await recipesCollection.Database.RunCommandAsync<BsonDocument>(
 			new BsonDocument("collStats", "recipes"));
 		stats["recipes"] = recipeStats;
-
-		// Get crawl states collection index stats
-		IMongoCollection<CrawlStateDocument>? crawlStatesCollection = database.GetCollection<CrawlStateDocument>("crawlstates");
-		var crawlStats = await crawlStatesCollection.Database.RunCommandAsync<BsonDocument>(
-			new BsonDocument("collStats", "crawlstates"));
-		stats["crawlstates"] = crawlStats;
 
 		return stats;
 	}
