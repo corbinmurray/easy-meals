@@ -25,18 +25,6 @@ public class MongoRepository<TDocument> : IMongoRepository<TDocument>
 		_session = session;
 	}
 
-	/// <summary>
-	///     Gets the MongoDB collection name for the document type
-	///     Uses BsonCollection attribute or derives from type name
-	/// </summary>
-	private static string GetCollectionName()
-	{
-		var attribute = typeof(TDocument).GetCustomAttributes(typeof(BsonCollectionAttribute), true)
-			.FirstOrDefault() as BsonCollectionAttribute;
-
-		return attribute?.CollectionName ?? typeof(TDocument).Name.ToLowerInvariant();
-	}
-
 	#region Read Operations
 
 	/// <inheritdoc />
@@ -417,6 +405,18 @@ public class MongoRepository<TDocument> : IMongoRepository<TDocument>
 	#endregion
 
 	#region Helper Methods
+
+	/// <summary>
+	///     Gets the MongoDB collection name for the document type
+	///     Uses BsonCollection attribute or derives from type name
+	/// </summary>
+	private static string GetCollectionName()
+	{
+		var attribute = typeof(TDocument).GetCustomAttributes(typeof(BsonCollectionAttribute), true)
+			.FirstOrDefault() as BsonCollectionAttribute;
+
+		return attribute?.CollectionName ?? typeof(TDocument).Name.ToLowerInvariant();
+	}
 
 	/// <summary>
 	///     Builds an UpdateDefinition from various update object types
