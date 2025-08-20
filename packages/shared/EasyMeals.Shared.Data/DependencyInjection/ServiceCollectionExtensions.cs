@@ -19,7 +19,7 @@ namespace EasyMeals.Shared.Data.DependencyInjection;
 /// </summary>
 public static class ServiceCollectionExtensions
 {
-	#region New Fluent API
+	#region Fluent API
 
 	/// <summary>
 	///     Adds a repository with the specified permissions using the fluent API
@@ -37,8 +37,7 @@ public static class ServiceCollectionExtensions
 	{
 		ValidateMongoDbConfiguration(services);
 
-		return new EasyMealsRepositoryBuilder(services)
-			.AddRepository<TDocument>(permissions);
+		return new EasyMealsRepositoryBuilder(services).AddRepository<TDocument>(permissions);
 	}
 
 	/// <summary>
@@ -51,9 +50,21 @@ public static class ServiceCollectionExtensions
 	/// <exception cref="InvalidOperationException">Thrown when MongoDB is not configured</exception>
 	public static EasyMealsRepositoryBuilder AddReadOnlyEasyMealsRepository<TDocument>(
 		this IServiceCollection services)
-		where TDocument : BaseDocument
+		where TDocument : BaseDocument =>
+		services.AddEasyMealsRepository<TDocument>();
+
+	/// <summary>
+	///     Starts building EasyMeals repositories with fluent configuration
+	///     Requires MongoDB to be configured first via AddEasyMealsDataMongoDB
+	/// </summary>
+	/// <param name="services">The service collection</param>
+	/// <returns>Repository builder for chaining</returns>
+	/// <exception cref="InvalidOperationException">Thrown when MongoDB is not configured</exception>
+	public static EasyMealsRepositoryBuilder AddEasyMealsRepository(
+		this IServiceCollection services)
 	{
-		return services.AddEasyMealsRepository<TDocument>(RepositoryPermissions.Read);
+		ValidateMongoDbConfiguration(services);
+		return new EasyMealsRepositoryBuilder(services);
 	}
 
 	/// <summary>
@@ -75,7 +86,7 @@ public static class ServiceCollectionExtensions
 	/// </summary>
 	private static void ValidateMongoDbConfiguration(IServiceCollection services)
 	{
-		var serviceProvider = services.BuildServiceProvider(validateScopes: false);
+		ServiceProvider serviceProvider = services.BuildServiceProvider(false);
 		try
 		{
 			serviceProvider.GetService<IMongoDatabase>();
@@ -95,6 +106,7 @@ public static class ServiceCollectionExtensions
 	#endregion
 
 	#region Core MongoDB Configuration (Existing)
+
 	/// <summary>
 	///     Adds EasyMeals data services with MongoDB using connection string
 	///     Standard configuration for production and development environments
@@ -314,8 +326,8 @@ public static class ServiceCollectionExtensions
 		var database = scope.ServiceProvider.GetRequiredService<IMongoDatabase>();
 
 		// The database will be created automatically when first accessed
-		// Create comprehensive indexes for optimal performance
-		await MongoIndexConfiguration.CreateAllIndexesAsync(database);
+		// Create base document indexes for optimal performance
+		await MongoIndexConfiguration.CreateBaseDocumentIndexesAsync(database);
 
 		return services;
 	}
@@ -335,7 +347,7 @@ public static class ServiceCollectionExtensions
 	{
 		services.AddHealthChecks()
 			.AddCheck<MongoDbHealthCheck>(
-				name ?? "easymealsmongodb",
+				name ?? "easymeals_health_check",
 				tags: tags ?? ["database", "mongodb", "ready"]);
 
 		return services;
@@ -348,11 +360,9 @@ public static class ServiceCollectionExtensions
 ///     MongoDB health check implementation
 ///     Verifies database connectivity and basic operations
 /// </summary>
-public class MongoDbHealthCheck : IHealthCheck
+public class MongoDbHealthCheck(IMongoDatabase database) : IHealthCheck
 {
-	private readonly IMongoDatabase _database;
-
-	public MongoDbHealthCheck(IMongoDatabase database) => _database = database ?? throw new ArgumentNullException(nameof(database));
+	private readonly IMongoDatabase _database = database ?? throw new ArgumentNullException(nameof(database));
 
 	public async Task<HealthCheckResult> CheckHealthAsync(
 		HealthCheckContext context,

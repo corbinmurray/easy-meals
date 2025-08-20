@@ -6,7 +6,7 @@ namespace EasyMeals.Shared.Data.Repositories;
 ///     MongoDB-specific unit of work interface extending the generic pattern
 ///     Provides MongoDB transaction support while maintaining DDD principles
 /// </summary>
-public interface IUnitOfWork : IDisposable
+public interface IUnitOfWork : IDisposable, IAsyncDisposable
 {
     /// <summary>
     ///     Gets the underlying MongoDB session for transaction management

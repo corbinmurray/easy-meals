@@ -124,6 +124,15 @@ public sealed class UnitOfWork(IMongoClient mongoClient, IMongoDatabase database
 		GC.SuppressFinalize(this);
 	}
 
+	/// <summary>
+	///     Disposes the unit of work and cleans up resources
+	///     Ensures proper cleanup of MongoDB session and repositories
+	/// </summary>
+	public async ValueTask DisposeAsync()
+	{
+		await Task.Run(Dispose);
+	}
+
 	private void Dispose(bool disposing)
 	{
 		if (_disposed || !disposing)

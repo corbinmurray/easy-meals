@@ -1,6 +1,7 @@
 # EasyMeals Repository Fluent API Usage Examples
 
-The new EasyMeals repository system provides a modern, fluent API for configuring MongoDB repositories with clear separation of concerns and automatic health checks.
+The new EasyMeals repository system provides a modern, fluent API for configuring MongoDB repositories with clear separation of concerns and automatic
+health checks.
 
 ## Basic Setup
 
