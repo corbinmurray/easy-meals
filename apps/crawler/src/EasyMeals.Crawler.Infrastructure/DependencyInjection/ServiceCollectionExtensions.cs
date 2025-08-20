@@ -1,7 +1,3 @@
-using EasyMeals.Crawler.Domain.Interfaces;
-using EasyMeals.Crawler.Infrastructure.Persistence;
-using EasyMeals.Crawler.Infrastructure.Services;
-using EasyMeals.Shared.Data.Configuration;
 using EasyMeals.Shared.Data.DependencyInjection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -33,18 +29,9 @@ public static class ServiceCollectionExtensions
             options.SocketTimeoutSeconds = 120; // Longer timeout for batch operations
             options.HealthCheckTags = ["crawler", "database", "mongodb"];
             options.EnableDetailedLogging = true; // Enable for development/troubleshooting
-        })
-        // Add shared repositories (recipes) and crawler-specific repositories
-        .AddSharedRepositories()
-        .AddCrawlerRepositories()
-        // Add application-specific repositories and services
-        .AddApplicationRepositories(services =>
-        {
-            // Register crawler-specific domain services that bridge to shared data
-            services.AddScoped<IRecipeRepository, RecipeDataRepository>();
-            services.AddScoped<ICrawlStateRepository, CrawlStateDataRepository>();
-            services.AddScoped<IRecipeExtractor, HelloFreshRecipeExtractor>();
         });
+        
+        // TODO: Add repositories
 
         return services;
     }

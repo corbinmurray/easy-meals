@@ -1,6 +1,5 @@
 using System.Net;
 using EasyMeals.Crawler;
-using EasyMeals.Crawler.Application.Services;
 using EasyMeals.Crawler.Domain.Configurations;
 using EasyMeals.Crawler.Domain.Interfaces;
 using EasyMeals.Crawler.Infrastructure.DependencyInjection;
@@ -17,7 +16,7 @@ builder.Services.Configure<CrawlerOptions>(
 builder.Services.AddHostedService<Worker>();
 
 // Application Services
-builder.Services.AddScoped<CrawlOrchestrationService>();
+
 
 // Add crawler infrastructure with MongoDB using shared options pattern
 builder.Services.AddCrawlerInfrastructure(builder.Configuration);
