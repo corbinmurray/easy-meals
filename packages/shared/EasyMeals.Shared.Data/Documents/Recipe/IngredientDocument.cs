@@ -1,6 +1,6 @@
 using MongoDB.Bson.Serialization.Attributes;
 
-namespace EasyMeals.Shared.Data.Documents;
+namespace EasyMeals.Shared.Data.Documents.Recipe;
 
 /// <summary>
 ///     Embedded document representing an ingredient in a recipe

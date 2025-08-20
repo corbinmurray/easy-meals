@@ -1,7 +1,7 @@
 using EasyMeals.Shared.Data.Common;
-using EasyMeals.Shared.Data.Documents;
+using EasyMeals.Shared.Data.Documents.Recipe;
 
-namespace EasyMeals.Shared.Data.Repositories;
+namespace EasyMeals.Shared.Data.Repositories.Recipe;
 
 /// <summary>
 ///     Repository interface for Recipe documents with domain-specific operations

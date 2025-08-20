@@ -1,4 +1,5 @@
 using EasyMeals.Shared.Data.Documents;
+using EasyMeals.Shared.Data.Documents.Recipe;
 using MongoDB.Bson;
 using MongoDB.Driver;
 

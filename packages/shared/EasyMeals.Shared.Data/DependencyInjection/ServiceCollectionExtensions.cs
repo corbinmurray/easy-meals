@@ -1,6 +1,7 @@
 using EasyMeals.Shared.Data.Configuration;
 using EasyMeals.Shared.Data.Documents;
 using EasyMeals.Shared.Data.Repositories;
+using EasyMeals.Shared.Data.Repositories.Recipe;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Options;

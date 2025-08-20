@@ -1,7 +1,7 @@
 using EasyMeals.Shared.Data.Attributes;
 using MongoDB.Bson.Serialization.Attributes;
 
-namespace EasyMeals.Shared.Data.Documents;
+namespace EasyMeals.Shared.Data.Documents.Recipe;
 
 /// <summary>
 ///     MongoDB document for Recipe data with embedded structures

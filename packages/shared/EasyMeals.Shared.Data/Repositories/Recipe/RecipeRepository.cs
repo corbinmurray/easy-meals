@@ -1,9 +1,9 @@
 using EasyMeals.Shared.Data.Common;
-using EasyMeals.Shared.Data.Documents;
+using EasyMeals.Shared.Data.Documents.Recipe;
 using MongoDB.Bson;
 using MongoDB.Driver;
 
-namespace EasyMeals.Shared.Data.Repositories;
+namespace EasyMeals.Shared.Data.Repositories.Recipe;
 
 /// <summary>
 ///     MongoDB-specific recipe repository implementation with optimized queries
