@@ -1,9 +1,14 @@
+using EasyMeals.Api.Infrastructure.DependencyInjection;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+// Add API infrastructure with MongoDB using shared options pattern
+builder.Services.AddApiInfrastructure(builder.Configuration);
 
 var app = builder.Build();
 
@@ -17,6 +22,9 @@ else
 {
     app.UseHttpsRedirection();
 }
+
+// Add health checks endpoint
+app.MapHealthChecks("/health");
 
 var summaries = new[]
 {

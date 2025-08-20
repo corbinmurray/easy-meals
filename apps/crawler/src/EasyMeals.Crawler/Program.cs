@@ -3,9 +3,8 @@ using EasyMeals.Crawler;
 using EasyMeals.Crawler.Application.Services;
 using EasyMeals.Crawler.Domain.Configurations;
 using EasyMeals.Crawler.Domain.Interfaces;
-using EasyMeals.Crawler.Infrastructure.Persistence;
+using EasyMeals.Crawler.Infrastructure.DependencyInjection;
 using EasyMeals.Crawler.Infrastructure.Services;
-using EasyMeals.Shared.Data.Extensions;
 using Microsoft.Extensions.Options;
 
 HostApplicationBuilder builder = Host.CreateApplicationBuilder(args);
@@ -20,14 +19,8 @@ builder.Services.AddHostedService<Worker>();
 // Application Services
 builder.Services.AddScoped<CrawlOrchestrationService>();
 
-// Add shared EF Core data infrastructure (using In-Memory for now, easily switchable)
-builder.Services.AddEasyMealsDataInMemory();
-
-// Domain Services (Infrastructure implementations)
-// Use data repositories that bridge to the shared data infrastructure
-builder.Services.AddScoped<IRecipeRepository, RecipeDataRepository>();
-builder.Services.AddScoped<ICrawlStateRepository, CrawlStateDataRepository>();
-builder.Services.AddScoped<IRecipeExtractor, HelloFreshRecipeExtractor>();
+// Add crawler infrastructure with MongoDB using shared options pattern
+builder.Services.AddCrawlerInfrastructure(builder.Configuration);
 
 // HTTP Services for web scraping
 builder.Services.AddHttpClient<IHelloFreshHttpService, HelloFreshHttpService>(client =>
