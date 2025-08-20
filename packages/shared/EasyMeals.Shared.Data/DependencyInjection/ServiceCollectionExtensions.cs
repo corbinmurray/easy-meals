@@ -1,4 +1,5 @@
 using EasyMeals.Shared.Data.Configuration;
+using EasyMeals.Shared.Data.Documents;
 using EasyMeals.Shared.Data.Repositories;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
@@ -17,6 +18,82 @@ namespace EasyMeals.Shared.Data.DependencyInjection;
 /// </summary>
 public static class ServiceCollectionExtensions
 {
+	#region New Fluent API
+
+	/// <summary>
+	///     Adds a repository with the specified permissions using the fluent API
+	///     Requires MongoDB to be configured first via AddEasyMealsDataMongoDB
+	/// </summary>
+	/// <typeparam name="TDocument">The document type extending BaseDocument</typeparam>
+	/// <param name="services">The service collection</param>
+	/// <param name="permissions">Repository access permissions (default: ReadWrite)</param>
+	/// <returns>Repository builder for chaining</returns>
+	/// <exception cref="InvalidOperationException">Thrown when MongoDB is not configured</exception>
+	public static EasyMealsRepositoryBuilder AddEasyMealsRepository<TDocument>(
+		this IServiceCollection services,
+		RepositoryPermissions permissions = RepositoryPermissions.ReadWrite)
+		where TDocument : BaseDocument
+	{
+		ValidateMongoDbConfiguration(services);
+
+		return new EasyMealsRepositoryBuilder(services)
+			.AddRepository<TDocument>(permissions);
+	}
+
+	/// <summary>
+	///     Adds a read-only repository using the fluent API
+	///     Requires MongoDB to be configured first via AddEasyMealsDataMongoDB
+	/// </summary>
+	/// <typeparam name="TDocument">The document type extending BaseDocument</typeparam>
+	/// <param name="services">The service collection</param>
+	/// <returns>Repository builder for chaining</returns>
+	/// <exception cref="InvalidOperationException">Thrown when MongoDB is not configured</exception>
+	public static EasyMealsRepositoryBuilder AddReadOnlyEasyMealsRepository<TDocument>(
+		this IServiceCollection services)
+		where TDocument : BaseDocument
+	{
+		return services.AddEasyMealsRepository<TDocument>(RepositoryPermissions.Read);
+	}
+
+	/// <summary>
+	///     Starts building EasyMeals repositories with fluent configuration
+	///     Requires MongoDB to be configured first via AddEasyMealsDataMongoDB
+	/// </summary>
+	/// <param name="services">The service collection</param>
+	/// <returns>Repository builder for chaining</returns>
+	/// <exception cref="InvalidOperationException">Thrown when MongoDB is not configured</exception>
+	public static EasyMealsRepositoryBuilder ConfigureEasyMealsRepositories(
+		this IServiceCollection services)
+	{
+		ValidateMongoDbConfiguration(services);
+		return new EasyMealsRepositoryBuilder(services);
+	}
+
+	/// <summary>
+	///     Validates that MongoDB has been configured
+	/// </summary>
+	private static void ValidateMongoDbConfiguration(IServiceCollection services)
+	{
+		var serviceProvider = services.BuildServiceProvider(validateScopes: false);
+		try
+		{
+			serviceProvider.GetService<IMongoDatabase>();
+		}
+		catch
+		{
+			throw new InvalidOperationException(
+				"MongoDB configuration is missing. Please call one of the AddEasyMealsDataMongoDB methods before registering repositories. " +
+				"Example: services.AddEasyMealsDataMongoDB(connectionString, databaseName)");
+		}
+		finally
+		{
+			serviceProvider.Dispose();
+		}
+	}
+
+	#endregion
+
+	#region Core MongoDB Configuration (Existing)
 	/// <summary>
 	///     Adds EasyMeals data services with MongoDB using connection string
 	///     Standard configuration for production and development environments
@@ -262,6 +339,8 @@ public static class ServiceCollectionExtensions
 
 		return services;
 	}
+
+	#endregion
 }
 
 /// <summary>
