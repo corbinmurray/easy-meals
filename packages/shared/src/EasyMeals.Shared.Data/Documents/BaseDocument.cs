@@ -33,12 +33,31 @@ public abstract class BaseDocument : IAuditableDocument
 	public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
 	/// <summary>
+	///     Document schema version for backward/forward compatibility
+	///     Enables safe document evolution and migration strategies
+	///     Default to 1 for new documents, increment when schema changes
+	/// </summary>
+	[BsonElement("version")]
+	[BsonDefaultValue(1)]
+	public int Version { get; set; } = 1;
+
+	/// <summary>
 	///     Updates the UpdatedAt timestamp
 	///     Called automatically by the repository on save operations
 	/// </summary>
 	public virtual void MarkAsModified()
 	{
 		UpdatedAt = DateTime.UtcNow;
+	}
+
+	/// <summary>
+	///     Updates the document version and modification timestamp
+	///     Call when making schema-breaking changes to document structure
+	/// </summary>
+	public virtual void IncrementVersion()
+	{
+		Version++;
+		MarkAsModified();
 	}
 }
 
