@@ -1,9 +1,11 @@
 using EasyMeals.RecipeEngine.Domain.Interfaces;
+using Microsoft.Extensions.Logging;
 
 namespace EasyMeals.RecipeEngine.Application.Services;
 
-public class RecipeEngine : IRecipeEngine
+public class RecipeEngine(ILogger<RecipeEngine> logger) : IRecipeEngine
 {
-	// Implementation of the recipe engine
-	public async Task RunAsync() => throw new NotImplementedException();
+	public async Task RunAsync()
+	{
+	}
 }
