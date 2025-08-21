@@ -4,12 +4,12 @@
         <TargetFramework>net8.0</TargetFramework>
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
-        <UserSecretsId>dotnet-EasyMeals.Crawler-82ba5d55-421e-4481-9ef8-cf3298208590</UserSecretsId>
+        <UserSecretsId>dotnet-EasyMeals.RecipeEngine-82ba5d55-421e-4481-9ef8-cf3298208590</UserSecretsId>
         <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.1"/>
+        <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.1" />
     </ItemGroup>
 
     <ItemGroup>
@@ -19,7 +19,9 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\EasyMeals.Crawler.Application\EasyMeals.Crawler.Application.csproj"/>
-        <ProjectReference Include="..\EasyMeals.Crawler.Infrastructure\EasyMeals.Crawler.Infrastructure.csproj"/>
+        <ProjectReference
+            Include="..\EasyMeals.RecipeEngine.Application\EasyMeals.RecipeEngine.Application.csproj" />
+        <ProjectReference
+            Include="..\EasyMeals.RecipeEngine.Infrastructure\EasyMeals.RecipeEngine.Infrastructure.csproj" />
     </ItemGroup>
 </Project>

@@ -1,4 +1,4 @@
-namespace EasyMeals.Crawler.Domain.Entities;
+namespace EasyMeals.RecipeEngine.Domain.Entities;
 
 /// <summary>
 ///     Represents a recipe aggregate root containing all recipe data

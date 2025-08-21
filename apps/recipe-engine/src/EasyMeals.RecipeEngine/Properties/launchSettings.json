@@ -1,7 +1,7 @@
 ﻿{
   "$schema": "http://json.schemastore.org/launchsettings.json",
   "profiles": {
-    "EasyMeals.Crawler": {
+    "EasyMeals.RecipeEngine": {
       "commandName": "Project",
       "dotnetRunMessages": true,
       "environmentVariables": {

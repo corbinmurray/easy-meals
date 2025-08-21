@@ -1,10 +1,10 @@
-# Easy Meals Crawler
+# Easy Meals RecipeEngine
 
-A source provider agnostic recipe crawler built with Clean Architecture principles and MongoDB persistence.
+A source provider agnostic recipe recipe-engine built with Clean Architecture principles and MongoDB persistence.
 
 ## Overview
 
-This crawler is designed to extract recipe data from various meal kit and recipe providers, storing the results in a MongoDB database through the shared data infrastructure. The crawler follows Domain-Driven Design (DDD) patterns and supports multiple source providers through configuration.
+This recipe-engine is designed to extract recipe data from various meal kit and recipe providers, storing the results in a MongoDB database through the shared data infrastructure. The recipe-engine follows Domain-Driven Design (DDD) patterns and supports multiple source providers through configuration.
 
 ## Features
 
@@ -28,7 +28,7 @@ Update your `appsettings.json` to specify the source provider:
 
 ```json
 {
-  "Crawler": {
+  "RecipeEngine": {
     "SourceProvider": "HelloFresh",
     "DefaultPriority": 1,
     "DelayBetweenRequestsSeconds": 2,
@@ -46,7 +46,7 @@ To add support for a new provider (e.g., "BlueApron"):
 
    ```json
    {
-     "Crawler": {
+     "RecipeEngine": {
        "SourceProvider": "BlueApron",
        "DefaultPriority": 2,
        "DelayBetweenRequestsSeconds": 3,
@@ -87,7 +87,7 @@ To add support for a new provider (e.g., "BlueApron"):
 - **Entities**: `Recipe` - Core recipe entity
 - **Value Objects**: `CrawlState` - Immutable state representation
 - **Interfaces**: Repository and service contracts
-- **Configurations**: `CrawlerOptions` - Source provider configuration
+- **Configurations**: `RecipeEngineOptions` - Source provider configuration
 
 ### Application Layer
 
@@ -104,7 +104,7 @@ To add support for a new provider (e.g., "BlueApron"):
 
 ## Data Flow
 
-1. **Configuration Loading**: Crawler options loaded from appsettings.json
+1. **Configuration Loading**: RecipeEngine options loaded from appsettings.json
 2. **State Restoration**: Previous crawl state loaded from MongoDB
 3. **URL Processing**: Pending URLs processed according to provider logic
 4. **Data Extraction**: Provider-specific extractors parse recipe data
@@ -113,7 +113,7 @@ To add support for a new provider (e.g., "BlueApron"):
 
 ## MongoDB Integration
 
-The crawler leverages MongoDB's document-oriented features:
+The recipe-engine leverages MongoDB's document-oriented features:
 
 - **Native Arrays**: Ingredient and instruction lists stored as MongoDB arrays
 - **Embedded Documents**: Nutritional information stored as embedded documents
@@ -128,7 +128,7 @@ The crawler leverages MongoDB's document-oriented features:
 
 ## Extension Points
 
-The crawler is designed for easy extensibility:
+The recipe-engine is designed for easy extensibility:
 
 1. **New Source Providers**: Add new extractors and configure through settings
 2. **Custom Data Fields**: Extend recipe entities with provider-specific fields
@@ -147,6 +147,6 @@ The crawler is designed for easy extensibility:
 1. Clone the repository
 2. Update `appsettings.json` with your preferred source provider
 3. Configure MongoDB connection in the shared data infrastructure
-4. Run the crawler: `dotnet run`
+4. Run the recipe-engine: `dotnet run`
 
-The crawler will automatically begin processing based on your configuration and maintain state for subsequent runs.
+The recipe-engine will automatically begin processing based on your configuration and maintain state for subsequent runs.

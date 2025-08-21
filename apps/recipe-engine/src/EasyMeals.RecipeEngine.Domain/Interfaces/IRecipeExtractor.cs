@@ -1,6 +1,6 @@
-using EasyMeals.Crawler.Domain.Entities;
+using EasyMeals.RecipeEngine.Domain.Entities;
 
-namespace EasyMeals.Crawler.Domain.Interfaces;
+namespace EasyMeals.RecipeEngine.Domain.Interfaces;
 
 /// <summary>
 ///     Interface for extracting recipe data from HTML content

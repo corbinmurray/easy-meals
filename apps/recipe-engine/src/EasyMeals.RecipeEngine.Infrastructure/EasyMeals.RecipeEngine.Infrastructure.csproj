@@ -1,0 +1,28 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <ItemGroup>
+        <ProjectReference
+            Include="..\EasyMeals.RecipeEngine.Application\EasyMeals.RecipeEngine.Application.csproj" />
+        <ProjectReference
+            Include="..\EasyMeals.RecipeEngine.Domain\EasyMeals.RecipeEngine.Domain.csproj" />
+        <ProjectReference
+            Include="..\..\..\..\packages\shared\src\EasyMeals.Shared.Data\EasyMeals.Shared.Data.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="HtmlAgilityPack" Version="1.12.2" />
+        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.8" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <Folder Include="Documents\" />
+        <Folder Include="Services\" />
+    </ItemGroup>
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+</Project>

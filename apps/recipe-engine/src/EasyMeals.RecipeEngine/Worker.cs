@@ -1,6 +1,6 @@
 
 
-namespace EasyMeals.Crawler;
+namespace EasyMeals.RecipeEngine;
 
 /// <summary>
 ///     Worker service that orchestrates the HelloFresh recipe crawling process

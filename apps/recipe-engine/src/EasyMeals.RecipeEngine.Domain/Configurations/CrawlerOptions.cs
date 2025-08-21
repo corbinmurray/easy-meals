@@ -1,14 +1,14 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace EasyMeals.Crawler.Domain.Configurations;
+namespace EasyMeals.RecipeEngine.Domain.Configurations;
 
 /// <summary>
-///     Configuration options for the crawler application
+///     Configuration options for the recipe-engine application
 ///     Supports multiple source providers to enable extensibility beyond HelloFresh
 /// </summary>
-public class CrawlerOptions
+public class RecipeEngineOptions
 {
-    public const string SectionName = "Crawler";
+    public const string SectionName = "RecipeEngine";
 
     /// <summary>
     ///     The source provider name for crawled recipes (e.g., "HelloFresh", "BlueApron", "EveryPlate")

@@ -21,9 +21,9 @@ services:
       - ASPNETCORE_HTTP_PORTS=8080
       # - ASPNETCORE_HTTPS_PORTS=8081
 
-  easymeals.crawler:
+  easymeals.recipe-engine:
     build:
       context: .
-      dockerfile: apps/crawler/src/EasyMeals.Crawler/Dockerfile
+      dockerfile: apps/recipe-engine/src/EasyMeals.RecipeEngine/Dockerfile
     environment:
       - ASPNETCORE_ENVIRONMENT=Development

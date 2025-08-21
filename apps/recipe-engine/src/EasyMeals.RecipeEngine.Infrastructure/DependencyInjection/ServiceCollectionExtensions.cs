@@ -2,35 +2,35 @@ using EasyMeals.Shared.Data.DependencyInjection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace EasyMeals.Crawler.Infrastructure.DependencyInjection;
+namespace EasyMeals.RecipeEngine.Infrastructure.DependencyInjection;
 
 /// <summary>
-///     Dependency injection extensions for the Crawler Infrastructure layer
+///     Dependency injection extensions for the RecipeEngine Infrastructure layer
 ///     Follows DDD principles and Clean Architecture patterns
 /// </summary>
 public static class ServiceCollectionExtensions
 {
     /// <summary>
-    ///     Adds crawler infrastructure services including MongoDB data layer
-    ///     Uses shared MongoDB options and database with crawler-specific collections
+    ///     Adds recipe-engine infrastructure services including MongoDB data layer
+    ///     Uses shared MongoDB options and database with recipe-engine-specific collections
     /// </summary>
     /// <param name="services">The service collection</param>
     /// <param name="configuration">The application configuration</param>
     /// <returns>Service collection for chaining</returns>
-    public static IServiceCollection AddCrawlerInfrastructure(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection AddRecipeEngineInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
         // Add MongoDB data services using shared options pattern with shared database
         services.AddEasyMealsDataWithOptions(options =>
         {
-            // Crawler-specific configuration overrides (using shared database)
-            options.ApplicationName = "EasyMeals.Crawler";
-            options.ReadPreference = "SecondaryPreferred"; // Crawler can use secondary reads
-            options.MaxConnectionPoolSize = 50; // Optimized for crawler workload
+            // RecipeEngine-specific configuration overrides (using shared database)
+            options.ApplicationName = "EasyMeals.RecipeEngine";
+            options.ReadPreference = "SecondaryPreferred"; // RecipeEngine can use secondary reads
+            options.MaxConnectionPoolSize = 50; // Optimized for recipe-engine workload
             options.SocketTimeoutSeconds = 120; // Longer timeout for batch operations
-            options.HealthCheckTags = ["crawler", "database", "mongodb"];
+            options.HealthCheckTags = ["recipe-engine", "database", "mongodb"];
             options.EnableDetailedLogging = true; // Enable for development/troubleshooting
         });
-        
+
         // TODO: Add repositories
 
         return services;

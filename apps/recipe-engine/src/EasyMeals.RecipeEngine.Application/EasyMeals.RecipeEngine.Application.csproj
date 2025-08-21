@@ -2,19 +2,16 @@
 
     <ItemGroup>
         <ProjectReference
-            Include="..\EasyMeals.Crawler.Application\EasyMeals.Crawler.Application.csproj" />
-        <ProjectReference Include="..\EasyMeals.Crawler.Domain\EasyMeals.Crawler.Domain.csproj" />
-        <ProjectReference
-            Include="..\..\..\..\packages\shared\src\EasyMeals.Shared.Data\EasyMeals.Shared.Data.csproj" />
+            Include="..\EasyMeals.RecipeEngine.Domain\EasyMeals.RecipeEngine.Domain.csproj" />
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="HtmlAgilityPack" Version="1.12.2" />
+        <PackageReference Include="Microsoft.Extensions.Http" Version="9.0.8" />
         <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.8" />
     </ItemGroup>
 
     <ItemGroup>
-        <Folder Include="Documents\" />
+        <Folder Include="DependencyInjection\" />
         <Folder Include="Services\" />
     </ItemGroup>
 

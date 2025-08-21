@@ -1,4 +1,4 @@
-namespace EasyMeals.Crawler.Domain.Interfaces;
+namespace EasyMeals.RecipeEngine.Domain.Interfaces;
 
 /// <summary>
 ///     Service for interacting with HelloFresh website HTTP endpoints
