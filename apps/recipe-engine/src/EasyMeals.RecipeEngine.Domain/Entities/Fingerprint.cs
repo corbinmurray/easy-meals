@@ -14,25 +14,27 @@ public sealed class Fingerprint
 	private readonly Dictionary<string, object> _metadata;
 
 	/// <summary>
-	///     Creates a new Fingerprint aggregate root for successful scraping
+	///     Creates a new Fingerprint aggregate root from raw content
+	///     Automatically computes content hash from raw content
 	/// </summary>
 	/// <param name="id">Unique identifier for the fingerprint</param>
 	/// <param name="url">URL that was scraped (required)</param>
-	/// <param name="contentHash">Hash of the scraped content (required)</param>
+	/// <param name="rawContent">Raw scraped content (required)</param>
 	/// <param name="sourceProvider">Source provider name (required)</param>
 	/// <param name="quality">Quality assessment of scraped content</param>
 	/// <param name="metadata">Additional metadata about the scraping operation</param>
 	public Fingerprint(
 		Guid id,
 		string url,
-		string contentHash,
+		string rawContent,
 		string sourceProvider,
 		ScrapingQuality quality = ScrapingQuality.Good,
 		Dictionary<string, object>? metadata = null)
 	{
 		Id = id;
 		Url = ValidateUrl(url);
-		ContentHash = ValidateContentHash(contentHash);
+		RawContent = ValidateRawContent(rawContent);
+		ContentHash = ComputeContentHash(rawContent);
 		SourceProvider = ValidateSourceProvider(sourceProvider);
 		Quality = quality;
 		Status = FingerprintStatus.Success;
@@ -100,6 +102,9 @@ public sealed class Fingerprint
 
 	/// <summary>Hash of the scraped content</summary>
 	public string ContentHash { get; private set; } = string.Empty;
+
+	/// <summary>Raw scraped content (optional, for debugging and reprocessing)</summary>
+	public string? RawContent { get; private set; }
 
 	/// <summary>Timestamp when content was scraped</summary>
 	public DateTime ScrapedAt { get; private set; }
@@ -431,6 +436,34 @@ public sealed class Fingerprint
 	private void AddDomainEvent(IDomainEvent domainEvent)
 	{
 		_domainEvents.Add(domainEvent);
+	}
+
+	/// <summary>
+	///     Computes SHA-256 hash of content for deduplication
+	///     Encapsulates content hashing business logic within the aggregate
+	/// </summary>
+	private static string ComputeContentHash(string content)
+	{
+		if (string.IsNullOrEmpty(content))
+			return string.Empty;
+
+		using var sha256 = System.Security.Cryptography.SHA256.Create();
+		var hashBytes = sha256.ComputeHash(System.Text.Encoding.UTF8.GetBytes(content));
+		return Convert.ToHexString(hashBytes).ToLowerInvariant();
+	}
+
+	/// <summary>
+	///     Validates raw content
+	/// </summary>
+	private static string ValidateRawContent(string rawContent)
+	{
+		if (string.IsNullOrEmpty(rawContent))
+			throw new ArgumentException("Raw content cannot be empty", nameof(rawContent));
+
+		if (rawContent.Length > 10_000_000) // 10MB limit
+			throw new ArgumentException("Raw content exceeds maximum size limit", nameof(rawContent));
+
+		return rawContent;
 	}
 
 	#endregion
