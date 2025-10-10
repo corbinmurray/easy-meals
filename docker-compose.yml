@@ -1,0 +1,66 @@
+services:
+  easymeals-db:
+    image: mongo:8.0
+    container_name: easymeals-mongodb-dev
+    ports:
+      - "27017:27017"
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=password
+      - MONGO_INITDB_DATABASE=easymeals
+    volumes:
+      - mongodb_dev_data:/data/db
+
+  easymeals-api:
+    build:
+      context: .
+      dockerfile: apps/api/src/EasyMeals.Api/Dockerfile
+      target: base  # Stop at dev stage (if multi-stage)
+    ports:
+      - "8080:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_HTTP_PORTS=8080
+      - MongoDB__ConnectionString=mongodb://admin:password@mongodb:27017
+      - MongoDB__DatabaseName=easymeals
+    volumes:
+      # Hot reload for development
+      - ./apps/api/src:/app/src:ro
+    depends_on:
+      - mongodb
+
+  easymeals-ui:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      target: deps  # Stop at deps stage for hot reload
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - NEXT_PUBLIC_API_URL=http://localhost:8080
+    volumes:
+      # Hot reload for Next.js
+      - ./apps/web:/app/apps/web
+      - ./packages:/app/packages
+      - /app/node_modules
+      - /app/apps/web/.next
+    command: pnpm --filter web dev
+    depends_on:
+      - api
+
+  easymeals-recipe-engine:
+    build:
+      context: .
+      dockerfile: apps/recipe-engine/src/EasyMeals.RecipeEngine/Dockerfile
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - MongoDB__ConnectionString=mongodb://admin:password@mongodb:27017
+      - MongoDB__DatabaseName=easymeals
+    profiles:
+      - manual  # Don't start by default, run manually
+    depends_on:
+      - mongodb
+
+volumes:
+  mongodb_dev_data:

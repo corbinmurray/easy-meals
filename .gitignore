@@ -460,3 +460,21 @@ common/temp/
 .yarn/build-state.yml
 .yarn/install-state.gz
 .pnp.*
+
+# === SECRETS - NEVER COMMIT ===
+.env
+.env.local
+.env.*.local
+*.env
+
+# Traefik auth files
+traefik/users.txt
+traefik/acme.json
+traefik/letsencrypt/
+
+# MongoDB data
+mongodb_data/
+
+# Any file with "secret" in name
+*secret*
+*secrets*
