@@ -56,7 +56,7 @@ public sealed record Ingredient
 	{
 		get
 		{
-			var baseText = $"{Amount} {Unit} {Name}".Trim();
+			string baseText = $"{Amount} {Unit} {Name}".Trim();
 
 			if (!string.IsNullOrEmpty(Notes))
 				baseText += $", {Notes}";

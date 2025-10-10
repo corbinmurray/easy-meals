@@ -81,7 +81,7 @@ public sealed record Instruction
 	{
 		get
 		{
-			var summary = Description.Length > 50
+			string summary = Description.Length > 50
 				? Description[..47] + "..."
 				: Description;
 
@@ -210,9 +210,9 @@ public sealed record Instruction
 		if (string.IsNullOrWhiteSpace(mediaUrl))
 			return null;
 
-		var trimmed = mediaUrl.Trim();
+		string trimmed = mediaUrl.Trim();
 
-		if (!Uri.TryCreate(trimmed, UriKind.Absolute, out var uri))
+		if (!Uri.TryCreate(trimmed, UriKind.Absolute, out Uri? uri))
 			throw new ArgumentException("Media URL must be a valid URL", nameof(mediaUrl));
 
 		// Ensure it's HTTP/HTTPS

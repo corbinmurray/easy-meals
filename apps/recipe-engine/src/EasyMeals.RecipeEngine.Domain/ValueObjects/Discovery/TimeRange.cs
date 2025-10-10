@@ -30,8 +30,8 @@ public sealed record TimeRange
     /// </summary>
     public static TimeRange LastHours(int hours)
     {
-        var end = DateTime.UtcNow;
-        var start = end.AddHours(-hours);
+        DateTime end = DateTime.UtcNow;
+        DateTime start = end.AddHours(-hours);
         return new TimeRange(start, end);
     }
 
@@ -40,8 +40,8 @@ public sealed record TimeRange
     /// </summary>
     public static TimeRange LastDays(int days)
     {
-        var end = DateTime.UtcNow;
-        var start = end.AddDays(-days);
+        DateTime end = DateTime.UtcNow;
+        DateTime start = end.AddDays(-days);
         return new TimeRange(start, end);
     }
 
@@ -57,8 +57,8 @@ public sealed record TimeRange
     {
         get
         {
-            var today = DateTime.Today;
-            var startOfWeek = today.AddDays(-(int)today.DayOfWeek);
+            DateTime today = DateTime.Today;
+            DateTime startOfWeek = today.AddDays(-(int)today.DayOfWeek);
             return new TimeRange(startOfWeek, startOfWeek.AddDays(7));
         }
     }

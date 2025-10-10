@@ -154,7 +154,7 @@ public sealed class Recipe
 	/// </summary>
 	public void UpdateBasicInfo(string title, string description, int servings)
 	{
-		var oldTitle = Title;
+		string oldTitle = Title;
 
 		Title = ValidateTitle(title);
 		Description = description ?? string.Empty;
@@ -215,7 +215,7 @@ public sealed class Recipe
 		if (string.IsNullOrWhiteSpace(ingredientName))
 			throw new ArgumentException("Ingredient name cannot be empty", nameof(ingredientName));
 
-		var ingredient = _ingredients.FirstOrDefault(i =>
+		Ingredient? ingredient = _ingredients.FirstOrDefault(i =>
 			i.Name.Equals(ingredientName, StringComparison.OrdinalIgnoreCase));
 
 		if (ingredient == null)
@@ -271,7 +271,7 @@ public sealed class Recipe
 		if (string.IsNullOrWhiteSpace(tag))
 			throw new ArgumentException("Tag cannot be empty", nameof(tag));
 
-		var normalizedTag = tag.Trim().ToLowerInvariant();
+		string normalizedTag = tag.Trim().ToLowerInvariant();
 
 		if (!_tags.Contains(normalizedTag))
 		{
@@ -313,7 +313,7 @@ public sealed class Recipe
 		if (newRating < 1 || newRating > 5)
 			throw new ArgumentOutOfRangeException(nameof(newRating), "Rating must be between 1 and 5");
 
-		var oldRating = Rating;
+		decimal? oldRating = Rating;
 		Rating = Math.Round(newRating, 1);
 		ReviewCount++;
 		UpdatedAt = DateTime.UtcNow;

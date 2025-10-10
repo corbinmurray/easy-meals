@@ -21,35 +21,16 @@ namespace EasyMeals.RecipeEngine.Application.Sagas;
 /// 
 ///     This Saga includes compensating transactions and comprehensive error handling
 /// </summary>
-public class RecipeProcessingSaga
+public class RecipeProcessingSaga(
+    ILogger<RecipeProcessingSaga> logger,
+    IDiscoveryService discoveryService,
+    IFingerprintRepository fingerprintRepository,
+    IRecipeRepository recipeRepository,
+    IRecipeExtractor recipeExtractor,
+    IStealthyHttpClient httpClient,
+    IConfiguration configuration)
 {
-    private readonly ILogger<RecipeProcessingSaga> _logger;
-    private readonly IDiscoveryService _discoveryService;
-    private readonly IFingerprintRepository _fingerprintRepository;
-    private readonly IRecipeRepository _recipeRepository;
-    private readonly IRecipeExtractor _recipeExtractor;
-    private readonly IStealthyHttpClient _httpClient;
-    private readonly IConfiguration _configuration;
-    private readonly Dictionary<string, object> _sagaState;
-
-    public RecipeProcessingSaga(
-        ILogger<RecipeProcessingSaga> logger,
-        IDiscoveryService discoveryService,
-        IFingerprintRepository fingerprintRepository,
-        IRecipeRepository recipeRepository,
-        IRecipeExtractor recipeExtractor,
-        IStealthyHttpClient httpClient,
-        IConfiguration configuration)
-    {
-        _logger = logger;
-        _discoveryService = discoveryService;
-        _fingerprintRepository = fingerprintRepository;
-        _recipeRepository = recipeRepository;
-        _recipeExtractor = recipeExtractor;
-        _httpClient = httpClient;
-        _configuration = configuration;
-        _sagaState = new Dictionary<string, object>();
-    }
+    private readonly Dictionary<string, object> _sagaState = [];
 
     /// <summary>
     ///     Starts the complete recipe processing saga
@@ -60,20 +41,20 @@ public class RecipeProcessingSaga
         _sagaState["SagaId"] = sagaId;
         _sagaState["StartedAt"] = DateTime.UtcNow;
 
-        _logger.LogInformation("Starting Recipe Processing Saga {SagaId}", sagaId);
+        logger.LogInformation("Starting Recipe Processing Saga {SagaId}", sagaId);
 
         try
         {
             // Step 1: Discovery Phase
-            var discoveredUrls = await ExecuteDiscoveryPhaseAsync(cancellationToken);
+            List<DiscoveredUrl> discoveredUrls = await ExecuteDiscoveryPhaseAsync(cancellationToken);
             _sagaState["DiscoveredUrls"] = discoveredUrls;
 
             // Step 2: Fingerprinting Phase
-            var fingerprints = await ExecuteFingerprintingPhaseAsync(discoveredUrls, cancellationToken);
+            List<Fingerprint> fingerprints = await ExecuteFingerprintingPhaseAsync(discoveredUrls, cancellationToken);
             _sagaState["Fingerprints"] = fingerprints;
 
             // Step 3: Processing Phase
-            var recipes = await ExecuteProcessingPhaseAsync(fingerprints, cancellationToken);
+            List<Recipe> recipes = await ExecuteProcessingPhaseAsync(fingerprints, cancellationToken);
             _sagaState["Recipes"] = recipes;
 
             // Step 4: Persistence Phase
@@ -84,7 +65,7 @@ public class RecipeProcessingSaga
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Recipe Processing Saga {SagaId} failed: {ErrorMessage}", sagaId, ex.Message);
+            logger.LogError(ex, "Recipe Processing Saga {SagaId} failed: {ErrorMessage}", sagaId, ex.Message);
             await HandleSagaFailureAsync(ex, cancellationToken);
             throw;
         }
@@ -97,16 +78,16 @@ public class RecipeProcessingSaga
     /// </summary>
     private async Task<List<DiscoveredUrl>> ExecuteDiscoveryPhaseAsync(CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Executing Discovery Phase for Saga {SagaId}", _sagaState["SagaId"]);
+        logger.LogInformation("Executing Discovery Phase for Saga {SagaId}", _sagaState["SagaId"]);
 
         var allDiscoveredUrls = new List<DiscoveredUrl>();
-        var providers = GetConfiguredProviders();
+        List<ProviderConfig> providers = GetConfiguredProviders();
 
-        foreach (var provider in providers)
+        foreach (ProviderConfig provider in providers)
         {
             try
             {
-                _logger.LogInformation("Starting discovery for provider: {Provider}", provider.Name);
+                logger.LogInformation("Starting discovery for provider: {Provider}", provider.Name);
 
                 var discoveryOptions = new DiscoveryOptions(
                     maxDepth: provider.MaxDepth,
@@ -114,17 +95,17 @@ public class RecipeProcessingSaga
                     respectRobotsTxt: true,
                     delayBetweenRequests: TimeSpan.FromMilliseconds(provider.DelayMs));
 
-                var discoveredUrls = await _discoveryService.DiscoverRecipeUrlsAsync(
+                IEnumerable<DiscoveredUrl> discoveredUrls = await discoveryService.DiscoverRecipeUrlsAsync(
                     provider.BaseUrl,
                     provider.Name,
                     discoveryOptions.MaxDepth,
                     discoveryOptions.MaxUrls,
                     cancellationToken);
 
-                var urlList = discoveredUrls.ToList();
+                List<DiscoveredUrl> urlList = discoveredUrls.ToList();
                 allDiscoveredUrls.AddRange(urlList);
 
-                _logger.LogInformation("Discovery completed for {Provider}: {Count} URLs found",
+                logger.LogInformation("Discovery completed for {Provider}: {Count} URLs found",
                     provider.Name, urlList.Count);
 
                 // Publish discovery completed event
@@ -145,7 +126,7 @@ public class RecipeProcessingSaga
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Discovery failed for provider {Provider}: {ErrorMessage}",
+                logger.LogError(ex, "Discovery failed for provider {Provider}: {ErrorMessage}",
                     provider.Name, ex.Message);
 
                 // Publish discovery failed event
@@ -166,7 +147,7 @@ public class RecipeProcessingSaga
             throw new InvalidOperationException("No URLs were discovered from any configured providers");
         }
 
-        _logger.LogInformation("Discovery Phase completed: {TotalUrls} URLs discovered", allDiscoveredUrls.Count);
+        logger.LogInformation("Discovery Phase completed: {TotalUrls} URLs discovered", allDiscoveredUrls.Count);
         return allDiscoveredUrls;
     }
 
@@ -177,13 +158,13 @@ public class RecipeProcessingSaga
         List<DiscoveredUrl> discoveredUrls,
         CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Executing Fingerprinting Phase for Saga {SagaId}: Processing {Count} URLs",
+        logger.LogInformation("Executing Fingerprinting Phase for Saga {SagaId}: Processing {Count} URLs",
             _sagaState["SagaId"], discoveredUrls.Count);
 
         var fingerprints = new List<Fingerprint>();
         var semaphore = new SemaphoreSlim(5, 5); // Limit concurrent scraping
 
-        var fingerprintTasks = discoveredUrls.Select(async url =>
+        IEnumerable<Task<Fingerprint?>> fingerprintTasks = discoveredUrls.Select(async url =>
         {
             await semaphore.WaitAsync(cancellationToken);
             try
@@ -196,10 +177,10 @@ public class RecipeProcessingSaga
             }
         });
 
-        var results = await Task.WhenAll(fingerprintTasks);
+        Fingerprint?[] results = await Task.WhenAll(fingerprintTasks);
         fingerprints.AddRange(results.Where(f => f != null)!);
 
-        _logger.LogInformation("Fingerprinting Phase completed: {Count} fingerprints created", fingerprints.Count);
+        logger.LogInformation("Fingerprinting Phase completed: {Count} fingerprints created", fingerprints.Count);
         return fingerprints;
     }
 
@@ -210,21 +191,21 @@ public class RecipeProcessingSaga
         List<Fingerprint> fingerprints,
         CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Executing Processing Phase for Saga {SagaId}: Processing {Count} fingerprints",
+        logger.LogInformation("Executing Processing Phase for Saga {SagaId}: Processing {Count} fingerprints",
             _sagaState["SagaId"], fingerprints.Count);
 
         var recipes = new List<Recipe>();
 
         // Only process high-quality fingerprints
-        var qualityFingerprints = fingerprints
+        List<Fingerprint> qualityFingerprints = fingerprints
             .Where(f => f.Quality == ScrapingQuality.Excellent || f.Quality == ScrapingQuality.Good)
             .ToList();
 
-        foreach (var fingerprint in qualityFingerprints)
+        foreach (Fingerprint fingerprint in qualityFingerprints)
         {
             try
             {
-                var extractedRecipe = await _recipeExtractor.ExtractRecipeAsync(fingerprint, cancellationToken);
+                Recipe? extractedRecipe = await recipeExtractor.ExtractRecipeAsync(fingerprint, cancellationToken);
                 if (extractedRecipe != null)
                 {
                     recipes.Add(extractedRecipe);
@@ -246,7 +227,7 @@ public class RecipeProcessingSaga
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Failed to extract recipe from fingerprint {FingerprintId}: {ErrorMessage}",
+                logger.LogWarning(ex, "Failed to extract recipe from fingerprint {FingerprintId}: {ErrorMessage}",
                     fingerprint.Id, ex.Message);
 
                 // Note: In a real implementation, we would call IncrementRetryCount on Fingerprint
@@ -256,7 +237,7 @@ public class RecipeProcessingSaga
             }
         }
 
-        _logger.LogInformation("Processing Phase completed: {Count} recipes extracted", recipes.Count);
+        logger.LogInformation("Processing Phase completed: {Count} recipes extracted", recipes.Count);
         return recipes;
     }
 
@@ -265,7 +246,7 @@ public class RecipeProcessingSaga
     /// </summary>
     private async Task ExecutePersistencePhaseAsync(List<Recipe> recipes, CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Executing Persistence Phase for Saga {SagaId}: Saving {Count} recipes",
+        logger.LogInformation("Executing Persistence Phase for Saga {SagaId}: Saving {Count} recipes",
             _sagaState["SagaId"], recipes.Count);
 
         // Get fingerprints from saga state
@@ -274,9 +255,9 @@ public class RecipeProcessingSaga
         try
         {
             // Save all fingerprints (both successful and failed for audit trail)
-            foreach (var fingerprint in fingerprints)
+            foreach (Fingerprint fingerprint in fingerprints)
             {
-                await _fingerprintRepository.AddAsync(fingerprint);
+                await fingerprintRepository.AddAsync(fingerprint);
             }
 
             // Save all successfully extracted recipes
@@ -286,12 +267,12 @@ public class RecipeProcessingSaga
             //     await _recipeRepository.SaveAsync(recipe, cancellationToken);
             // }
 
-            _logger.LogInformation("Persistence Phase completed: {FingerprintCount} fingerprints and {RecipeCount} recipes saved",
+            logger.LogInformation("Persistence Phase completed: {FingerprintCount} fingerprints and {RecipeCount} recipes saved",
                 fingerprints.Count, recipes.Count);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Persistence Phase failed: {ErrorMessage}", ex.Message);
+            logger.LogError(ex, "Persistence Phase failed: {ErrorMessage}", ex.Message);
 
             // This is a critical failure - we need to trigger compensating transactions
             await ExecuteCompensatingTransactionsAsync(cancellationToken);
@@ -310,7 +291,7 @@ public class RecipeProcessingSaga
     {
         try
         {
-            _logger.LogDebug("Creating fingerprint for URL: {Url}", discoveredUrl.Url);
+            logger.LogDebug("Creating fingerprint for URL: {Url}", discoveredUrl.Url);
 
             // Note: This would require IStealthyHttpClient to have a GetAsync method
             // For demonstration, we'll create a fingerprint with mock content
@@ -339,7 +320,7 @@ public class RecipeProcessingSaga
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to create fingerprint for URL {Url}: {ErrorMessage}",
+            logger.LogWarning(ex, "Failed to create fingerprint for URL {Url}: {ErrorMessage}",
                 discoveredUrl.Url, ex.Message);
 
             var failedFingerprint = Fingerprint.CreateFailure(
@@ -376,7 +357,7 @@ public class RecipeProcessingSaga
     /// </summary>
     private void PublishEvent(BaseDomainEvent domainEvent)
     {
-        _logger.LogDebug("Publishing event: {EventType}", domainEvent.GetType().Name);
+        logger.LogDebug("Publishing event: {EventType}", domainEvent.GetType().Name);
         // In a real implementation, this would publish to an event bus
         // For demonstration, we'll just log the events
     }
@@ -388,9 +369,9 @@ public class RecipeProcessingSaga
     {
         var sagaId = (Guid)_sagaState["SagaId"];
         var startedAt = (DateTime)_sagaState["StartedAt"];
-        var duration = DateTime.UtcNow - startedAt;
+        TimeSpan duration = DateTime.UtcNow - startedAt;
 
-        _logger.LogInformation("Recipe Processing Saga {SagaId} completed successfully in {Duration}. " +
+        logger.LogInformation("Recipe Processing Saga {SagaId} completed successfully in {Duration}. " +
                               "Processed {RecipeCount} recipes.",
                               sagaId, duration, recipes.Count);
 
@@ -410,7 +391,7 @@ public class RecipeProcessingSaga
     {
         var sagaId = (Guid)_sagaState["SagaId"];
 
-        _logger.LogError("Recipe Processing Saga {SagaId} failed, executing compensating transactions", sagaId);
+        logger.LogError("Recipe Processing Saga {SagaId} failed, executing compensating transactions", sagaId);
 
         await ExecuteCompensatingTransactionsAsync(cancellationToken);
 
@@ -426,53 +407,53 @@ public class RecipeProcessingSaga
     /// </summary>
     private async Task ExecuteCompensatingTransactionsAsync(CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Executing compensating transactions for Saga {SagaId}", _sagaState["SagaId"]);
+        logger.LogInformation("Executing compensating transactions for Saga {SagaId}", _sagaState["SagaId"]);
 
         try
         {
             // Compensate Recipe creation (if any were saved)
-            if (_sagaState.TryGetValue("Recipes", out var recipesObj) && recipesObj is List<Recipe> recipes)
+            if (_sagaState.TryGetValue("Recipes", out object? recipesObj) && recipesObj is List<Recipe> recipes)
             {
-                foreach (var recipe in recipes)
+                foreach (Recipe recipe in recipes)
                 {
                     try
                     {
                         // Note: IRecipeRepository needs DeleteAsync method for full compensation
                         // await _recipeRepository.DeleteAsync(recipe.Id, cancellationToken);
-                        _logger.LogDebug("Compensated: Deleted recipe {RecipeId}", recipe.Id);
+                        logger.LogDebug("Compensated: Deleted recipe {RecipeId}", recipe.Id);
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogWarning(ex, "Failed to compensate recipe deletion for {RecipeId}", recipe.Id);
+                        logger.LogWarning(ex, "Failed to compensate recipe deletion for {RecipeId}", recipe.Id);
                     }
                 }
             }
 
             // Compensate Fingerprint creation (if any were saved)
-            if (_sagaState.TryGetValue("Fingerprints", out var fingerprintsObj) && fingerprintsObj is List<Fingerprint> fingerprints)
+            if (_sagaState.TryGetValue("Fingerprints", out object? fingerprintsObj) && fingerprintsObj is List<Fingerprint> fingerprints)
             {
-                foreach (var fingerprint in fingerprints)
+                foreach (Fingerprint fingerprint in fingerprints)
                 {
                     try
                     {
                         // Note: IFingerprintRepository needs DeleteAsync method for full compensation
                         // Could use DeleteStaleAsync with TimeSpan.Zero as a workaround
                         // await _fingerprintRepository.DeleteAsync(fingerprint.Id, cancellationToken);
-                        _logger.LogDebug("Compensated: Deleted fingerprint {FingerprintId}", fingerprint.Id);
+                        logger.LogDebug("Compensated: Deleted fingerprint {FingerprintId}", fingerprint.Id);
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogWarning(ex, "Failed to compensate fingerprint deletion for {FingerprintId}", fingerprint.Id);
+                        logger.LogWarning(ex, "Failed to compensate fingerprint deletion for {FingerprintId}", fingerprint.Id);
                     }
                 }
             }
 
-            _logger.LogInformation("Compensating transactions completed for Saga {SagaId}", _sagaState["SagaId"]);
+            logger.LogInformation("Compensating transactions completed for Saga {SagaId}", _sagaState["SagaId"]);
             await Task.CompletedTask;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Compensating transactions failed for Saga {SagaId}: {ErrorMessage}",
+            logger.LogError(ex, "Compensating transactions failed for Saga {SagaId}: {ErrorMessage}",
                 _sagaState["SagaId"], ex.Message);
             // In a production system, this would likely trigger manual intervention alerts
         }

@@ -74,7 +74,7 @@ public sealed record DiscoveredUrl
     {
         get
         {
-            if (Uri.TryCreate(Url, UriKind.Absolute, out var uri))
+            if (Uri.TryCreate(Url, UriKind.Absolute, out Uri? uri))
                 return uri.Host;
             return string.Empty;
         }
@@ -85,7 +85,7 @@ public sealed record DiscoveredUrl
     /// </summary>
     public T? GetMetadata<T>(string key)
     {
-        if (Metadata.TryGetValue(key, out var value) && value is T typedValue)
+        if (Metadata.TryGetValue(key, out object? value) && value is T typedValue)
             return typedValue;
         return default;
     }
@@ -136,7 +136,7 @@ public sealed record DiscoveredUrl
         if (string.IsNullOrWhiteSpace(url))
             throw new ArgumentException("URL cannot be empty", nameof(url));
 
-        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri))
+        if (!Uri.TryCreate(url, UriKind.Absolute, out Uri? uri))
             throw new ArgumentException("URL must be a valid absolute URL", nameof(url));
 
         if (uri.Scheme != "http" && uri.Scheme != "https")

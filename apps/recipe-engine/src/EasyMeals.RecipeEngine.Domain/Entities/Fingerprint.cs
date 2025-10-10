@@ -209,7 +209,7 @@ public sealed class Fingerprint
 		if (!IsSuccessful || !previous.IsSuccessful)
 			return false;
 
-		var hasChanged = previous.ContentHash != ContentHash;
+		bool hasChanged = previous.ContentHash != ContentHash;
 
 		if (hasChanged)
 		{
@@ -235,7 +235,7 @@ public sealed class Fingerprint
 		if (Quality == newQuality)
 			return; // No change needed
 
-		var oldQuality = Quality;
+		ScrapingQuality oldQuality = Quality;
 		Quality = newQuality;
 		UpdatedAt = DateTime.UtcNow;
 
@@ -343,7 +343,7 @@ public sealed class Fingerprint
 	/// </summary>
 	public T? GetMetadata<T>(string key)
 	{
-		if (_metadata.TryGetValue(key, out var value) && value is T typedValue)
+		if (_metadata.TryGetValue(key, out object? value) && value is T typedValue)
 			return typedValue;
 
 		return default;
@@ -391,7 +391,7 @@ public sealed class Fingerprint
 		if (string.IsNullOrWhiteSpace(url))
 			throw new ArgumentException("URL cannot be empty", nameof(url));
 
-		if (!Uri.TryCreate(url, UriKind.Absolute, out var uri))
+		if (!Uri.TryCreate(url, UriKind.Absolute, out Uri? uri))
 			throw new ArgumentException("URL must be a valid absolute URL", nameof(url));
 
 		if (uri.Scheme != "http" && uri.Scheme != "https")
@@ -448,7 +448,7 @@ public sealed class Fingerprint
 			return string.Empty;
 
 		using var sha256 = System.Security.Cryptography.SHA256.Create();
-		var hashBytes = sha256.ComputeHash(System.Text.Encoding.UTF8.GetBytes(content));
+		byte[] hashBytes = sha256.ComputeHash(System.Text.Encoding.UTF8.GetBytes(content));
 		return Convert.ToHexString(hashBytes).ToLowerInvariant();
 	}
 

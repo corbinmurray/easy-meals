@@ -89,7 +89,7 @@ public sealed record DiscoveryOptions
     /// </summary>
     public T? GetCustomSetting<T>(string key)
     {
-        if (CustomSettings.TryGetValue(key, out var value) && value is T typedValue)
+        if (CustomSettings.TryGetValue(key, out object? value) && value is T typedValue)
             return typedValue;
         return default;
     }
@@ -115,7 +115,7 @@ public sealed record DiscoveryOptions
     /// </summary>
     public DiscoveryOptions WithIncludePattern(string pattern)
     {
-        var newPatterns = IncludePatterns.ToList();
+        List<string> newPatterns = IncludePatterns.ToList();
         newPatterns.Add(pattern);
         return this with { IncludePatterns = newPatterns.AsReadOnly() };
     }
@@ -125,7 +125,7 @@ public sealed record DiscoveryOptions
     /// </summary>
     public DiscoveryOptions WithExcludePattern(string pattern)
     {
-        var newPatterns = ExcludePatterns.ToList();
+        List<string> newPatterns = ExcludePatterns.ToList();
         newPatterns.Add(pattern);
         return this with { ExcludePatterns = newPatterns.AsReadOnly() };
     }
