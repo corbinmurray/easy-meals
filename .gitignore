@@ -420,6 +420,11 @@ common/temp/
 # Copilot tracking
 .copilot-tracking/
 
+# Mock data for local development
+**/mock/**
+!**/mock/*.example.ts
+!**/mock/README.md
+
 # ====================
 # Misc
 # ====================
