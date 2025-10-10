@@ -7,10 +7,22 @@ EXPOSE 8081
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
-COPY ["apps/api/src/EasyMeals.Api/EasyMeals.Api.csproj", "EasyMeals.Api/"]
-RUN dotnet restore "EasyMeals.Api/EasyMeals.Api.csproj"
-COPY apps/api/src/EasyMeals.Api/ EasyMeals.Api/
-WORKDIR "/src/EasyMeals.Api"
+
+# Copy shared project files first for restore
+COPY ["packages/shared/src/EasyMeals.Shared.Data/EasyMeals.Shared.Data.csproj", "packages/shared/src/EasyMeals.Shared.Data/"]
+
+# Copy API project file
+COPY ["apps/api/src/EasyMeals.Api/EasyMeals.Api.csproj", "apps/api/src/EasyMeals.Api/"]
+
+# Restore dependencies
+RUN dotnet restore "apps/api/src/EasyMeals.Api/EasyMeals.Api.csproj"
+
+# Copy all source files
+COPY packages/shared/src/EasyMeals.Shared.Data/ packages/shared/src/EasyMeals.Shared.Data/
+COPY apps/api/src/EasyMeals.Api/ apps/api/src/EasyMeals.Api/
+
+# Build the API project
+WORKDIR "/src/apps/api/src/EasyMeals.Api"
 RUN dotnet build "./EasyMeals.Api.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
 FROM build AS publish

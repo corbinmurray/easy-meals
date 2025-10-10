@@ -1,5 +1,22 @@
 
 services:
+  mongodb:
+    image: mongo:8.0
+    container_name: easymeals-mongodb
+    ports:
+      - "27017:27017"
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=password
+      - MONGO_INITDB_DATABASE=easymeals
+    volumes:
+      - mongodb_data:/data/db
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   easymeals.ui:
     build:
       context: .
@@ -20,6 +37,11 @@ services:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_HTTP_PORTS=8080
       # - ASPNETCORE_HTTPS_PORTS=8081
+      - MongoDB__ConnectionString=mongodb://admin:password@mongodb:27017
+      - MongoDB__DatabaseName=easymeals
+    depends_on:
+      mongodb:
+        condition: service_healthy
 
   easymeals.recipe-engine:
     build:
@@ -27,3 +49,12 @@ services:
       dockerfile: apps/recipe-engine/src/EasyMeals.RecipeEngine/Dockerfile
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
+      - MongoDB__ConnectionString=mongodb://admin:password@mongodb:27017
+      - MongoDB__DatabaseName=easymeals
+    depends_on:
+      mongodb:
+        condition: service_healthy
+
+volumes:
+  mongodb_data:
+    driver: local
