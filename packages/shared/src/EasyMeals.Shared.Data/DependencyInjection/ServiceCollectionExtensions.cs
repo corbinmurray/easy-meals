@@ -199,7 +199,7 @@ public static class ServiceCollectionExtensions
 		// Apply additional configuration if provided
 		if (configureOptions is not null) optionsBuilder.Configure(configureOptions);
 
-		return services.AddEasyMealsDataCore(serviceProvider =>
+		services.AddEasyMealsDataCore(serviceProvider =>
 		{
 			MongoDbOptions mongoOptions = serviceProvider.GetRequiredService<IOptions<MongoDbOptions>>().Value;
 
@@ -246,6 +246,20 @@ public static class ServiceCollectionExtensions
 			MongoDbOptions mongoOptions = serviceProvider.GetRequiredService<IOptions<MongoDbOptions>>().Value;
 			return mongoOptions.DatabaseName;
 		}, registerSharedRepositories);
+
+		// Build a temporary service provider to read the configured options
+		using (var tempProvider = services.BuildServiceProvider())
+		{
+			var mongoOptions = tempProvider.GetRequiredService<IOptions<MongoDbOptions>>().Value;
+			if (mongoOptions.EnableHealthChecks)
+			{
+				services.AddEasyMealsDataHealthChecks(
+					name: null, // Use default name
+					tags: mongoOptions.HealthCheckTags);
+			}
+		}
+
+		return services;
 	}
 
 	/// <summary>
