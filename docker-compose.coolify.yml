@@ -33,6 +33,7 @@ services:
     restart: unless-stopped
     labels:
       - "coolify.managed=true"
+      - "traefik.http.services.easymeals-web.loadbalancer.server.port=3000"
     depends_on:
       - easymeals-api
 
