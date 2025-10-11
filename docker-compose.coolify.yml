@@ -2,6 +2,8 @@ services:
   easymeals-api:
     image: ghcr.io/corbinmurray/easy-meals-api:latest
     container_name: easymeals-api
+    expose:
+      - "8080"
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_HTTP_PORTS: 8080
@@ -22,6 +24,8 @@ services:
   easymeals-web:
     image: ghcr.io/corbinmurray/easy-meals-web:latest
     container_name: easymeals-web
+    expose:
+      - "3000"
     environment:
       NODE_ENV: production
       # Internal API URL (server-side only, not exposed to browser)
