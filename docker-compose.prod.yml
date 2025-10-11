@@ -1,3 +1,5 @@
+# This file is intended for production deployments using Coolify.
+# Don't change the file name or location, as Coolify expects it here.
 services:
   easymeals-api:
     image: ghcr.io/corbinmurray/easy-meals-api:latest

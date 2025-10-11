@@ -1,3 +1,5 @@
+# Docker Compose file for local development environment
+# This setup mirrors the production environment but is optimized for development with hot reloads and local volumes.
 services:
   easymeals-db:
     image: mongo:8.0
