@@ -18,10 +18,10 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
-else
-{
-    app.UseHttpsRedirection();
-}
+
+// NOTE: HTTPS redirection removed for production
+// The reverse proxy (Traefik/Caddy) handles TLS termination
+// Internal container-to-container communication uses HTTP
 
 // Add health checks endpoint
 app.MapHealthChecks("/health");

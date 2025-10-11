@@ -26,8 +26,9 @@ services:
   easymeals-web:
     image: ghcr.io/corbinmurray/easy-meals-web:latest
     container_name: easymeals-web
-    ports:
-      - "3000:3000"
+    # NOTE: Don't expose ports publicly - let the proxy handle it
+    expose:
+      - "3000"
     environment:
       NODE_ENV: production
       # Internal API URL (server-side only, not exposed to browser)
@@ -35,11 +36,26 @@ services:
     restart: unless-stopped
     labels:
       - "coolify.managed=true"
+
+      - "traefik.enable=true"
       - "traefik.http.services.easymeals-web.loadbalancer.server.port=3000"
-      - "caddy=https://easymeals.corbinmurray.dev"
+      - "traefik.http.routers.easymeals-web.rule=Host(`easymeals.corbinmurray.dev`)"
+      - "traefik.http.routers.easymeals-web.entrypoints=https"
+      - "traefik.http.routers.easymeals-web.tls=true"
+      - "traefik.http.routers.easymeals-web.tls.certresolver=letsencrypt"
+
+      - "caddy=easymeals.corbinmurray.dev"
       - "caddy.reverse_proxy={{upstreams 3000}}"
     depends_on:
       - easymeals-api
+    healthcheck:
+      # Use 127.0.0.1 instead of localhost to force IPv4
+      # Alpine wget can have issues with IPv6 resolution
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:3000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
   easymeals-recipe-engine:
     image: ghcr.io/corbinmurray/easy-meals-recipe-engine:latest
