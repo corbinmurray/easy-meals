@@ -1,0 +1,116 @@
+# Coolify Production Docker Compose
+# This file is the single source of truth for Coolify deployments
+# 
+# Key differences from docker-compose.yml (local dev):
+# - Uses pre-built images from GHCR (no build steps)
+# - No MongoDB service (Coolify manages it separately)
+# - No port mappings (Coolify proxy handles routing)
+# - Environment variables from Coolify UI
+# - Recipe engine configured for scheduled execution
+
+services:
+  easymeals-api:
+    image: ghcr.io/corbinmurray/easy-meals-api:latest
+    container_name: easymeals-api
+    environment:
+      # ASP.NET Core Configuration
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_HTTP_PORTS=8080
+      
+      # MongoDB Connection (managed by Coolify)
+      # Set these in Coolify UI as required variables
+      - MongoDB__ConnectionString=${MONGODB_CONNECTION_STRING:?}
+      - MongoDB__DatabaseName=${MONGODB_DATABASE_NAME:-easymeals}
+    
+    # Coolify will assign domain via UI
+    # Example: api.easymeals.yourdomain.com:8080
+    # The :8080 tells Coolify to route to container port 8080
+    
+    restart: unless-stopped
+    
+    labels:
+      - "coolify.managed=true"
+    
+    # Health check for Coolify monitoring
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  easymeals-web:
+    image: ghcr.io/corbinmurray/easy-meals-web:latest
+    container_name: easymeals-web
+    environment:
+      # Next.js Configuration
+      - NODE_ENV=production
+      
+      # API URL (set in Coolify UI)
+      # Example: https://api.easymeals.yourdomain.com
+      - NEXT_PUBLIC_API_URL=${API_URL:?}
+    
+    # Coolify will assign domain via UI
+    # Example: easymeals.yourdomain.com:3000
+    # The :3000 tells Coolify to route to container port 3000
+    
+    restart: unless-stopped
+    
+    labels:
+      - "coolify.managed=true"
+    
+    depends_on:
+      - easymeals-api
+
+  easymeals-recipe-engine:
+    image: ghcr.io/corbinmurray/easy-meals-recipe-engine:latest
+    container_name: easymeals-recipe-engine
+    environment:
+      # ASP.NET Core Configuration
+      - ASPNETCORE_ENVIRONMENT=Production
+      
+      # MongoDB Connection (same as API)
+      - MongoDB__ConnectionString=${MONGODB_CONNECTION_STRING:?}
+      - MongoDB__DatabaseName=${MONGODB_DATABASE_NAME:-easymeals}
+    
+    # Important: Do NOT restart automatically
+    # This service runs on a schedule via Coolify's scheduled tasks feature
+    restart: "no"
+    
+    labels:
+      - "coolify.managed=true"
+      - "coolify.scheduled=true"
+    
+    # Exclude from health checks since it's not always running
+    exclude_from_hc: true
+    
+    depends_on:
+      - easymeals-api
+
+# Notes for Coolify Setup:
+# 
+# 1. MongoDB Setup:
+#    - Create MongoDB 8.0 as a separate Coolify service
+#    - Name it: easymeals-mongodb
+#    - Get connection string: mongodb://user:pass@easymeals-mongodb:27017
+#    - Set MONGODB_CONNECTION_STRING in Coolify UI
+#
+# 2. Domain Assignment (in Coolify UI after deployment):
+#    - easymeals-api: api.yourdomain.com:8080
+#    - easymeals-web: yourdomain.com:3000
+#    - easymeals-recipe-engine: (no domain, internal only)
+#
+# 3. Scheduled Task (in Coolify UI):
+#    - Navigate to easymeals-recipe-engine service
+#    - Add scheduled task: @daily (or custom cron)
+#    - This will run the recipe engine once per day
+#
+# 4. Environment Variables (set in Coolify UI):
+#    - MONGODB_CONNECTION_STRING (required)
+#    - MONGODB_DATABASE_NAME (optional, defaults to "easymeals")
+#    - API_URL (required, for Next.js to call API)
+#
+# 5. GitHub Container Registry:
+#    - Images are pulled from ghcr.io/corbinmurray/easy-meals-*
+#    - Built by GitHub Actions on push to master/main
+#    - Make sure images are public or add GHCR auth in Coolify

@@ -2,9 +2,9 @@ name: Build and Deploy
 
 on:
   push:
-    branches: [main]
+    branches: [master, main]
   pull_request:
-    branches: [main]
+    branches: [master, main]
 
 env:
   REGISTRY: ghcr.io
@@ -37,21 +37,51 @@ jobs:
               - 'apps/recipe-engine/**'
               - 'packages/shared/**'
 
-  # Build API image
-  build-api:
+  # Build Docker images using matrix strategy
+  build:
     runs-on: ubuntu-latest
     needs: detect-changes
-    if: needs.detect-changes.outputs.api == 'true'
+    # Skip the entire matrix if none of the apps changed
+    if: |
+      needs.detect-changes.outputs.api == 'true' ||
+      needs.detect-changes.outputs.web == 'true' ||
+      needs.detect-changes.outputs.recipe-engine == 'true'
     permissions:
       contents: read
       packages: write
+    strategy:
+      matrix:
+        include:
+          - name: api
+            dockerfile: apps/api/src/EasyMeals.Api/Dockerfile
+            should-build: ${{ needs.detect-changes.outputs.api == 'true' }}
+          - name: web
+            dockerfile: apps/web/Dockerfile
+            should-build: ${{ needs.detect-changes.outputs.web == 'true' }}
+          - name: recipe-engine
+            dockerfile: apps/recipe-engine/src/EasyMeals.RecipeEngine/Dockerfile
+            should-build: ${{ needs.detect-changes.outputs.recipe-engine == 'true' }}
     steps:
+      - name: Check if build needed
+        id: check
+        run: |
+          if [ "${{ matrix.should-build }}" == "true" ]; then
+            echo "Building ${{ matrix.name }}..."
+            echo "skip=false" >> $GITHUB_OUTPUT
+          else
+            echo "Skipping ${{ matrix.name }} (no changes)"
+            echo "skip=true" >> $GITHUB_OUTPUT
+          fi
+
       - uses: actions/checkout@v4
+        if: steps.check.outputs.skip == 'false'
 
       - name: Set up Docker Buildx
+        if: steps.check.outputs.skip == 'false'
         uses: docker/setup-buildx-action@v3
 
       - name: Log in to GitHub Container Registry
+        if: steps.check.outputs.skip == 'false'
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
@@ -59,120 +89,62 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Extract metadata
+        if: steps.check.outputs.skip == 'false'
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-api
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-${{ matrix.name }}
           tags: |
             type=sha,prefix={{branch}}-
             type=raw,value=latest,enable={{is_default_branch}}
 
-      - name: Build and push
+      - name: Build and push ${{ matrix.name }}
+        if: steps.check.outputs.skip == 'false'
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: apps/api/src/EasyMeals.Api/Dockerfile
+          file: ${{ matrix.dockerfile }}
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  # Build Web image
-  build-web:
-    runs-on: ubuntu-latest
-    needs: detect-changes
-    if: needs.detect-changes.outputs.web == 'true'
-    permissions:
-      contents: read
-      packages: write
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Extract metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-web
-          tags: |
-            type=sha,prefix={{branch}}-
-            type=raw,value=latest,enable={{is_default_branch}}
-
-      - name: Build and push
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: apps/web/Dockerfile
-          push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-  # Build Recipe Engine image
-  build-recipe-engine:
-    runs-on: ubuntu-latest
-    needs: detect-changes
-    if: needs.detect-changes.outputs.recipe-engine == 'true'
-    permissions:
-      contents: read
-      packages: write
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Extract metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-recipe-engine
-          tags: |
-            type=sha,prefix={{branch}}-
-            type=raw,value=latest,enable={{is_default_branch}}
-
-      - name: Build and push
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: apps/recipe-engine/src/EasyMeals.RecipeEngine/Dockerfile
-          push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-  # Trigger Coolify deployment
   deploy:
     runs-on: ubuntu-latest
-    needs: [build-api, build-web, build-recipe-engine]
+    needs: [detect-changes, build]
     if: |
       always() &&
-      github.ref == 'refs/heads/main' &&
-      (needs.build-api.result == 'success' || needs.build-api.result == 'skipped') &&
-      (needs.build-web.result == 'success' || needs.build-web.result == 'skipped') &&
-      (needs.build-recipe-engine.result == 'success' || needs.build-recipe-engine.result == 'skipped')
+      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') &&
+      (needs.build.result == 'success' || needs.build.result == 'skipped')
     steps:
       - name: Trigger Coolify deployment
         run: |
-          # Single webhook for the entire Docker Compose stack
-          # Add this as GitHub secret: COOLIFY_WEBHOOK_EASYMEALS
+          # Triggers Coolify to pull latest images and restart services
+          # Coolify will only restart services whose images have changed
+          # Add this webhook URL as GitHub secret: COOLIFY_WEBHOOK_EASYMEALS
+          # Get webhook URL from: Coolify Dashboard → Your App → Webhooks tab
           curl -X GET "${{ secrets.COOLIFY_WEBHOOK_EASYMEALS }}"
+
+      - name: Deployment summary
+        run: |
+          echo "### Deployment Triggered! 🚀" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Changed apps will be redeployed:" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ needs.detect-changes.outputs.api }}" == "true" ]; then
+            echo "- ✅ API (new image)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- ⏭️ API (no changes)" >> $GITHUB_STEP_SUMMARY
+          fi
+          if [ "${{ needs.detect-changes.outputs.web }}" == "true" ]; then
+            echo "- ✅ Web (new image)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- ⏭️ Web (no changes)" >> $GITHUB_STEP_SUMMARY
+          fi
+          if [ "${{ needs.detect-changes.outputs.recipe-engine }}" == "true" ]; then
+            echo "- ✅ Recipe Engine (new image)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- ⏭️ Recipe Engine (no changes)" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Coolify will restart only the services with new images." >> $GITHUB_STEP_SUMMARY
