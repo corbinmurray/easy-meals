@@ -3,10 +3,10 @@ services:
     image: ghcr.io/corbinmurray/easy-meals-api:latest
     container_name: easymeals-api
     environment:
-      - ASPNETCORE_ENVIRONMENT=Production
-      - ASPNETCORE_HTTP_PORTS=8080
-      - MongoDB__ConnectionString=${MONGODB_CONNECTION_STRING}
-      - MongoDB__DatabaseName=${MONGODB_DATABASE_NAME}
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_HTTP_PORTS: 8080
+      MongoDB__ConnectionString: ${MONGODB_CONNECTION_STRING}
+      MongoDB__DatabaseName: ${MONGODB_DATABASE_NAME}
     
     restart: unless-stopped
     labels:
@@ -23,9 +23,9 @@ services:
     image: ghcr.io/corbinmurray/easy-meals-web:latest
     container_name: easymeals-web
     environment:
-      - NODE_ENV=production
+      NODE_ENV: production
       # Internal API URL (server-side only, not exposed to browser)
-      - API_URL=http://easymeals-api:8080
+      API_URL: http://easymeals-api:8080
     restart: unless-stopped
     labels:
       - "coolify.managed=true"
@@ -36,9 +36,9 @@ services:
     image: ghcr.io/corbinmurray/easy-meals-recipe-engine:latest
     container_name: easymeals-recipe-engine
     environment:
-      - ASPNETCORE_ENVIRONMENT=Production
-      - MongoDB__ConnectionString=${MONGODB_CONNECTION_STRING}
-      - MongoDB__DatabaseName=${MONGODB_DATABASE_NAME}
+      ASPNETCORE_ENVIRONMENT: Production
+      MongoDB__ConnectionString: ${MONGODB_CONNECTION_STRING}
+      MongoDB__DatabaseName: ${MONGODB_DATABASE_NAME}
     
     # Important: Do NOT restart automatically
     # This service runs on a schedule via Coolify's scheduled tasks feature
