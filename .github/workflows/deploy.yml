@@ -37,9 +37,9 @@ jobs:
   detect-changes:
     runs-on: ubuntu-latest
     outputs:
-      api: ${{ steps.filter.outputs.api || steps.manual.outputs.api }}
-      web: ${{ steps.filter.outputs.web || steps.manual.outputs.web }}
-      recipe-engine: ${{ steps.filter.outputs.recipe-engine || steps.manual.outputs.recipe-engine }}
+      api: ${{ steps.filter.outputs.api || steps.manual.outputs.api || steps.filter.outputs.deployment-infra }}
+      web: ${{ steps.filter.outputs.web || steps.manual.outputs.web || steps.filter.outputs.deployment-infra }}
+      recipe-engine: ${{ steps.filter.outputs.recipe-engine || steps.manual.outputs.recipe-engine || steps.filter.outputs.deployment-infra }}
     steps:
       - uses: actions/checkout@v4
 
@@ -56,6 +56,11 @@ jobs:
         if: github.event_name != 'workflow_dispatch'
         with:
           filters: |
+            # Deployment infrastructure changes trigger rebuild of all apps
+            deployment-infra:
+              - 'docker-compose.prod.yml'
+              - 'apps/**/Dockerfile'
+              - '.github/workflows/deploy.yml'
             api:
               - 'apps/api/**'
               - 'packages/shared/**'
