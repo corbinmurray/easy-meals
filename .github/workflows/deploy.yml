@@ -5,6 +5,28 @@ on:
     branches: [master, main]
   pull_request:
     branches: [master, main]
+  workflow_dispatch:
+    inputs:
+      build_api:
+        description: "Build API"
+        required: false
+        type: boolean
+        default: true
+      build_web:
+        description: "Build Web"
+        required: false
+        type: boolean
+        default: true
+      build_recipe_engine:
+        description: "Build Recipe Engine"
+        required: false
+        type: boolean
+        default: true
+      deploy:
+        description: "Deploy to production"
+        required: false
+        type: boolean
+        default: true
 
 env:
   REGISTRY: ghcr.io
@@ -15,14 +37,23 @@ jobs:
   detect-changes:
     runs-on: ubuntu-latest
     outputs:
-      api: ${{ steps.filter.outputs.api }}
-      web: ${{ steps.filter.outputs.web }}
-      recipe-engine: ${{ steps.filter.outputs.recipe-engine }}
+      api: ${{ steps.filter.outputs.api || steps.manual.outputs.api }}
+      web: ${{ steps.filter.outputs.web || steps.manual.outputs.web }}
+      recipe-engine: ${{ steps.filter.outputs.recipe-engine || steps.manual.outputs.recipe-engine }}
     steps:
       - uses: actions/checkout@v4
 
+      - name: Check manual trigger
+        id: manual
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          echo "api=${{ inputs.build_api }}" >> $GITHUB_OUTPUT
+          echo "web=${{ inputs.build_web }}" >> $GITHUB_OUTPUT
+          echo "recipe-engine=${{ inputs.build_recipe_engine }}" >> $GITHUB_OUTPUT
+
       - uses: dorny/paths-filter@v2
         id: filter
+        if: github.event_name != 'workflow_dispatch'
         with:
           filters: |
             api:
@@ -115,7 +146,7 @@ jobs:
     needs: [detect-changes, build]
     if: |
       always() &&
-      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') &&
+      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || (github.event_name == 'workflow_dispatch' && inputs.deploy == true)) &&
       (needs.build.result == 'success' || needs.build.result == 'skipped')
     steps:
       - name: Trigger Coolify deployment
