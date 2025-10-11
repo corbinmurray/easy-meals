@@ -150,12 +150,30 @@ jobs:
       (needs.build.result == 'success' || needs.build.result == 'skipped')
     steps:
       - name: Trigger Coolify deployment
+        env:
+          COOLIFY_API_TOKEN: ${{ secrets.COOLIFY_API_TOKEN }}
+          RESOURCE_UUID: hwggwkwc4ogk8gsg8so0sw08
         run: |
           # Triggers Coolify to pull latest images and restart services
-          # Coolify will only restart services whose images have changed
-          # Add this webhook URL as GitHub secret: COOLIFY_WEBHOOK_EASYMEALS
-          # Get webhook URL from: Coolify Dashboard → Your App → Webhooks tab
-          curl -X GET "${{ secrets.COOLIFY_WEBHOOK_EASYMEALS }}"
+          # Uses Coolify API with authentication for better security and error handling
+
+          response=$(curl -s -w "\n%{http_code}" -X GET \
+            "https://app.coolify.io/api/v1/deploy?uuid=${RESOURCE_UUID}&force=false" \
+            -H "Authorization: Bearer ${COOLIFY_API_TOKEN}" \
+            -H "Content-Type: application/json")
+
+          http_code=$(echo "$response" | tail -n1)
+          body=$(echo "$response" | sed '$d')
+
+          echo "HTTP Status: $http_code"
+          echo "Response: $body"
+
+          if [ "$http_code" -eq 200 ]; then
+            echo "✅ Deployment triggered successfully"
+          else
+            echo "❌ Deployment failed with status $http_code"
+            exit 1
+          fi
 
       - name: Deployment summary
         run: |
