@@ -24,8 +24,8 @@ services:
   easymeals-web:
     image: ghcr.io/corbinmurray/easy-meals-web:latest
     container_name: easymeals-web
-    expose:
-      - "3000"
+    ports:
+      - "3000:3000"
     environment:
       NODE_ENV: production
       # Internal API URL (server-side only, not exposed to browser)
@@ -34,6 +34,8 @@ services:
     labels:
       - "coolify.managed=true"
       - "traefik.http.services.easymeals-web.loadbalancer.server.port=3000"
+      - "caddy=https://easymeals.corbinmurray.dev"
+      - "caddy.reverse_proxy={{upstreams 3000}}"
     depends_on:
       - easymeals-api
 
