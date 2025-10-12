@@ -478,3 +478,5 @@ mongodb_data/
 # Any file with "secret" in name
 *secret*
 *secrets*
+
+**/.pnpm-store/
