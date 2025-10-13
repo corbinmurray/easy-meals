@@ -44,12 +44,12 @@ services:
       - "traefik.http.routers.easymeals-web.tls=true"
       - "traefik.http.routers.easymeals-web.tls.certresolver=letsencrypt"
       # Basic Auth Configuration
-      # - "traefik.http.routers.easymeals-web.middlewares=easymeals-auth"
-      # - "traefik.http.middlewares.easymeals-auth.basicauth.users=${BASIC_AUTH_USERS}"
+      - "traefik.http.routers.easymeals-web.middlewares=easymeals-auth"
+      - "traefik.http.middlewares.easymeals-auth.basicauth.users=${BASIC_AUTH_USERS}"
 
       - "caddy=easymeals.corbinmurray.dev"
       - "caddy.reverse_proxy={{upstreams 3000}}"
-      # - "caddy.basicauth=${BASIC_AUTH_USERS}"
+      - "caddy.basicauth=${BASIC_AUTH_USERS}"
     depends_on:
       - easymeals-api
     healthcheck:
