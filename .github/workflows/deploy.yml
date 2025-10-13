@@ -28,6 +28,11 @@ on:
         type: boolean
         default: true
 
+# Prevent concurrent deployments and cancel older ones
+concurrency:
+  group: deploy-production
+  cancel-in-progress: true
+
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
