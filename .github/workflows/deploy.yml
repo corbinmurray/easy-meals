@@ -37,9 +37,9 @@ jobs:
   detect-changes:
     runs-on: ubuntu-latest
     outputs:
-      api: ${{ steps.filter.outputs.api || steps.manual.outputs.api || steps.filter.outputs.deployment-infra }}
-      web: ${{ steps.filter.outputs.web || steps.manual.outputs.web || steps.filter.outputs.deployment-infra }}
-      recipe-engine: ${{ steps.filter.outputs.recipe-engine || steps.manual.outputs.recipe-engine || steps.filter.outputs.deployment-infra }}
+      api: ${{ steps.filter.outputs.api == 'true' || steps.manual.outputs.api == 'true' || steps.filter.outputs.deployment-infra == 'true' }}
+      web: ${{ steps.filter.outputs.web == 'true' || steps.manual.outputs.web == 'true' || steps.filter.outputs.deployment-infra == 'true' }}
+      recipe-engine: ${{ steps.filter.outputs.recipe-engine == 'true' || steps.manual.outputs.recipe-engine == 'true' || steps.filter.outputs.deployment-infra == 'true' }}
       # Debug outputs to see what's happening
       deployment-infra: ${{ steps.filter.outputs.deployment-infra }}
       filter-api: ${{ steps.filter.outputs.api }}
@@ -91,19 +91,20 @@ jobs:
           echo "- web: \`${{ steps.filter.outputs.web }}\`" >> $GITHUB_STEP_SUMMARY
           echo "- recipe-engine: \`${{ steps.filter.outputs.recipe-engine }}\`" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Final build decisions:**" >> $GITHUB_STEP_SUMMARY
-          echo "- Build API: \`${{ steps.filter.outputs.api || steps.manual.outputs.api || steps.filter.outputs.deployment-infra }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "- Build Web: \`${{ steps.filter.outputs.web || steps.manual.outputs.web || steps.filter.outputs.deployment-infra }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "- Build Recipe Engine: \`${{ steps.filter.outputs.recipe-engine || steps.manual.outputs.recipe-engine || steps.filter.outputs.deployment-infra }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Boolean evaluations:**" >> $GITHUB_STEP_SUMMARY
+          echo "- deployment-infra == 'true': \`${{ steps.filter.outputs.deployment-infra == 'true' }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- api == 'true': \`${{ steps.filter.outputs.api == 'true' }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- web == 'true': \`${{ steps.filter.outputs.web == 'true' }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- recipe-engine == 'true': \`${{ steps.filter.outputs.recipe-engine == 'true' }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Final build decisions (FIXED):**" >> $GITHUB_STEP_SUMMARY
+          echo "- Build API: \`${{ steps.filter.outputs.api == 'true' || steps.manual.outputs.api == 'true' || steps.filter.outputs.deployment-infra == 'true' }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- Build Web: \`${{ steps.filter.outputs.web == 'true' || steps.manual.outputs.web == 'true' || steps.filter.outputs.deployment-infra == 'true' }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- Build Recipe Engine: \`${{ steps.filter.outputs.recipe-engine == 'true' || steps.manual.outputs.recipe-engine == 'true' || steps.filter.outputs.deployment-infra == 'true' }}\`" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Changed files (deployment-infra):**" >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
           echo "${{ steps.filter.outputs.deployment-infra_files }}" >> $GITHUB_STEP_SUMMARY
-          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**All changed files:**" >> $GITHUB_STEP_SUMMARY
-          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-          echo "${{ steps.filter.outputs.changes }}" >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
 
       - name: Debug manual trigger results
