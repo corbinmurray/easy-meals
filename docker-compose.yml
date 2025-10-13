@@ -13,8 +13,7 @@ services:
       MongoDB__DatabaseName: ${MONGODB_DATABASE_NAME}
     
     restart: unless-stopped
-    labels:
-      - "coolify.managed=true"
+
     # Health check for Coolify monitoring
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
@@ -35,8 +34,6 @@ services:
       API_URL: http://easymeals-api:8080
     restart: unless-stopped
     labels:
-      - "coolify.managed=true"
-
       - "traefik.enable=true"
       - "traefik.http.services.easymeals-web.loadbalancer.server.port=3000"
       - "traefik.http.routers.easymeals-web.rule=Host(`easymeals.corbinmurray.dev`)"
@@ -44,6 +41,7 @@ services:
       - "traefik.http.routers.easymeals-web.tls=true"
       - "traefik.http.routers.easymeals-web.tls.certresolver=letsencrypt"
       - "traefik.http.middlewares.easymeals-auth.basicauth.users=${BASIC_AUTH_USERS}"
+      - "traefik.http.routers.https-0-hwggwkwc4ogk8gsg8so0sw08.middlewares=gzip,easymeals-auth"
 
       - "caddy=easymeals.corbinmurray.dev"
       - "caddy.reverse_proxy={{upstreams 3000}}"
@@ -69,10 +67,9 @@ services:
     # Important: Do NOT restart automatically
     # This service runs on a schedule via Coolify's scheduled tasks feature
     restart: "no"
-    labels:
-      - "coolify.managed=true"
-      - "coolify.scheduled=true"
+    
     # Exclude from health checks since it's not always running
     exclude_from_hc: true
+    
     depends_on:
       - easymeals-api
