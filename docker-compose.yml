@@ -49,7 +49,7 @@ services:
 
       - "caddy=easymeals.corbinmurray.dev"
       - "caddy.reverse_proxy={{upstreams 3000}}"
-      - "caddy.basicauth=${BASIC_AUTH_USERS}"
+      # - "caddy.basicauth=${BASIC_AUTH_USERS}"
     depends_on:
       - easymeals-api
     healthcheck:
