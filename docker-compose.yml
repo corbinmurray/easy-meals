@@ -43,13 +43,13 @@ services:
       - "traefik.http.routers.easymeals-web.entrypoints=https"
       - "traefik.http.routers.easymeals-web.tls=true"
       - "traefik.http.routers.easymeals-web.tls.certresolver=letsencrypt"
-      # Basic Auth Configuration (Traefik - not used since Caddy is the active proxy)
-      # - "traefik.http.routers.easymeals-web.middlewares=easymeals-auth"
-      # - "traefik.http.middlewares.easymeals-auth.basicauth.users=${BASIC_AUTH_USERS}"
+      # Basic Auth Configuration (override Coolify's middleware chain)
+      - "traefik.http.middlewares.easymeals-auth.basicauth.users=${BASIC_AUTH_USERS}"
+      - "traefik.http.middlewares.auth-and-gzip.chain.middlewares=easymeals-auth,gzip"
+      - "traefik.http.routers.https-0-hwggwkwc4ogk8gsg8so0sw08-easymeals-web.middlewares=auth-and-gzip"
 
       - "caddy=easymeals.corbinmurray.dev"
       - "caddy.reverse_proxy={{upstreams 3000}}"
-      - "caddy.basicauth=${BASIC_AUTH_USERS}"
     depends_on:
       - easymeals-api
     healthcheck:
