@@ -43,9 +43,7 @@ services:
       - "traefik.http.routers.easymeals-web.entrypoints=https"
       - "traefik.http.routers.easymeals-web.tls=true"
       - "traefik.http.routers.easymeals-web.tls.certresolver=letsencrypt"
-      # Basic Auth Configuration - following Coolify documentation pattern
       - "traefik.http.middlewares.easymeals-auth.basicauth.users=${BASIC_AUTH_USERS}"
-      - "traefik.http.routers.https-0-hwggwkwc4ogk8gsg8so0sw08-easymeals-web.middlewares=gzip,easymeals-auth"
 
       - "caddy=easymeals.corbinmurray.dev"
       - "caddy.reverse_proxy={{upstreams 3000}}"
