@@ -37,14 +37,10 @@ jobs:
   detect-changes:
     runs-on: ubuntu-latest
     outputs:
+      # Explicit boolean comparison needed because GitHub Actions treats string "true" differently in || expressions
       api: ${{ steps.filter.outputs.api == 'true' || steps.manual.outputs.api == 'true' || steps.filter.outputs.deployment-infra == 'true' }}
       web: ${{ steps.filter.outputs.web == 'true' || steps.manual.outputs.web == 'true' || steps.filter.outputs.deployment-infra == 'true' }}
       recipe-engine: ${{ steps.filter.outputs.recipe-engine == 'true' || steps.manual.outputs.recipe-engine == 'true' || steps.filter.outputs.deployment-infra == 'true' }}
-      # Debug outputs to see what's happening
-      deployment-infra: ${{ steps.filter.outputs.deployment-infra }}
-      filter-api: ${{ steps.filter.outputs.api }}
-      filter-web: ${{ steps.filter.outputs.web }}
-      filter-recipe-engine: ${{ steps.filter.outputs.recipe-engine }}
     steps:
       - uses: actions/checkout@v4
 
@@ -60,8 +56,6 @@ jobs:
         id: filter
         if: github.event_name != 'workflow_dispatch'
         with:
-          # Enable listing all changes
-          list-files: json
           filters: |
             # Deployment infrastructure changes trigger rebuild of all apps
             deployment-infra:
@@ -79,44 +73,6 @@ jobs:
             recipe-engine:
               - 'apps/recipe-engine/**'
               - 'packages/shared/**'
-
-      - name: Debug path filter results
-        if: github.event_name != 'workflow_dispatch'
-        run: |
-          echo "### 🔍 Path Filter Debug Results" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Raw filter outputs:**" >> $GITHUB_STEP_SUMMARY
-          echo "- deployment-infra: \`${{ steps.filter.outputs.deployment-infra }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "- api: \`${{ steps.filter.outputs.api }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "- web: \`${{ steps.filter.outputs.web }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "- recipe-engine: \`${{ steps.filter.outputs.recipe-engine }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Boolean evaluations:**" >> $GITHUB_STEP_SUMMARY
-          echo "- deployment-infra == 'true': \`${{ steps.filter.outputs.deployment-infra == 'true' }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "- api == 'true': \`${{ steps.filter.outputs.api == 'true' }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "- web == 'true': \`${{ steps.filter.outputs.web == 'true' }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "- recipe-engine == 'true': \`${{ steps.filter.outputs.recipe-engine == 'true' }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Final build decisions (FIXED):**" >> $GITHUB_STEP_SUMMARY
-          echo "- Build API: \`${{ steps.filter.outputs.api == 'true' || steps.manual.outputs.api == 'true' || steps.filter.outputs.deployment-infra == 'true' }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "- Build Web: \`${{ steps.filter.outputs.web == 'true' || steps.manual.outputs.web == 'true' || steps.filter.outputs.deployment-infra == 'true' }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "- Build Recipe Engine: \`${{ steps.filter.outputs.recipe-engine == 'true' || steps.manual.outputs.recipe-engine == 'true' || steps.filter.outputs.deployment-infra == 'true' }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Changed files (deployment-infra):**" >> $GITHUB_STEP_SUMMARY
-          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-          echo "${{ steps.filter.outputs.deployment-infra_files }}" >> $GITHUB_STEP_SUMMARY
-          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-
-      - name: Debug manual trigger results
-        if: github.event_name == 'workflow_dispatch'
-        run: |
-          echo "### 🔍 Manual Trigger Debug Results" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Manual inputs:**" >> $GITHUB_STEP_SUMMARY
-          echo "- Build API: \`${{ inputs.build_api }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "- Build Web: \`${{ inputs.build_web }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "- Build Recipe Engine: \`${{ inputs.build_recipe_engine }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "- Deploy: \`${{ inputs.deploy }}\`" >> $GITHUB_STEP_SUMMARY
 
   # Build Docker images using matrix strategy
   build:
