@@ -24,8 +24,9 @@ COPY . .
 # Prune monorepo for web workspace
 RUN pnpm dlx turbo@^2 prune web --docker
 
-# Re-install only production dependencies in pruned workspace
-RUN pnpm install --prod --frozen-lockfile
+
+# Re-install all dependencies in pruned workspace (build tools needed)
+RUN pnpm install --frozen-lockfile
 
 # Build the project
 RUN pnpm run build
