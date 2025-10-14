@@ -35,9 +35,7 @@ services:
       API_URL: http://easymeals-api:8080
     restart: unless-stopped
     labels:
-      - 'traefik.http.middlewares.mybasicauth.basicauth.users=easymeals:$2y$05$IB5GKsUbnWn6f8cJ/5h1dO.08cAyAHqzcjIop5PAzLTnDG1KZgVUK'
-      - traefik.http.routers.https-0-hwggwkwc4ogk8gsg8so0sw08.middlewares=gzip,mybasicauth
-      - traefik.http.routers.http-0-hwggwkwc4ogk8gsg8so0sw08.middlewares=gzip,mybasicauth
+        - 'traefik.http.middlewares.<random_unique_name>.basicauth.users=test:$2y$12$ci.4U63YX83CwkyUrjqxAucnmi2xXOIlEF6T/KdP9824f1Rf1iyNG'
     depends_on:
       - easymeals-api
     healthcheck:
