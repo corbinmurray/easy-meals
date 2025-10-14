@@ -6,6 +6,7 @@ ENV PATH="$PNPM_HOME:$PATH"
 RUN corepack enable pnpm
 
 FROM base AS builder
+ENV NODE_ENV=production
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
@@ -23,8 +24,8 @@ COPY . .
 # Prune monorepo for web workspace
 RUN pnpm dlx turbo@^2 prune web --docker
 
-# Re-install dependencies in pruned workspace
-RUN pnpm install --frozen-lockfile
+# Re-install only production dependencies in pruned workspace
+RUN pnpm install --prod --frozen-lockfile
 
 # Build the project
 RUN pnpm run build
