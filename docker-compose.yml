@@ -37,6 +37,7 @@ services:
     labels:
       - traefik.http.middlewares.mybasicauth.basicauth.users=${BASIC_AUTH_USERS}
       - traefik.http.routers.https-0-hwggwkwc4ogk8gsg8so0sw08.middlewares=gzip,mybasicauth
+      - traefik.http.routers.http-0-hwggwkwc4ogk8gsg8so0sw08.middlewares=gzip,mybasicauth
     depends_on:
       - easymeals-api
     healthcheck:
