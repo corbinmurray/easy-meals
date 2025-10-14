@@ -34,17 +34,9 @@ services:
       API_URL: http://easymeals-api:8080
     restart: unless-stopped
     labels:
-      - "traefik.enable=true"
-      - "traefik.http.services.easymeals-web.loadbalancer.server.port=3000"
-      - "traefik.http.routers.easymeals-web.rule=Host(`easymeals.corbinmurray.dev`)"
-      - "traefik.http.routers.easymeals-web.entrypoints=https"
-      - "traefik.http.routers.easymeals-web.tls=true"
-      - "traefik.http.routers.easymeals-web.tls.certresolver=letsencrypt"
-      - "traefik.http.middlewares.easymeals-auth.basicauth.users=${BASIC_AUTH_USERS}"
-      - "traefik.http.routers.https-0-hwggwkwc4ogk8gsg8so0sw08.middlewares=gzip,easymeals-auth@docker"
-
       - "caddy=easymeals.corbinmurray.dev"
       - "caddy.reverse_proxy={{upstreams 3000}}"
+      - "caddy.basicauth=/*, easymeals ${BASIC_AUTH_USERS}"
     depends_on:
       - easymeals-api
     healthcheck:
