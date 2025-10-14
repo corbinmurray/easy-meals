@@ -7,31 +7,23 @@ RUN corepack enable pnpm
 
 FROM base AS builder
 RUN apk add --no-cache libc6-compat
-# Set working directory
 WORKDIR /app
 
-COPY . .
+# Copy only dependency files first
+COPY package.json pnpm-lock.yaml turbo.json ./
+COPY apps/web/package.json ./apps/web/
+COPY packages/*/package.json ./packages/
 
-# Use pnpm to run turbo without installing globally
-# Generate a partial monorepo with a pruned lockfile for the target workspace
-# Assuming "web" is the name entered in the project's package.json: { name: "web" }
-RUN pnpm dlx turbo@^2 prune web --docker
-
-# Add lockfile and package.json's of isolated subworkspace
-FROM base AS installer
-RUN apk add --no-cache libc6-compat
-WORKDIR /app
-
-# First install the dependencies (as they change less often)
-COPY --from=builder /app/out/json/ .
-# Copy the pruned lockfile for pnpm
-COPY --from=builder /app/out/pnpm-lock.yaml ./pnpm-lock.yaml
-# Install with a frozen lockfile to ensure reproducible builds
+# Install dependencies (cached unless these files change)
 RUN pnpm install --frozen-lockfile
 
+# Copy the rest of the repo (app source, configs, etc.)
+COPY . .
+
+# Prune monorepo for web workspace
+RUN pnpm dlx turbo@^2 prune web --docker
+
 # Build the project
-COPY --from=builder /app/out/full/ .
-# Use the repo's build script (runs `turbo build` in pruned workspace)
 RUN pnpm run build
 
 FROM base AS runner
