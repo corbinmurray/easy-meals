@@ -20,8 +20,12 @@ RUN pnpm install --frozen-lockfile
 # Copy the rest of the repo (app source, configs, etc.)
 COPY . .
 
+
 # Prune monorepo for web workspace
 RUN pnpm dlx turbo@^2 prune web --docker
+
+# Re-install dependencies in pruned workspace
+RUN pnpm install --frozen-lockfile
 
 # Build the project
 RUN pnpm run build
