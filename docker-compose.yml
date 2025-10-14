@@ -35,7 +35,7 @@ services:
       API_URL: http://easymeals-api:8080
     restart: unless-stopped
     labels:
-      - 'traefik.http.middlewares.mybasicauth.basicauth.users=test:$2y$12$ci.4U63YX83CwkyUrjqxAucnmi2xXOIlEF6T/KdP9824f1Rf1iyNG'
+      - 'caddy_0.basicauth.test=$2a$14$yd/fMS69P6VrRopzA/kySeHCLLpemM1ZUiD6APKcElIoCC1IMnavS'
     depends_on:
       - easymeals-api
     healthcheck:
