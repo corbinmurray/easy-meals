@@ -65,7 +65,6 @@ jobs:
             # Deployment infrastructure changes trigger rebuild of all apps
             deployment-infra:
               - 'docker-compose.yml'
-              - 'apps/**/Dockerfile'
               - '.github/workflows/deploy.yml'
             api:
               - 'apps/api/**'
