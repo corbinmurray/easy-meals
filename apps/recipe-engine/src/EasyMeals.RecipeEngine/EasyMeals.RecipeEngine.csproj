@@ -9,9 +9,18 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <Content Include="..\..\.dockerignore">
-        <Link>.dockerignore</Link>
-      </Content>
+        <Content Include="..\..\.dockerignore">
+            <Link>.dockerignore</Link>
+        </Content>
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="9.0.10"/>
+        <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="9.0.10"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\EasyMeals.RecipeEngine.Application\EasyMeals.RecipeEngine.Application.csproj"/>
     </ItemGroup>
 
 </Project>
