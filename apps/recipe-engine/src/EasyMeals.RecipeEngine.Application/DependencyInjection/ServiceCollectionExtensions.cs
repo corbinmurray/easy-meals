@@ -8,7 +8,7 @@ public static class ServiceCollectionExtensions
 	public static IServiceCollection AddRecipeEngine(this IServiceCollection services)
 	{
 		services.AddTransient<IRecipeEngine, Services.RecipeEngine>();
-
+		
 		return services;
 	}
 }

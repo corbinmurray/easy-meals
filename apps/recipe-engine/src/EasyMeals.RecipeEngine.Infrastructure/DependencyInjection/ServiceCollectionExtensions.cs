@@ -1,4 +1,5 @@
 using EasyMeals.RecipeEngine.Domain.Interfaces;
+using EasyMeals.RecipeEngine.Infrastructure.Documents.Fingerprint;
 using EasyMeals.RecipeEngine.Infrastructure.Documents.SagaState;
 using EasyMeals.RecipeEngine.Infrastructure.Repositories;
 using EasyMeals.Shared.Data.DependencyInjection;
@@ -32,6 +33,7 @@ public static class ServiceCollectionExtensions
 			})
 			.ConfigureEasyMealsRepositories()
 			.AddRepository<ISagaStateRepository, SagaStateRepository, SagaStateDocument>().WithSoftDeletableIndexes<SagaStateDocument>()
+			.AddRepository<IFingerprintRepository, FingerprintRepository, FingerprintDocument>().WithDefaultIndexes()
 			.EnsureDatabaseAsync();
 
 		return services;
