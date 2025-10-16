@@ -8,7 +8,7 @@ namespace EasyMeals.Shared.Data.Repositories.Recipe;
 ///     Extends the generic repository with recipe-specific business operations
 ///     Updated for MongoDB document model
 /// </summary>
-public interface IRecipeRepository : ISharedMongoRepository<RecipeDocument>
+public interface IRecipeRepository : IMongoRepository<RecipeDocument>
 {
 	/// <summary>
 	///     Searches recipes by title, description, or ingredients using MongoDB text search

@@ -7,12 +7,15 @@ namespace EasyMeals.RecipeEngine.Application.Services;
 ///     Main recipe engine that orchestrates recipe processing using Saga pattern
 ///     Demonstrates Clean Architecture and Domain-Driven Design principles
 /// </summary>
-public class RecipeEngine(
-	ILogger<RecipeEngine> logger,
-	IServiceProvider serviceProvider) : IRecipeEngine
+public class RecipeEngine(ILogger<RecipeEngine> logger) : IRecipeEngine
 {
 	public async Task RunAsync()
 	{
+		// Notes: I kind of see this as a point in the process where we
+		// get strategies, fire off each strategy pipeline (ie: discovery, fetching, parsing, etc.)
+		// and let each task run as necessary -- maybe this needs more research to figure out best practices
+		// for potentially long-running background tasks
+
 		logger.LogInformation("Recipe Engine starting at {StartTime}", DateTime.UtcNow);
 
 		try

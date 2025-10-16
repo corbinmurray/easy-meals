@@ -1,5 +1,6 @@
 ﻿using EasyMeals.RecipeEngine.Application.DependencyInjection;
 using EasyMeals.RecipeEngine.Domain.Interfaces;
+using EasyMeals.RecipeEngine.Infrastructure.DependencyInjection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -27,6 +28,7 @@ services.AddLogging(opts =>
 	opts.AddDebug();
 });
 
+services.AddRecipeEngineInfrastructure(configuration);
 services.AddRecipeEngine();
 
 await using ServiceProvider serviceProvider = services.BuildServiceProvider(true);

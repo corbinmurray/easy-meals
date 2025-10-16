@@ -2,7 +2,6 @@ using EasyMeals.Shared.Data.Attributes;
 using EasyMeals.Shared.Data.Configuration;
 using EasyMeals.Shared.Data.Documents;
 using EasyMeals.Shared.Data.Repositories;
-using EasyMeals.Shared.Data.Repositories.Recipe;
 using Microsoft.Extensions.DependencyInjection;
 using MongoDB.Driver;
 
@@ -15,34 +14,27 @@ namespace EasyMeals.Shared.Data.DependencyInjection;
 public class EasyMealsRepositoryBuilder
 {
 	private readonly IServiceCollection _services;
-	private readonly List<(Type DocumentType, RepositoryPermissions Permissions)> _repositories = [];
-	private readonly List<Type> _sharedRepositories = [];
+	private readonly List<(Type RepositoryType, RepositoryPermissions Permissions)> _repositories = [];
 	private readonly List<Func<IServiceProvider, Task>> _indexCreators = [];
 
 	internal EasyMealsRepositoryBuilder(IServiceCollection services) => _services = services ?? throw new ArgumentNullException(nameof(services));
 
 	/// <summary>
-	///     Adds a custom repository for the specified document type
+	///     Adds a custom repository interface and its implementation to the DI container
+	///     Enforces that the implementation inherits from MongoRepository<TDocument> where TDocument : BaseDocument
 	/// </summary>
+	/// <typeparam name="TInterface">The repository interface type (e.g., ISagaStateRepository)</typeparam>
+	/// <typeparam name="TImplementation">The concrete repository implementation type</typeparam>
 	/// <typeparam name="TDocument">The document type extending BaseDocument</typeparam>
-	/// <param name="permissions">Repository access permissions</param>
+	/// <param name="permissions">Repository access permissions (optional, defaults to ReadWrite)</param>
 	/// <returns>Builder for method chaining</returns>
-	public EasyMealsRepositoryBuilder AddRepository<TDocument>(RepositoryPermissions permissions = RepositoryPermissions.ReadWrite)
-		where TDocument : BaseDocument
+	public EasyMealsRepositoryBuilder AddRepository<TInterface, TImplementation, TDocument>(
+		RepositoryPermissions permissions = RepositoryPermissions.ReadWrite)
+		where TInterface : class
+		where TImplementation : MongoRepository<TDocument>, TInterface // Enforces inheritance from MongoRepository<TDocument>
+		where TDocument : BaseDocument // Enforces document compatibility
 	{
-		_repositories.Add((typeof(TDocument), permissions));
-		return this;
-	}
-
-	/// <summary>
-	///     Adds a shared repository that's predefined in the EasyMeals system
-	/// </summary>
-	/// <typeparam name="TSharedRepository">The shared repository interface type</typeparam>
-	/// <returns>Builder for method chaining</returns>
-	public EasyMealsRepositoryBuilder AddSharedRepository<TSharedRepository>()
-		where TSharedRepository : ISharedMongoRepository<BaseDocument>
-	{
-		_sharedRepositories.Add(typeof(TSharedRepository));
+		_repositories.Add((typeof(TInterface), permissions));
 		return this;
 	}
 
@@ -150,24 +142,24 @@ public class EasyMealsRepositoryBuilder
 	/// </summary>
 	private void RegisterRepositories()
 	{
-		// Register custom repositories
-		foreach ((Type documentType, RepositoryPermissions permissions) in _repositories)
+		foreach ((Type repositoryType, RepositoryPermissions permissions) in _repositories)
 		{
-			RegisterRepositoryForDocument(documentType, permissions);
-		}
-
-		// Register shared repositories
-		foreach (Type sharedRepoType in _sharedRepositories)
-		{
-			RegisterSharedRepositoryType(sharedRepoType);
+			RegisterRepository(repositoryType, permissions);
 		}
 	}
 
 	/// <summary>
-	///     Registers a repository for a specific document type
+	///     Registers a repository for a specific repository type
 	/// </summary>
-	private void RegisterRepositoryForDocument(Type documentType, RepositoryPermissions permissions)
+	private void RegisterRepository(Type repositoryType, RepositoryPermissions permissions)
 	{
+		// Extract the document type from the repository interface (assumes TRepository is IMongoRepository<TDocument>)
+		Type[] genericArgs = repositoryType.GetGenericArguments();
+		if (genericArgs.Length == 0 || !typeof(BaseDocument).IsAssignableFrom(genericArgs[0]))
+			throw new InvalidOperationException(
+				$"Repository type {repositoryType} must be IMongoRepository<TDocument> where TDocument : BaseDocument.");
+		Type documentType = genericArgs[0];
+
 		// Create generic repository types
 		Type mongoRepoType = typeof(IMongoRepository<>).MakeGenericType(documentType);
 		Type readOnlyRepoType = typeof(IReadOnlyMongoRepository<>).MakeGenericType(documentType);
@@ -188,22 +180,12 @@ public class EasyMealsRepositoryBuilder
 	}
 
 	/// <summary>
-	///     Registers a shared repository type
-	/// </summary>
-	private void RegisterSharedRepositoryType(Type sharedRepoType)
-	{
-		// This would need to be expanded based on your shared repository implementations
-		// For now, we'll use a simple mapping approach
-		if (sharedRepoType.Name == nameof(IRecipeRepository)) _services.AddScoped<IRecipeRepository, RecipeRepository>();
-		// Add more shared repository mappings as needed
-	}
-
-	/// <summary>
 	///     Registers health checks for all configured repositories
 	/// </summary>
 	private void RegisterHealthChecks()
 	{
-		if (_repositories.Count > 0 || _sharedRepositories.Count > 0) _services.AddEasyMealsDataHealthChecks();
+		if (_repositories.Count > 0)
+			_services.AddEasyMealsDataHealthChecks();
 	}
 
 	/// <summary>

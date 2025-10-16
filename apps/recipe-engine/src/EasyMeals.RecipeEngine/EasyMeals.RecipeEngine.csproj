@@ -23,6 +23,7 @@
 
     <ItemGroup>
         <ProjectReference Include="..\EasyMeals.RecipeEngine.Application\EasyMeals.RecipeEngine.Application.csproj"/>
+        <ProjectReference Include="..\EasyMeals.RecipeEngine.Infrastructure\EasyMeals.RecipeEngine.Infrastructure.csproj"/>
     </ItemGroup>
 
 </Project>

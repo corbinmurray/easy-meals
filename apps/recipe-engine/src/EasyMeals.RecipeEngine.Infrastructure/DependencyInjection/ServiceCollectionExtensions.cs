@@ -1,5 +1,7 @@
+using EasyMeals.RecipeEngine.Domain.Interfaces;
+using EasyMeals.RecipeEngine.Infrastructure.Documents.SagaState;
+using EasyMeals.RecipeEngine.Infrastructure.Repositories;
 using EasyMeals.Shared.Data.DependencyInjection;
-using EasyMeals.Shared.Data.Repositories.Recipe;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -29,8 +31,7 @@ public static class ServiceCollectionExtensions
 				options.EnableDetailedLogging = true;
 			})
 			.ConfigureEasyMealsRepositories()
-			.AddSharedRepository<IRecipeRepository>()
-			.WithDefaultIndexes()
+			.AddRepository<ISagaStateRepository, SagaStateRepository, SagaStateDocument>().WithSoftDeletableIndexes<SagaStateDocument>()
 			.EnsureDatabaseAsync();
 
 		return services;

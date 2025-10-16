@@ -1,5 +1,5 @@
 using EasyMeals.Shared.Data.Configuration;
-using EasyMeals.Shared.Data.Documents;
+using EasyMeals.Shared.Data.Documents.Recipe;
 using EasyMeals.Shared.Data.Repositories;
 using EasyMeals.Shared.Data.Repositories.Recipe;
 using Microsoft.Extensions.DependencyInjection;
@@ -22,54 +22,9 @@ public static class ServiceCollectionExtensions
 	#region Fluent API
 
 	/// <summary>
-	///     Adds a repository with the specified permissions using the fluent API
-	///     Requires MongoDB to be configured first via AddEasyMealsDataMongoDB
-	/// </summary>
-	/// <typeparam name="TDocument">The document type extending BaseDocument</typeparam>
-	/// <param name="services">The service collection</param>
-	/// <param name="permissions">Repository access permissions (default: ReadWrite)</param>
-	/// <returns>Repository builder for chaining</returns>
-	/// <exception cref="InvalidOperationException">Thrown when MongoDB is not configured</exception>
-	public static EasyMealsRepositoryBuilder AddEasyMealsRepository<TDocument>(
-		this IServiceCollection services,
-		RepositoryPermissions permissions = RepositoryPermissions.ReadWrite)
-		where TDocument : BaseDocument
-	{
-		ValidateMongoDbConfiguration(services);
-
-		return new EasyMealsRepositoryBuilder(services).AddRepository<TDocument>(permissions);
-	}
-
-	/// <summary>
-	///     Adds a read-only repository using the fluent API
-	///     Requires MongoDB to be configured first via AddEasyMealsDataMongoDB
-	/// </summary>
-	/// <typeparam name="TDocument">The document type extending BaseDocument</typeparam>
-	/// <param name="services">The service collection</param>
-	/// <returns>Repository builder for chaining</returns>
-	/// <exception cref="InvalidOperationException">Thrown when MongoDB is not configured</exception>
-	public static EasyMealsRepositoryBuilder AddReadOnlyEasyMealsRepository<TDocument>(
-		this IServiceCollection services)
-		where TDocument : BaseDocument =>
-		services.AddEasyMealsRepository<TDocument>();
-
-	/// <summary>
 	///     Starts building EasyMeals repositories with fluent configuration
-	///     Requires MongoDB to be configured first via AddEasyMealsDataMongoDB
-	/// </summary>
-	/// <param name="services">The service collection</param>
-	/// <returns>Repository builder for chaining</returns>
-	/// <exception cref="InvalidOperationException">Thrown when MongoDB is not configured</exception>
-	public static EasyMealsRepositoryBuilder AddEasyMealsRepository(
-		this IServiceCollection services)
-	{
-		ValidateMongoDbConfiguration(services);
-		return new EasyMealsRepositoryBuilder(services);
-	}
-
-	/// <summary>
-	///     Starts building EasyMeals repositories with fluent configuration
-	///     Requires MongoDB to be configured first via AddEasyMealsDataMongoDB
+	///     Requires MongoDB to be configured first via AddEasyMealsDataMongoDB.
+	///     Defaults to adding any shared repositories
 	/// </summary>
 	/// <param name="services">The service collection</param>
 	/// <returns>Repository builder for chaining</returns>
@@ -78,7 +33,7 @@ public static class ServiceCollectionExtensions
 		this IServiceCollection services)
 	{
 		ValidateMongoDbConfiguration(services);
-		return new EasyMealsRepositoryBuilder(services);
+		return new EasyMealsRepositoryBuilder(services).AddRepository<IRecipeRepository, RecipeRepository, RecipeDocument>();
 	}
 
 	/// <summary>
@@ -106,76 +61,6 @@ public static class ServiceCollectionExtensions
 	#endregion
 
 	#region Core MongoDB Configuration (Existing)
-
-	/// <summary>
-	///     Adds EasyMeals data services with MongoDB using connection string
-	///     Standard configuration for production and development environments
-	/// </summary>
-	/// <param name="services">The service collection</param>
-	/// <param name="connectionString">MongoDB connection string</param>
-	/// <param name="databaseName">Database name (optional, defaults to "easymealsprod")</param>
-	/// <param name="configureClient">Optional MongoDB client configuration</param>
-	/// <returns>Service collection for chaining</returns>
-	public static IServiceCollection AddEasyMealsDataMongoDB(
-		this IServiceCollection services,
-		string connectionString,
-		string databaseName,
-		Action<MongoClientSettings>? configureClient = null)
-	{
-		return services.AddEasyMealsDataCore(clientSettings =>
-		{
-			// Parse connection string and apply custom settings
-			MongoClientSettings? settings = MongoClientSettings.FromConnectionString(connectionString);
-
-			// Apply custom configuration if provided
-			configureClient?.Invoke(settings);
-
-			return settings;
-		}, databaseName);
-	}
-
-	/// <summary>
-	///     Adds EasyMeals data services with MongoDB using custom client settings
-	///     Advanced configuration for specialized deployment scenarios
-	/// </summary>
-	/// <param name="services">The service collection</param>
-	/// <param name="clientSettings">MongoDB client settings</param>
-	/// <param name="databaseName">Database name</param>
-	/// <returns>Service collection for chaining</returns>
-	public static IServiceCollection AddEasyMealsDataMongoDB(
-		this IServiceCollection services,
-		MongoClientSettings clientSettings,
-		string databaseName)
-	{
-		return services.AddEasyMealsDataCore(_ => clientSettings, databaseName);
-	}
-
-	/// <summary>
-	///     Adds EasyMeals data services with in-memory MongoDB for testing
-	///     Uses Testcontainers or local MongoDB instance for development
-	/// </summary>
-	/// <param name="services">The service collection</param>
-	/// <param name="databaseName">Database name (optional, defaults to test database)</param>
-	/// <returns>Service collection for chaining</returns>
-	public static IServiceCollection AddEasyMealsDataInMemory(
-		this IServiceCollection services,
-		string? databaseName = null)
-	{
-		string dbName = databaseName ?? $"easymealstests_{Guid.NewGuid():N}";
-
-		return services.AddEasyMealsDataCore(clientSettings =>
-		{
-			// Use local MongoDB instance for testing
-			var settings = new MongoClientSettings
-			{
-				Server = new MongoServerAddress("localhost", 27017),
-				ConnectTimeout = TimeSpan.FromSeconds(5),
-				ServerSelectionTimeout = TimeSpan.FromSeconds(5)
-			};
-
-			return settings;
-		}, dbName);
-	}
 
 	/// <summary>
 	///     Adds EasyMeals data services with MongoDB using strongly-typed options
@@ -248,15 +133,13 @@ public static class ServiceCollectionExtensions
 		}, registerSharedRepositories);
 
 		// Build a temporary service provider to read the configured options
-		using (var tempProvider = services.BuildServiceProvider())
+		using (ServiceProvider tempProvider = services.BuildServiceProvider())
 		{
-			var mongoOptions = tempProvider.GetRequiredService<IOptions<MongoDbOptions>>().Value;
+			MongoDbOptions mongoOptions = tempProvider.GetRequiredService<IOptions<MongoDbOptions>>().Value;
 			if (mongoOptions.EnableHealthChecks)
-			{
 				services.AddEasyMealsDataHealthChecks(
-					name: null, // Use default name
-					tags: mongoOptions.HealthCheckTags);
-			}
+					null, // Use default name
+					mongoOptions.HealthCheckTags);
 		}
 
 		return services;
@@ -310,38 +193,6 @@ public static class ServiceCollectionExtensions
 	{
 		// Register shared repositories for common aggregates
 		services.AddScoped<IRecipeRepository, RecipeRepository>();
-
-		return services;
-	}
-
-	/// <summary>
-	///     Core configuration method for MongoDB data services (legacy overload)
-	///     Registers all necessary services and repository implementations
-	/// </summary>
-	private static IServiceCollection AddEasyMealsDataCore(
-		this IServiceCollection services,
-		Func<MongoClientSettings, MongoClientSettings> configureClientSettings,
-		string databaseName)
-	{
-		return services.AddEasyMealsDataCore(
-			serviceProvider => configureClientSettings(new MongoClientSettings()),
-			serviceProvider => databaseName);
-	}
-
-	/// <summary>
-	///     Ensures the MongoDB database exists and creates indexes
-	///     Essential for deployment scenarios and development setup
-	/// </summary>
-	/// <param name="services">Service collection</param>
-	/// <returns>Service collection for chaining</returns>
-	public static async Task<IServiceCollection> EnsureEasyMealsDatabaseAsync(this IServiceCollection services)
-	{
-		using IServiceScope scope = services.BuildServiceProvider(false).CreateScope();
-		var database = scope.ServiceProvider.GetRequiredService<IMongoDatabase>();
-
-		// The database will be created automatically when first accessed
-		// Create base document indexes for optimal performance
-		await MongoIndexConfiguration.CreateBaseDocumentIndexesAsync(database);
 
 		return services;
 	}

@@ -11,12 +11,3 @@ public interface IMongoRepository<TDocument> : IReadOnlyMongoRepository<TDocumen
 	where TDocument : BaseDocument
 {
 }
-
-/// <summary>
-///   Shared MongoDB repository interface for documents in the shared project. Used for marking purposes.
-/// </summary>
-/// <typeparam name="TDocument"></typeparam>
-public interface ISharedMongoRepository<TDocument> : IMongoRepository<TDocument>
-	where TDocument : BaseDocument
-{
-}
