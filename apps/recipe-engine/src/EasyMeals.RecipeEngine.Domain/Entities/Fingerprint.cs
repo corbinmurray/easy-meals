@@ -3,6 +3,9 @@ using EasyMeals.RecipeEngine.Domain.ValueObjects.Fingerprint;
 
 namespace EasyMeals.RecipeEngine.Domain.Entities;
 
+// TODO: Align all domain entities with the reconstitue pattern used in SagaState entity.
+// This is important so we're not firing off events, validating, etc. during rehydration from the database.
+
 /// <summary>
 ///     Fingerprint aggregate root that tracks web scraping operations and content changes
 ///     Follows DDD principles with rich domain behavior and proper encapsulation

@@ -10,7 +10,7 @@ namespace EasyMeals.RecipeEngine.Infrastructure.Documents.SagaState;
 ///     Mirrors domain entity structure while optimizing for NoSQL storage.
 ///     Infrastructure layer can reference domain types (SagaStatus) following DDD dependency direction.
 /// </summary>
-[BsonCollection("saga_state")]
+[BsonCollection("saga_states")]
 public class SagaStateDocument : BaseSoftDeletableDocument
 {
 	/// <summary>Type of saga (e.g., "RecipeProcessing")</summary>
