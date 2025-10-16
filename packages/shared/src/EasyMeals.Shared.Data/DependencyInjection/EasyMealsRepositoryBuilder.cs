@@ -40,7 +40,7 @@ public class EasyMealsRepositoryBuilder
 	/// <typeparam name="TSharedRepository">The shared repository interface type</typeparam>
 	/// <returns>Builder for method chaining</returns>
 	public EasyMealsRepositoryBuilder AddSharedRepository<TSharedRepository>()
-		where TSharedRepository : IRecipeRepository
+		where TSharedRepository : ISharedMongoRepository<BaseDocument>
 	{
 		_sharedRepositories.Add(typeof(TSharedRepository));
 		return this;
@@ -57,36 +57,6 @@ public class EasyMealsRepositoryBuilder
 		{
 			var database = serviceProvider.GetRequiredService<IMongoDatabase>();
 			await MongoIndexConfiguration.CreateBaseDocumentIndexesAsync(database);
-		});
-		return this;
-	}
-
-	/// <summary>
-	///     Adds recipe-specific indexes for optimal query performance
-	///     Should be called separately for recipe collections
-	/// </summary>
-	/// <returns>Builder for method chaining</returns>
-	public EasyMealsRepositoryBuilder WithRecipeIndexes()
-	{
-		_indexCreators.Add(async serviceProvider =>
-		{
-			var database = serviceProvider.GetRequiredService<IMongoDatabase>();
-			await MongoIndexConfiguration.CreateRecipeSpecificIndexesAsync(database);
-		});
-		return this;
-	}
-
-	/// <summary>
-	///     Adds complete recipe collection optimization
-	///     Includes base document indexes, soft-deletable indexes, and recipe-specific indexes
-	/// </summary>
-	/// <returns>Builder for method chaining</returns>
-	public EasyMealsRepositoryBuilder WithCompleteRecipeIndexes()
-	{
-		_indexCreators.Add(async serviceProvider =>
-		{
-			var database = serviceProvider.GetRequiredService<IMongoDatabase>();
-			await MongoIndexConfiguration.CreateCompleteRecipeIndexesAsync(database);
 		});
 		return this;
 	}
