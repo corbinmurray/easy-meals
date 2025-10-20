@@ -9,9 +9,9 @@ namespace EasyMeals.RecipeEngine.Domain.Entities;
 /// </summary>
 public sealed class Recipe
 {
-	private readonly List<Ingredient> _ingredients;
-	private readonly List<Instruction> _instructions;
-	private readonly List<string> _tags;
+	private List<Ingredient> _ingredients;
+	private List<Instruction> _instructions;
+	private List<string> _tags;
 	private readonly List<IDomainEvent> _domainEvents;
 
 	/// <summary>
@@ -35,10 +35,10 @@ public sealed class Recipe
 		SourceUrl = ValidateSourceUrl(sourceUrl);
 		SourceProvider = sourceProvider ?? string.Empty;
 
-		_ingredients = new List<Ingredient>();
-		_instructions = new List<Instruction>();
-		_tags = new List<string>();
-		_domainEvents = new List<IDomainEvent>();
+		_ingredients = [];
+		_instructions = [];
+		_tags = [];
+		_domainEvents = [];
 
 		CreatedAt = DateTime.UtcNow;
 		UpdatedAt = DateTime.UtcNow;
@@ -51,10 +51,61 @@ public sealed class Recipe
 	// Private constructor for reconstitution from persistence
 	private Recipe()
 	{
-		_ingredients = new List<Ingredient>();
-		_instructions = new List<Instruction>();
-		_tags = new List<string>();
-		_domainEvents = new List<IDomainEvent>();
+		_ingredients = [];
+		_instructions = [];
+		_tags = [];
+		_domainEvents = [];
+	}
+
+	/// <summary>
+	///     Reconstitutes a Recipe from persisted data without triggering business rules or events
+	/// </summary>
+	public static Recipe Reconstitute(
+		Guid id,
+		string title,
+		string description,
+		IReadOnlyList<Ingredient> ingredients,
+		IReadOnlyList<Instruction> instructions,
+		string imageUrl,
+		int prepTimeMinutes,
+		int cookTimeMinutes,
+		int servings,
+		NutritionalInfo? nutritionalInfo,
+		IReadOnlyList<string> tags,
+		string sourceUrl,
+		string sourceProvider,
+		bool isActive,
+		string? cuisine,
+		string? difficulty,
+		decimal? rating,
+		int reviewCount,
+		DateTime createdAt,
+		DateTime updatedAt)
+	{
+		var recipe = new Recipe();
+
+		recipe.Id = id;
+		recipe.Title = title;
+		recipe.Description = description;
+		recipe._ingredients = ingredients.ToList();
+		recipe._instructions = instructions.ToList();
+		recipe.ImageUrl = imageUrl;
+		recipe.PrepTimeMinutes = prepTimeMinutes;
+		recipe.CookTimeMinutes = cookTimeMinutes;
+		recipe.Servings = servings;
+		recipe.NutritionalInfo = nutritionalInfo;
+		recipe._tags = tags.ToList();
+		recipe.SourceUrl = sourceUrl;
+		recipe.SourceProvider = sourceProvider;
+		recipe.IsActive = isActive;
+		recipe.Cuisine = cuisine;
+		recipe.Difficulty = difficulty;
+		recipe.Rating = rating;
+		recipe.ReviewCount = reviewCount;
+		recipe.CreatedAt = createdAt;
+		recipe.UpdatedAt = updatedAt;
+
+		return recipe;
 	}
 
 	#region Properties

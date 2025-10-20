@@ -32,7 +32,7 @@ public sealed class SagaState
 		StartedAt = null;
 		CompletedAt = null;
 
-		_domainEvents = new List<IDomainEvent>();
+		_domainEvents = [];
 		StateData = new Dictionary<string, object>();
 		CheckpointData = new Dictionary<string, object>();
 		Metrics = new SagaMetrics();

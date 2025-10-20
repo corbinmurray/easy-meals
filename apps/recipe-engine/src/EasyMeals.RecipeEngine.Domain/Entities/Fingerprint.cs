@@ -5,6 +5,7 @@ namespace EasyMeals.RecipeEngine.Domain.Entities;
 
 // TODO: Align all domain entities with the reconstitue pattern used in SagaState entity.
 // This is important so we're not firing off events, validating, etc. during rehydration from the database.
+// ✅ COMPLETED: Added Reconstitute method following SagaState pattern
 
 /// <summary>
 ///     Fingerprint aggregate root that tracks web scraping operations and content changes
@@ -14,7 +15,7 @@ namespace EasyMeals.RecipeEngine.Domain.Entities;
 public sealed class Fingerprint
 {
 	private readonly List<IDomainEvent> _domainEvents;
-	private readonly Dictionary<string, object> _metadata;
+	private Dictionary<string, object> _metadata;
 
 	/// <summary>
 	///     Creates a new Fingerprint aggregate root from raw content
@@ -48,7 +49,7 @@ public sealed class Fingerprint
 		RetryCount = 0;
 
 		_metadata = metadata != null ? new Dictionary<string, object>(metadata) : new Dictionary<string, object>();
-		_domainEvents = new List<IDomainEvent>();
+		_domainEvents = [];
 
 		AddDomainEvent(new FingerprintCreatedEvent(Id, Url, SourceProvider, Quality, ContentHash));
 	}
@@ -93,6 +94,47 @@ public sealed class Fingerprint
 	{
 		_metadata = new Dictionary<string, object>();
 		_domainEvents = new List<IDomainEvent>();
+	}
+
+	/// <summary>
+	///     Reconstitutes a Fingerprint from persisted data without triggering business rules or events
+	/// </summary>
+	public static Fingerprint Reconstitute(
+		Guid id,
+		string url,
+		string contentHash,
+		string? rawContent,
+		DateTime scrapedAt,
+		string sourceProvider,
+		FingerprintStatus status,
+		ScrapingQuality quality,
+		string? errorMessage,
+		Dictionary<string, object> metadata,
+		int retryCount,
+		DateTime? processedAt,
+		Guid? recipeId,
+		DateTime createdAt,
+		DateTime updatedAt)
+	{
+		var fingerprint = new Fingerprint();
+
+		fingerprint.Id = id;
+		fingerprint.Url = url;
+		fingerprint.ContentHash = contentHash;
+		fingerprint.RawContent = rawContent;
+		fingerprint.ScrapedAt = scrapedAt;
+		fingerprint.SourceProvider = sourceProvider;
+		fingerprint.Status = status;
+		fingerprint.Quality = quality;
+		fingerprint.ErrorMessage = errorMessage;
+		fingerprint._metadata = metadata ?? new Dictionary<string, object>();
+		fingerprint.RetryCount = retryCount;
+		fingerprint.ProcessedAt = processedAt;
+		fingerprint.RecipeId = recipeId;
+		fingerprint.CreatedAt = createdAt;
+		fingerprint.UpdatedAt = updatedAt;
+
+		return fingerprint;
 	}
 
 	#region Properties
