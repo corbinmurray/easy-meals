@@ -24,19 +24,39 @@ public static class ServiceCollectionExtensions
 	/// <returns></returns>
 	private static IServiceCollection AddEventBus(this IServiceCollection services)
 	{
+		// Register all event handlers
+		services.AddTransient<IEventHandler<RecipeUrlsDiscoveredEvent>, RecipeUrlsDiscoveredHandler>();
+		
+		// Register event bus and subscribe to events
 		services.AddSingleton<IEventBus>(sp =>
 		{
 			var eventBus = new EasyMealsEventBus(sp.GetRequiredService<ILogger<EasyMealsEventBus>>());
 
-			eventBus.Subscribe<RecipeUrlsDiscoveredEvent>(async @event =>
-			{
-				var handler = sp.GetRequiredService<RecipeUrlsDiscoveredHandler>();
-				await handler.HandleAsync(@event);
-			});
+			// Generic registration method
+			RegisterHandler<RecipeUrlsDiscoveredEvent, RecipeUrlsDiscoveredHandler>(eventBus, sp);
 
 			return eventBus;
 		});
-
+		
 		return services;
+	}
+	
+	private static void RegisterHandler<TEvent, THandler>(EasyMealsEventBus eventBus, IServiceProvider sp) 
+		where TEvent : IDomainEvent
+		where THandler : IEventHandler<TEvent>
+	{
+		eventBus.Subscribe<TEvent>(async @event =>
+		{
+			try
+			{
+				var handler = sp.GetRequiredService<THandler>();
+				await handler.HandleAsync(@event);
+			}
+			catch (Exception ex)
+			{
+				var logger = sp.GetRequiredService<ILogger<THandler>>();
+				logger.LogError(ex, "Error handling {EventType}", typeof(TEvent).Name);
+			}
+		});
 	}
 }

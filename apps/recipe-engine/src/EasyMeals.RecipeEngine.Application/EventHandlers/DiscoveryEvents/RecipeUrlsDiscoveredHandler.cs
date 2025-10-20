@@ -5,5 +5,5 @@ namespace EasyMeals.RecipeEngine.Application.EventHandlers.DiscoveryEvents;
 
 public sealed class RecipeUrlsDiscoveredHandler : IEventHandler<RecipeUrlsDiscoveredEvent>
 {
-	public async Task HandleAsync(RecipeUrlsDiscoveredEvent @event) => throw new NotImplementedException();
+	public async Task HandleAsync(RecipeUrlsDiscoveredEvent @event, CancellationToken cancellationToken) => throw new NotImplementedException();
 }
