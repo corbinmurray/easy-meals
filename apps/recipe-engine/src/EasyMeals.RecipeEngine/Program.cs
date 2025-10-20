@@ -31,6 +31,7 @@ services.AddLogging(opts =>
 services.AddRecipeEngineInfrastructure(configuration);
 services.AddRecipeEngine();
 
+
 await using ServiceProvider serviceProvider = services.BuildServiceProvider(true);
 
 var recipeEngine = serviceProvider.GetRequiredService<IRecipeEngine>();
