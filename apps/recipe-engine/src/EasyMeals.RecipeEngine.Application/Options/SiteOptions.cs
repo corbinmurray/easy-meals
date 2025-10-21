@@ -8,8 +8,9 @@ public sealed class SiteOptions
 
 public sealed class SiteStrategy
 {
-	public SourceType SourceType { get; set; } = SourceType.WebCrawling;
+	public SourceType SourceType { get; set; } = SourceType.Web;
 	public bool IsDynamicContent { get; set; } = false;
+	public string ResourceUrl { get; set; } = string.Empty;
 	public ResiliencyConfig Resiliency { get; set; } = new();
 	public ProcessingConfig Processing { get; set; } = new();
 	public RateLimitConfig RateLimit { get; set; } = new();
@@ -17,10 +18,8 @@ public sealed class SiteStrategy
 
 public enum SourceType
 {
-	WebCrawling,
-	ApiCall,
-	FileImport,
-	DatabaseQuery
+	Web,
+	Api
 }
 
 public sealed class ResiliencyConfig

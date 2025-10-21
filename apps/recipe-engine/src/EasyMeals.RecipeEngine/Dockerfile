@@ -5,10 +5,10 @@ WORKDIR /app
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
-COPY ["src/EasyMeals.RecipeEngine/EasyMeals.RecipeEngine.csproj", "src/EasyMeals.RecipeEngine/"]
-RUN dotnet restore "src/EasyMeals.RecipeEngine/EasyMeals.RecipeEngine.csproj"
+COPY ["apps/recipe-engine/src/EasyMeals.RecipeEngine/EasyMeals.RecipeEngine.csproj", "apps/recipe-engine/src/EasyMeals.RecipeEngine/"]
+RUN dotnet restore "apps/recipe-engine/src/EasyMeals.RecipeEngine/EasyMeals.RecipeEngine.csproj"
 COPY . .
-WORKDIR "/src/src/EasyMeals.RecipeEngine"
+WORKDIR "/src/apps/recipe-engine/src/EasyMeals.RecipeEngine"
 RUN dotnet build "./EasyMeals.RecipeEngine.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
 FROM build AS publish

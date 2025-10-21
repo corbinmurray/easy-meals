@@ -61,7 +61,7 @@ services:
     restart: "no"
     
     # Exclude from health checks since it's not always running - Coolify best practice
-    exclude_from_hc: true
+    # exclude_from_hc: true
     
     labels:
       - "coolify.managed=true"

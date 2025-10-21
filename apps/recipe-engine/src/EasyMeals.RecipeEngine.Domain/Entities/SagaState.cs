@@ -291,8 +291,8 @@ public sealed class SagaState
 	/// <summary>
 	///     Creates a new saga state for recipe processing
 	/// </summary>
-	public static SagaState CreateForRecipeProcessing(Guid correlationId) =>
-		new(Guid.NewGuid(), "RecipeProcessing", correlationId);
+	public static SagaState CreateForRecipeProcessing(Guid correlationId, string sagaType = "RecipeProcessingSaga") =>
+		new(Guid.NewGuid(), sagaType, correlationId);
 
 	/// <summary>
 	///     Reconstitutes a saga state from persisted data

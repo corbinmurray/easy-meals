@@ -1,7 +1,7 @@
 ﻿using EasyMeals.RecipeEngine.Application.EventHandlers.DiscoveryEvents;
 using EasyMeals.RecipeEngine.Application.Interfaces;
+using EasyMeals.RecipeEngine.Application.Sagas;
 using EasyMeals.RecipeEngine.Domain.Events;
-using EasyMeals.RecipeEngine.Domain.Interfaces;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -11,7 +11,7 @@ public static class ServiceCollectionExtensions
 {
 	public static IServiceCollection AddRecipeEngine(this IServiceCollection services)
 	{
-		services.AddTransient<IRecipeEngine, Services.RecipeEngine>();
+		services.AddSingleton<IRecipeProcessingSaga, RecipeProcessingSaga>();
 		services.AddEventBus();
 
 		return services;
@@ -26,7 +26,7 @@ public static class ServiceCollectionExtensions
 	{
 		// Register all event handlers
 		services.AddTransient<IEventHandler<RecipeUrlsDiscoveredEvent>, RecipeUrlsDiscoveredHandler>();
-		
+
 		// Register event bus and subscribe to events
 		services.AddSingleton<IEventBus>(sp =>
 		{
@@ -37,11 +37,11 @@ public static class ServiceCollectionExtensions
 
 			return eventBus;
 		});
-		
+
 		return services;
 	}
-	
-	private static void RegisterHandler<TEvent, THandler>(EasyMealsEventBus eventBus, IServiceProvider sp) 
+
+	private static void RegisterHandler<TEvent, THandler>(EasyMealsEventBus eventBus, IServiceProvider sp)
 		where TEvent : IDomainEvent
 		where THandler : IEventHandler<TEvent>
 	{
