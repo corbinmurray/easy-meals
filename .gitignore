@@ -466,6 +466,7 @@ common/temp/
 .env.local
 .env.*.local
 *.env
+**/appsettings.*.json
 
 # Traefik auth files
 traefik/users.txt
