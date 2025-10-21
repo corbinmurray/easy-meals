@@ -26,4 +26,13 @@
         <ProjectReference Include="..\EasyMeals.RecipeEngine.Infrastructure\EasyMeals.RecipeEngine.Infrastructure.csproj"/>
     </ItemGroup>
 
+    <ItemGroup>
+        <None Update="appsettings.json">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
+        <None Update="appsettings.Development.json">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
+    </ItemGroup>
+
 </Project>

@@ -34,7 +34,7 @@ public static class ServiceCollectionExtensions
 			.ConfigureEasyMealsRepositories()
 			.AddRepository<ISagaStateRepository, SagaStateRepository, SagaStateDocument>().WithSoftDeletableIndexes<SagaStateDocument>()
 			.AddRepository<IFingerprintRepository, FingerprintRepository, FingerprintDocument>().WithDefaultIndexes()
-			.EnsureDatabaseAsync();
+			.EnsureDatabaseAsync().GetAwaiter().GetResult();
 
 		return services;
 	}
