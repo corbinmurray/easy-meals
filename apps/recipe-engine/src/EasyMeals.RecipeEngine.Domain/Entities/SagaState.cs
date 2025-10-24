@@ -386,6 +386,7 @@ public sealed class SagaState
 /// </summary>
 public enum SagaStatus
 {
+	None,
 	Created,
 	Running,
 	Paused,

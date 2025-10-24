@@ -15,7 +15,7 @@ public abstract class BaseDocument : IAuditableDocument
 	///     Uses MongoDB ObjectId for optimal performance and sharding
 	/// </summary>
 	[BsonId]
-	[BsonRepresentation(BsonType.ObjectId)]
+	[BsonRepresentation(BsonType.String)]
 	public virtual string Id { get; set; } = ObjectId.GenerateNewId().ToString();
 
 	/// <summary>

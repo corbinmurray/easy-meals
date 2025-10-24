@@ -36,7 +36,8 @@ public class SagaStateRepository : MongoRepository<SagaStateDocument>, ISagaStat
 	public async Task<IEnumerable<SagaState>> GetStaleAsync(TimeSpan maxAge, SagaStatus? statusFilter = null,
 		CancellationToken cancellationToken = default) => throw new NotImplementedException();
 
-	public async Task<SagaState> AddAsync(SagaState sagaState, CancellationToken cancellationToken = default) => throw new NotImplementedException();
+	public async Task<SagaState> AddAsync(SagaState sagaState, CancellationToken cancellationToken = default)
+		=> (await InsertOneAsync(SagaStateDocument.FromDomain(sagaState), cancellationToken)).ToDomain();
 
 	public async Task<SagaState> UpdateAsync(SagaState sagaState, CancellationToken cancellationToken = default) =>
 		throw new NotImplementedException();

@@ -1,6 +1,7 @@
 ﻿using EasyMeals.RecipeEngine.Domain.Entities;
 using EasyMeals.Shared.Data.Attributes;
 using EasyMeals.Shared.Data.Documents;
+using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 
 namespace EasyMeals.RecipeEngine.Infrastructure.Documents.SagaState;
@@ -21,12 +22,14 @@ public class SagaStateDocument : BaseSoftDeletableDocument
 	/// <summary>Correlation ID for linking related operations</summary>
 	[BsonElement("correlationId")]
 	[BsonRequired]
-	public Guid CorrelationId { get; set; }
+	[BsonRepresentation(BsonType.String)]
+	public string CorrelationId { get; set; } = string.Empty;
 
 	/// <summary>Current status of the saga</summary>
 	[BsonElement("status")]
 	[BsonRequired]
-	public SagaStatus Status { get; set; }
+	[BsonRepresentation(BsonType.String)]
+	public SagaStatus Status { get; set; } = SagaStatus.None;
 
 	/// <summary>Current phase of execution</summary>
 	[BsonElement("currentPhase")]
@@ -104,7 +107,7 @@ public class SagaStateDocument : BaseSoftDeletableDocument
 		{
 			Id = sagaState.Id.ToString(),
 			SagaType = sagaState.SagaType,
-			CorrelationId = sagaState.CorrelationId,
+			CorrelationId = sagaState.CorrelationId.ToString(),
 			Status = sagaState.Status,
 			CurrentPhase = sagaState.CurrentPhase,
 			PhaseProgress = sagaState.PhaseProgress,
@@ -145,7 +148,7 @@ public class SagaStateDocument : BaseSoftDeletableDocument
 		return Domain.Entities.SagaState.Reconstitute(
 			Guid.Parse(Id),
 			SagaType,
-			CorrelationId,
+			Guid.Parse(CorrelationId),
 			Status,
 			CurrentPhase,
 			PhaseProgress,
