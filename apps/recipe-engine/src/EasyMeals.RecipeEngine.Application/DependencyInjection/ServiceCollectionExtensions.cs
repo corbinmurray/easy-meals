@@ -11,7 +11,7 @@ public static class ServiceCollectionExtensions
 {
 	public static IServiceCollection AddRecipeEngine(this IServiceCollection services)
 	{
-		services.AddSingleton<IRecipeProcessingSaga, RecipeProcessingSaga>();
+		services.AddScoped<IRecipeProcessingSaga, RecipeProcessingSaga>();
 		services.AddEventBus();
 
 		return services;

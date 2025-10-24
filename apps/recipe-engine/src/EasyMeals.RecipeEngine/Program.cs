@@ -53,7 +53,8 @@ Console.CancelKeyPress += cancelHandler;
 // Run the app
 try
 {
-	var processor = serviceProvider.GetRequiredService<IRecipeProcessingSaga>();
+	await using AsyncServiceScope scope = serviceProvider.CreateAsyncScope();
+	var processor = scope.ServiceProvider.GetRequiredService<IRecipeProcessingSaga>();
 	await processor.StartProcessingAsync(cts.Token);
 }
 catch (OperationCanceledException)

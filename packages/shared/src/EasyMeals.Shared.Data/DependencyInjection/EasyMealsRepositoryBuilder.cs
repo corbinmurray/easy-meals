@@ -35,6 +35,7 @@ public class EasyMealsRepositoryBuilder
 		where TDocument : BaseDocument // Enforces document compatibility
 	{
 		_repositories.Add((typeof(TInterface), permissions));
+		
 		return this;
 	}
 
@@ -109,13 +110,11 @@ public class EasyMealsRepositoryBuilder
 
 		try
 		{
-			var database = serviceProvider.GetRequiredService<IMongoDatabase>();
+			// Ensure the database exists
+			_ = serviceProvider.GetRequiredService<IMongoDatabase>();
 
 			// Register all repositories
 			RegisterRepositories();
-
-			// Register automatic health checks
-			RegisterHealthChecks();
 
 			// Create indexes
 			foreach (Func<IServiceProvider, Task> indexCreator in _indexCreators)
@@ -125,11 +124,10 @@ public class EasyMealsRepositoryBuilder
 
 			return _services;
 		}
-		catch (InvalidOperationException)
+		catch (Exception e)
 		{
-			throw new InvalidOperationException(
-				"MongoDB configuration is missing. Please call one of the AddEasyMealsDataMongoDB methods before registering repositories. " +
-				"Example: services.AddEasyMealsDataMongoDB(connectionString, databaseName)");
+			Console.WriteLine(e);
+			throw;
 		}
 		finally
 		{
@@ -177,15 +175,6 @@ public class EasyMealsRepositoryBuilder
 			// Register read-only repository
 			_services.AddScoped(readOnlyRepoType, implType);
 		}
-	}
-
-	/// <summary>
-	///     Registers health checks for all configured repositories
-	/// </summary>
-	private void RegisterHealthChecks()
-	{
-		if (_repositories.Count > 0)
-			_services.AddEasyMealsDataHealthChecks();
 	}
 
 	/// <summary>

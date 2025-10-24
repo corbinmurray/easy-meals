@@ -21,24 +21,22 @@ public class RecipeProcessingSaga(
 	ILogger<RecipeProcessingSaga> logger,
 	ISagaStateRepository sagaStateRepository) : IRecipeProcessingSaga
 {
-	private SagaState? _sagaState;
-
 	/// <summary>
 	///     Starts the complete recipe processing saga
 	/// </summary>
 	public async Task StartProcessingAsync(CancellationToken cancellationToken)
 	{
 		var correlationId = Guid.NewGuid();
-		_sagaState = SagaState.CreateForRecipeProcessing(correlationId, sagaType: nameof(RecipeProcessingSaga));
-		//await sagaStateRepository.AddAsync(_sagaState, cancellationToken);
+		var sagaState = SagaState.CreateForRecipeProcessing(correlationId, sagaType: nameof(RecipeProcessingSaga));
+		//await sagaStateRepository.AddAsync(sagaState, cancellationToken);
+
+		using IDisposable? _ = logger.BeginScope(new Dictionary<string, object>
+		{
+			["CorrelationId"] = correlationId,
+			["SagaId"] = sagaState.Id
+		});
 
 		logger.LogInformation("Starting Recipe Processing Saga {SagaId} with correlation {CorrelationId}",
-			_sagaState.Id, correlationId);
-
-		while (true)
-		{
-			logger.LogInformation("Processing.. blah blah blah");
-			await Task.Delay(TimeSpan.FromSeconds(5), cancellationToken);
-		}
+			sagaState.Id, correlationId);
 	}
 }
