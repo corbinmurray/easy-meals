@@ -16,8 +16,19 @@ public class EasyMealsRepositoryBuilder
 	private readonly IServiceCollection _services;
 	private readonly List<(Type RepositoryType, RepositoryPermissions Permissions)> _repositories = [];
 	private readonly List<Func<IServiceProvider, Task>> _indexCreators = [];
+	private readonly HashSet<Type> _documentTypes = [];
 
 	internal EasyMealsRepositoryBuilder(IServiceCollection services) => _services = services ?? throw new ArgumentNullException(nameof(services));
+	/// <summary>
+	///     Registers a document type for collection creation and index setup, without requiring a repository interface
+	/// </summary>
+	/// <typeparam name="TDocument">The document type extending BaseDocument</typeparam>
+	/// <returns>Builder for method chaining</returns>
+	public EasyMealsRepositoryBuilder AddCollection<TDocument>() where TDocument : BaseDocument
+	{
+		_documentTypes.Add(typeof(TDocument));
+		return this;
+	}
 
 	/// <summary>
 	///     Adds a custom repository interface and its implementation to the DI container
@@ -35,7 +46,7 @@ public class EasyMealsRepositoryBuilder
 		where TDocument : BaseDocument // Enforces document compatibility
 	{
 		_repositories.Add((typeof(TInterface), permissions));
-		
+
 		return this;
 	}
 
@@ -111,10 +122,27 @@ public class EasyMealsRepositoryBuilder
 		try
 		{
 			// Ensure the database exists
-			_ = serviceProvider.GetRequiredService<IMongoDatabase>();
+			var database = serviceProvider.GetRequiredService<IMongoDatabase>();
 
 			// Register all repositories
-			RegisterRepositories();
+			//RegisterRepositories();
+
+			// Ensure collections exist for all registered repositories
+			var docTypes = new HashSet<Type>(_documentTypes);
+			foreach ((Type repositoryType, _) in _repositories)
+			{
+				Type[] genericArgs = repositoryType.GetGenericArguments();
+				if (genericArgs.Length == 0 || !typeof(BaseDocument).IsAssignableFrom(genericArgs[0]))
+					continue;
+				docTypes.Add(genericArgs[0]);
+			}
+
+			// Create collections for all registered document types
+			List<string> collectionNames = await (await database.ListCollectionNamesAsync()).ToListAsync();
+			foreach (string collectionName in docTypes.Select(GetCollectionName).Where(collectionName => !collectionNames.Contains(collectionName)))
+			{
+				await database.CreateCollectionAsync(collectionName);
+			}
 
 			// Create indexes
 			foreach (Func<IServiceProvider, Task> indexCreator in _indexCreators)
@@ -180,12 +208,13 @@ public class EasyMealsRepositoryBuilder
 	/// <summary>
 	///     Gets the collection name for a document type
 	/// </summary>
-	private static string GetCollectionName<TDocument>() where TDocument : BaseDocument
-	{
-		var attribute = typeof(TDocument).GetCustomAttributes(typeof(BsonCollectionAttribute), true)
-			.FirstOrDefault() as BsonCollectionAttribute;
+	private static string GetCollectionName<TDocument>() where TDocument : BaseDocument => GetCollectionName(typeof(TDocument));
 
-		return attribute?.CollectionName ?? typeof(TDocument).Name.ToLowerInvariant();
+	private static string GetCollectionName(Type documentType)
+	{
+		var attribute = documentType.GetCustomAttributes(typeof(BsonCollectionAttribute), true)
+			.FirstOrDefault() as BsonCollectionAttribute;
+		return attribute?.CollectionName ?? documentType.Name.ToLowerInvariant();
 	}
 }
 

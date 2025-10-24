@@ -1,11 +1,8 @@
-
-using System.ComponentModel.DataAnnotations;
 using EasyMeals.Shared.Data.Configuration;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using MongoDB.Driver;
-
 
 namespace EasyMeals.Shared.Data.DependencyInjection;
 
@@ -15,7 +12,7 @@ namespace EasyMeals.Shared.Data.DependencyInjection;
 public static class ServiceCollectionExtensions
 {
 	/// <summary>
-	/// Registers MongoDbOptions from configuration and sets up MongoDB client and database DI.
+	///     Registers MongoDbOptions from configuration and sets up MongoDB client and database DI.
 	/// </summary>
 	/// <param name="services">The service collection</param>
 	/// <param name="configuration">The configuration root (should include env vars, appsettings, etc.)</param>

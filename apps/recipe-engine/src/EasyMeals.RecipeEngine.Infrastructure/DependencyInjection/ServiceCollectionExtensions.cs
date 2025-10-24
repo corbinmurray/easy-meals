@@ -1,4 +1,6 @@
 using EasyMeals.RecipeEngine.Domain.Interfaces;
+using EasyMeals.RecipeEngine.Infrastructure.Documents.Fingerprint;
+using EasyMeals.RecipeEngine.Infrastructure.Documents.SagaState;
 using EasyMeals.RecipeEngine.Infrastructure.Repositories;
 using EasyMeals.Shared.Data.DependencyInjection;
 using Microsoft.Extensions.Configuration;
@@ -24,7 +26,12 @@ public static class ServiceCollectionExtensions
 		// Add MongoDB data services using shared options pattern with shared database
 		services
 			.AddEasyMealsMongoDb(configuration)
-			.ConfigureEasyMealsDatabase()
+			.ConfigureEasyMealsDatabase(builder =>
+			{
+				builder
+					.AddCollection<SagaStateDocument>()
+					.AddCollection<FingerprintDocument>();
+			})
 			.EnsureDatabaseAsync().GetAwaiter().GetResult();
 
 		services.AddScoped<ISagaStateRepository, SagaStateRepository>();
