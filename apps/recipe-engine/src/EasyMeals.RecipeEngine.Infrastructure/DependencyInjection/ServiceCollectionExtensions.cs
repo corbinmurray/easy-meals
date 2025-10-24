@@ -28,14 +28,17 @@ public static class ServiceCollectionExtensions
 			.AddEasyMealsMongoDb(configuration)
 			.ConfigureEasyMealsDatabase(builder =>
 			{
+				builder.IncludeSharedRepositories = true;
+
 				builder
-					.AddCollection<SagaStateDocument>()
-					.AddCollection<FingerprintDocument>();
+					.AddRepository<ISagaStateRepository, SagaStateRepository, SagaStateDocument>()
+					.WithSoftDeletableIndexes<SagaStateDocument>();
+
+				builder
+					.AddRepository<IFingerprintRepository, FingerprintRepository, FingerprintDocument>()
+					.WithDefaultIndexes();
 			})
 			.EnsureDatabaseAsync().GetAwaiter().GetResult();
-
-		services.AddScoped<ISagaStateRepository, SagaStateRepository>();
-		services.AddScoped<IFingerprintRepository, FingerprintRepository>();
 
 		return services;
 	}

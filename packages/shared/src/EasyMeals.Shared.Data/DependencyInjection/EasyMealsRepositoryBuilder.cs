@@ -1,7 +1,9 @@
 using EasyMeals.Shared.Data.Attributes;
 using EasyMeals.Shared.Data.Configuration;
 using EasyMeals.Shared.Data.Documents;
+using EasyMeals.Shared.Data.Documents.Recipe;
 using EasyMeals.Shared.Data.Repositories;
+using EasyMeals.Shared.Data.Repositories.Recipe;
 using Microsoft.Extensions.DependencyInjection;
 using MongoDB.Driver;
 
@@ -14,38 +16,28 @@ namespace EasyMeals.Shared.Data.DependencyInjection;
 public class EasyMealsRepositoryBuilder
 {
 	private readonly IServiceCollection _services;
-	private readonly List<(Type RepositoryType, RepositoryPermissions Permissions)> _repositories = [];
 	private readonly List<Func<IServiceProvider, Task>> _indexCreators = [];
+	private readonly List<(Type repoType, Type repoImplType)> _repositories = [];
 	private readonly HashSet<Type> _documentTypes = [];
 
 	internal EasyMealsRepositoryBuilder(IServiceCollection services) => _services = services ?? throw new ArgumentNullException(nameof(services));
-	/// <summary>
-	///     Registers a document type for collection creation and index setup, without requiring a repository interface
-	/// </summary>
-	/// <typeparam name="TDocument">The document type extending BaseDocument</typeparam>
-	/// <returns>Builder for method chaining</returns>
-	public EasyMealsRepositoryBuilder AddCollection<TDocument>() where TDocument : BaseDocument
-	{
-		_documentTypes.Add(typeof(TDocument));
-		return this;
-	}
 
 	/// <summary>
-	///     Adds a custom repository interface and its implementation to the DI container
-	///     Enforces that the implementation inherits from MongoRepository<TDocument> where TDocument : BaseDocument
+	///     Flag to determine if shared repositories should be added to the DI services collection.
 	/// </summary>
-	/// <typeparam name="TInterface">The repository interface type (e.g., ISagaStateRepository)</typeparam>
-	/// <typeparam name="TImplementation">The concrete repository implementation type</typeparam>
-	/// <typeparam name="TDocument">The document type extending BaseDocument</typeparam>
-	/// <param name="permissions">Repository access permissions (optional, defaults to ReadWrite)</param>
-	/// <returns>Builder for method chaining</returns>
-	public EasyMealsRepositoryBuilder AddRepository<TInterface, TImplementation, TDocument>(
-		RepositoryPermissions permissions = RepositoryPermissions.ReadWrite)
-		where TInterface : class
-		where TImplementation : MongoRepository<TDocument>, TInterface // Enforces inheritance from MongoRepository<TDocument>
-		where TDocument : BaseDocument // Enforces document compatibility
+	public bool IncludeSharedRepositories { get; set; } = false;
+
+	/// <summary>
+	///     Registers a repository with its implementation and document types
+	/// </summary>
+	/// <typeparam name="TRepository"></typeparam>
+	/// <typeparam name="TRepositoryImpl"></typeparam>
+	/// <typeparam name="TDocument"></typeparam>
+	/// <returns></returns>
+	public EasyMealsRepositoryBuilder AddRepository<TRepository, TRepositoryImpl, TDocument>() where TDocument : BaseDocument
 	{
-		_repositories.Add((typeof(TInterface), permissions));
+		_repositories.Add((typeof(TRepository), typeof(TRepositoryImpl)));
+		_documentTypes.Add(typeof(TDocument));
 
 		return this;
 	}
@@ -124,20 +116,16 @@ public class EasyMealsRepositoryBuilder
 			// Ensure the database exists
 			var database = serviceProvider.GetRequiredService<IMongoDatabase>();
 
-			// Register all repositories
-			//RegisterRepositories();
+			// Register repositories in DI
+			foreach ((Type repoType, Type repoImplType) in _repositories)
+			{
+				_services.AddScoped(repoType, repoImplType);
+			}
+
+			if (IncludeSharedRepositories) AddRepository<IRecipeRepository, RecipeRepository, RecipeDocument>();
 
 			// Ensure collections exist for all registered repositories
 			var docTypes = new HashSet<Type>(_documentTypes);
-			foreach ((Type repositoryType, _) in _repositories)
-			{
-				Type[] genericArgs = repositoryType.GetGenericArguments();
-				if (genericArgs.Length == 0 || !typeof(BaseDocument).IsAssignableFrom(genericArgs[0]))
-					continue;
-				docTypes.Add(genericArgs[0]);
-			}
-
-			// Create collections for all registered document types
 			List<string> collectionNames = await (await database.ListCollectionNamesAsync()).ToListAsync();
 			foreach (string collectionName in docTypes.Select(GetCollectionName).Where(collectionName => !collectionNames.Contains(collectionName)))
 			{
@@ -160,17 +148,6 @@ public class EasyMealsRepositoryBuilder
 		finally
 		{
 			await serviceProvider.DisposeAsync();
-		}
-	}
-
-	/// <summary>
-	///     Registers all configured repositories with the DI container
-	/// </summary>
-	private void RegisterRepositories()
-	{
-		foreach ((Type repositoryType, RepositoryPermissions permissions) in _repositories)
-		{
-			RegisterRepository(repositoryType, permissions);
 		}
 	}
 
