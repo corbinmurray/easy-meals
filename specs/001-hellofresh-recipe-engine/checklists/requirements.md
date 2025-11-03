@@ -40,13 +40,13 @@
 
 ## Independent Testability Verification
 
-| User Story | Independent Test Valid? | Rationale |
-|------------|------------------------|-----------|
-| US1: Batch Processing | ✅ Yes | Can mock HelloFresh endpoints, verify 100 recipes processed in ≤1 hour, needs no other stories |
-| US2: Ingredient Normalization | ✅ Yes | Can test with ingredient mapping database, verify canonical forms, needs no other stories (data isolation) |
-| US3: Saga Completion | ✅ Yes | Can simulate full workflow with test fixtures, verify state transitions and resumability, independent |
-| US4: Multi-Provider Config | ✅ Yes | Can load provider configs, verify correct settings applied per provider, no dependencies on processing stories |
-| US5: Stealth & Rate Limiting | ✅ Yes | Can intercept HTTP requests, verify randomized delays/user agents/headers/pooling/rate limits, no data dependencies |
+| User Story                    | Independent Test Valid? | Rationale                                                                                                           |
+| ----------------------------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| US1: Batch Processing         | ✅ Yes                  | Can mock HelloFresh endpoints, verify 100 recipes processed in ≤1 hour, needs no other stories                      |
+| US2: Ingredient Normalization | ✅ Yes                  | Can test with ingredient mapping database, verify canonical forms, needs no other stories (data isolation)          |
+| US3: Saga Completion          | ✅ Yes                  | Can simulate full workflow with test fixtures, verify state transitions and resumability, independent               |
+| US4: Multi-Provider Config    | ✅ Yes                  | Can load provider configs, verify correct settings applied per provider, no dependencies on processing stories      |
+| US5: Stealth & Rate Limiting  | ✅ Yes                  | Can intercept HTTP requests, verify randomized delays/user agents/headers/pooling/rate limits, no data dependencies |
 
 **Result**: ✅ All stories are independently testable and can be implemented in parallel or sequentially
 
@@ -54,14 +54,14 @@
 
 ## Validation Results
 
-| Checklist Item | Status | Notes |
-|---|---|---|
-| Content Quality | ✅ PASS | 4/4 items complete |
-| Requirement Completeness | ✅ PASS | 8/8 items complete; no ambiguities |
-| Feature Readiness | ✅ PASS | 5/5 items complete; testability verified |
-| No Implementation Details | ✅ PASS | Zero mention of C#, .NET, MongoDB, specific libraries |
-| Technology Agnostic | ✅ PASS | All success criteria use observable metrics, not tech stack |
-| Independent Testability | ✅ PASS | All 5 stories can be tested independently |
+| Checklist Item            | Status  | Notes                                                       |
+| ------------------------- | ------- | ----------------------------------------------------------- |
+| Content Quality           | ✅ PASS | 4/4 items complete                                          |
+| Requirement Completeness  | ✅ PASS | 8/8 items complete; no ambiguities                          |
+| Feature Readiness         | ✅ PASS | 5/5 items complete; testability verified                    |
+| No Implementation Details | ✅ PASS | Zero mention of C#, .NET, MongoDB, specific libraries       |
+| Technology Agnostic       | ✅ PASS | All success criteria use observable metrics, not tech stack |
+| Independent Testability   | ✅ PASS | All 5 stories can be tested independently                   |
 
 ---
 
@@ -83,6 +83,7 @@
 **No clarifications needed** - all requirements are sufficiently specified for planning phase.
 
 **Recommended next action**: Run `/speckit.plan` to generate:
+
 1. Implementation plan with technical context
 2. Research findings on HelloFresh scraping patterns
 3. Data model for ingredient normalization

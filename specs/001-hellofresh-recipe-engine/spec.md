@@ -5,13 +5,13 @@
 **Status**: Draft  
 **Input**: User description: "Help me finish Recipe Engine for HelloFresh implementation. I want it to be extendible as we'll have multiple recipe providers. Things such as ingredient normalization (i.e., HelloFresh proprietary ingredients can be normalized), robust configuration (should be a base setup already for this), and finishing our processing Saga in a complete manner. I want our Recipe Engine to process ~ 100 recipes or 1 hour at a time for each provider whichever comes first (Coolify will handle the scheduling). We should be very stealthly and not get our IP rejected/banned from these sites. We should be curteous and not overwhelem or DDoS these sites, etc."
 
-## User Scenarios & Testing *(mandatory)*
+## User Scenarios & Testing _(mandatory)_
 
 <!--
   IMPORTANT: User stories should be PRIORITIZED as user journeys ordered by importance.
   Each user story/journey must be INDEPENDENTLY TESTABLE - meaning if you implement just ONE of them,
   you should still have a viable MVP (Minimum Viable Product) that delivers value.
-  
+
   Assign priorities (P1, P2, P3, etc.) to each story, where P1 is the most critical.
   Think of each story as a standalone slice of functionality that can be:
   - Developed independently
@@ -100,7 +100,7 @@
 - What happens if an HTTP request is rate-limited (429 response)? (Engine backs off, queues request, retries with exponential backoff)
 - What happens if a recipe URL returns invalid/malformed data? (Engine logs error, records URL for manual review, continues processing remaining URLs)
 
-## Requirements *(mandatory)*
+## Requirements _(mandatory)_
 
 <!--
   ACTION REQUIRED: The content in this section represents placeholders.
@@ -131,7 +131,7 @@
 - **Recipe Fingerprint**: A content hash or identifier used to detect duplicate or previously processed recipes; prevents redundant processing
 - **Rate Limit Token**: Tracks remaining request quota per provider to enforce rate limits (e.g., 10 requests per minute); automatically refills
 
-## Success Criteria *(mandatory)*
+## Success Criteria _(mandatory)_
 
 <!--
   ACTION REQUIRED: Define measurable success criteria.

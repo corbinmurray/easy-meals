@@ -13,10 +13,10 @@ A comprehensive specification for completing the Recipe Engine with full HelloFr
 
 ### Specification Artifacts
 
-| File | Purpose | Status |
-|------|---------|--------|
-| `specs/001-hellofresh-recipe-engine/spec.md` | Feature specification with user stories, requirements, success criteria | ✅ Complete (195 lines) |
-| `specs/001-hellofresh-recipe-engine/checklists/requirements.md` | Specification quality validation checklist | ✅ Complete & Passing |
+| File                                                            | Purpose                                                                 | Status                  |
+| --------------------------------------------------------------- | ----------------------------------------------------------------------- | ----------------------- |
+| `specs/001-hellofresh-recipe-engine/spec.md`                    | Feature specification with user stories, requirements, success criteria | ✅ Complete (195 lines) |
+| `specs/001-hellofresh-recipe-engine/checklists/requirements.md` | Specification quality validation checklist                              | ✅ Complete & Passing   |
 
 ---
 
@@ -24,13 +24,13 @@ A comprehensive specification for completing the Recipe Engine with full HelloFr
 
 ### User Stories (5 Total)
 
-| Story | Priority | Focus | Independent? |
-|-------|----------|-------|--------------|
-| **US1**: Process HelloFresh Recipes Within Rate & Time Limits | P1 | Core batch processing, throttling, time windows | ✅ Yes |
-| **US2**: Normalize HelloFresh Proprietary Ingredients | P1 | Ingredient mapping, canonical forms, multi-provider compatibility | ✅ Yes |
-| **US3**: Complete & Finalize Recipe Processing Saga | P1 | Saga orchestration, state management, error handling, resumability | ✅ Yes |
-| **US4**: Robust Configuration for Multiple Providers | P2 | Provider-specific settings, environment-aware config, extensibility | ✅ Yes |
-| **US5**: Stealth & Courtesy: IP Ban Avoidance & Rate Limiting | P2 | Randomized delays, user agent rotation, connection pooling, rate limits | ✅ Yes |
+| Story                                                         | Priority | Focus                                                                   | Independent? |
+| ------------------------------------------------------------- | -------- | ----------------------------------------------------------------------- | ------------ |
+| **US1**: Process HelloFresh Recipes Within Rate & Time Limits | P1       | Core batch processing, throttling, time windows                         | ✅ Yes       |
+| **US2**: Normalize HelloFresh Proprietary Ingredients         | P1       | Ingredient mapping, canonical forms, multi-provider compatibility       | ✅ Yes       |
+| **US3**: Complete & Finalize Recipe Processing Saga           | P1       | Saga orchestration, state management, error handling, resumability      | ✅ Yes       |
+| **US4**: Robust Configuration for Multiple Providers          | P2       | Provider-specific settings, environment-aware config, extensibility     | ✅ Yes       |
+| **US5**: Stealth & Courtesy: IP Ban Avoidance & Rate Limiting | P2       | Randomized delays, user agent rotation, connection pooling, rate limits | ✅ Yes       |
 
 **All 5 stories are independently testable and can be developed in parallel or sequentially.**
 
@@ -38,60 +38,64 @@ A comprehensive specification for completing the Recipe Engine with full HelloFr
 
 ## Functional Requirements (12 Total)
 
-| ID | Requirement | Story |
-|----|-------------|-------|
-| FR-001 | Process up to 100 recipes per batch (or time window limit) | US1 |
-| FR-002 | Configurable delays between HTTP requests | US1 |
-| FR-003 | Normalize provider ingredient codes to canonical forms | US2 |
-| FR-004 | Support multiple providers via configuration | US4 |
-| FR-005 | Persist saga state for resumability after restart | US3 |
-| FR-006 | Graceful error handling with compensation logic | US3 |
-| FR-007 | Stealth measures (randomized delays, user agents, headers, pooling) | US5 |
-| FR-008 | Rate limiting enforcement per provider | US5 |
-| FR-009 | Comprehensive logging for operational visibility | US3 |
-| FR-010 | Duplicate recipe detection & prevention | FR-012 |
-| FR-011 | Configuration-driven provider discovery (no code changes) | US4 |
-| FR-012 | Store both raw provider ID and normalized ingredient form | US2 |
+| ID     | Requirement                                                         | Story  |
+| ------ | ------------------------------------------------------------------- | ------ |
+| FR-001 | Process up to 100 recipes per batch (or time window limit)          | US1    |
+| FR-002 | Configurable delays between HTTP requests                           | US1    |
+| FR-003 | Normalize provider ingredient codes to canonical forms              | US2    |
+| FR-004 | Support multiple providers via configuration                        | US4    |
+| FR-005 | Persist saga state for resumability after restart                   | US3    |
+| FR-006 | Graceful error handling with compensation logic                     | US3    |
+| FR-007 | Stealth measures (randomized delays, user agents, headers, pooling) | US5    |
+| FR-008 | Rate limiting enforcement per provider                              | US5    |
+| FR-009 | Comprehensive logging for operational visibility                    | US3    |
+| FR-010 | Duplicate recipe detection & prevention                             | FR-012 |
+| FR-011 | Configuration-driven provider discovery (no code changes)           | US4    |
+| FR-012 | Store both raw provider ID and normalized ingredient form           | US2    |
 
 ---
 
 ## Success Criteria (10 Total)
 
-| Criterion | Target | Measurable? |
-|-----------|--------|------------|
-| **SC-001** | 100 recipes (or available) in 1 hour with zero data loss | ✅ Process count + timing + restart recovery |
-| **SC-002** | 95% ingredient normalization success rate | ✅ Mapping database queries + unmapped count |
-| **SC-003** | Full saga workflow (Discovering → Completing) with resumability | ✅ State transitions + recovery test |
-| **SC-004** | New provider added via config only (no code changes) | ✅ Feature deployment test |
-| **SC-005** | Zero rate limit violations (no 429 responses) | ✅ HTTP response monitoring |
-| **SC-006** | Randomized delays ±20%, rotating user agents, connection pooling | ✅ HTTP request inspection |
-| **SC-007** | Config-driven tuning (no redeploy) | ✅ Runtime adjustment test |
-| **SC-008** | 100% duplicate detection (all processed URLs skipped) | ✅ URL fingerprint tracking |
-| **SC-009** | Logs <100 MB per 1-hour batch | ✅ Log volume monitoring |
-| **SC-010** | Transient error recovery, permanent errors logged for review | ✅ Error handling tests |
+| Criterion  | Target                                                           | Measurable?                                  |
+| ---------- | ---------------------------------------------------------------- | -------------------------------------------- |
+| **SC-001** | 100 recipes (or available) in 1 hour with zero data loss         | ✅ Process count + timing + restart recovery |
+| **SC-002** | 95% ingredient normalization success rate                        | ✅ Mapping database queries + unmapped count |
+| **SC-003** | Full saga workflow (Discovering → Completing) with resumability  | ✅ State transitions + recovery test         |
+| **SC-004** | New provider added via config only (no code changes)             | ✅ Feature deployment test                   |
+| **SC-005** | Zero rate limit violations (no 429 responses)                    | ✅ HTTP response monitoring                  |
+| **SC-006** | Randomized delays ±20%, rotating user agents, connection pooling | ✅ HTTP request inspection                   |
+| **SC-007** | Config-driven tuning (no redeploy)                               | ✅ Runtime adjustment test                   |
+| **SC-008** | 100% duplicate detection (all processed URLs skipped)            | ✅ URL fingerprint tracking                  |
+| **SC-009** | Logs <100 MB per 1-hour batch                                    | ✅ Log volume monitoring                     |
+| **SC-010** | Transient error recovery, permanent errors logged for review     | ✅ Error handling tests                      |
 
 ---
 
 ## Key Design Decisions
 
 ### Architecture
+
 - **Extends existing DDD layers**: Domain, Application, Infrastructure layers unchanged
 - **Completes IRecipeProcessingSaga**: Implements multi-step orchestration without breaking changes
 - **Configuration-driven extensibility**: New providers need only config + provider-specific extractor
 
 ### Performance
+
 - **Batch processing**: 100 recipes or 1 hour (whichever first) prevents overwhelming providers
 - **Configurable delays**: Minimum 2 seconds (configurable) between requests
 - **Rate limiting**: Per-provider quota enforcement (e.g., 10 req/min)
 - **Connection pooling**: HTTP connections reused across batch
 
 ### Reliability
+
 - **Saga state persistence**: Resumable after restart without reprocessing
 - **Duplicate prevention**: URL/fingerprint tracking prevents re-ingestion
 - **Graceful degradation**: Failed items logged for review, processing continues
 - **Exponential backoff**: Transient errors (network, timeout) retried with backoff
 
 ### Stealth & Courtesy
+
 - **Randomized delays**: ±20% variance around configured delay
 - **Rotating user agents**: Multiple realistic browser agents
 - **Crawl headers**: `Accept-Language`, `Accept-Encoding` like real browser
@@ -99,6 +103,7 @@ A comprehensive specification for completing the Recipe Engine with full HelloFr
 - **Rate limiting**: Respect provider limits, queue excess requests
 
 ### Data Consistency
+
 - **Ingredient normalization**: Both raw provider code and canonical form stored
 - **Auditability**: Unmapped ingredients logged for manual review
 - **Multi-provider support**: Same ingredient from different providers → same canonical form
@@ -109,12 +114,14 @@ A comprehensive specification for completing the Recipe Engine with full HelloFr
 ## Dependencies & Assumptions
 
 ### External Dependencies
+
 - HelloFresh website or test endpoints
 - MongoDB for persistence
 - .NET 8 SDK
 - HTTP client libraries
 
 ### Key Assumptions
+
 - Coolify handles batch scheduling (engine is request-driven, not scheduled internally)
 - HelloFresh site structure remains stable (updates handled in provider-specific code)
 - MongoDB indexing strategy supports efficient duplicate detection
@@ -122,6 +129,7 @@ A comprehensive specification for completing the Recipe Engine with full HelloFr
 - Normalization mapping DB maintained separately (queryable by engine)
 
 ### Technical Assumptions
+
 - Existing DDD architecture sufficient for implementation
 - `IRecipeProcessingSaga` interface complete without breaking other systems
 - MongoDB supports efficient processing state queries
@@ -131,14 +139,14 @@ A comprehensive specification for completing the Recipe Engine with full HelloFr
 
 ## Specification Quality Validation
 
-| Category | Status | Notes |
-|----------|--------|-------|
-| **Completeness** | ✅ 100% | All sections filled, no [NEEDS CLARIFICATION] markers |
-| **Clarity** | ✅ 100% | All requirements testable and unambiguous |
-| **Independence** | ✅ 100% | All 5 stories independently testable and developable |
-| **Measurability** | ✅ 100% | All success criteria observable and measurable |
+| Category                      | Status  | Notes                                                 |
+| ----------------------------- | ------- | ----------------------------------------------------- |
+| **Completeness**              | ✅ 100% | All sections filled, no [NEEDS CLARIFICATION] markers |
+| **Clarity**                   | ✅ 100% | All requirements testable and unambiguous             |
+| **Independence**              | ✅ 100% | All 5 stories independently testable and developable  |
+| **Measurability**             | ✅ 100% | All success criteria observable and measurable        |
 | **No Implementation Details** | ✅ 100% | Zero mention of C#, .NET, MongoDB, specific libraries |
-| **Technology Agnostic** | ✅ 100% | All criteria use observable metrics |
+| **Technology Agnostic**       | ✅ 100% | All criteria use observable metrics                   |
 
 **Validation Result**: ✅ **READY FOR PLANNING**
 
@@ -159,22 +167,28 @@ A comprehensive specification for completing the Recipe Engine with full HelloFr
 ## Next Steps
 
 ### 1. Review Specification
+
 - Verify 5 user stories align with your vision
 - Confirm success criteria are appropriate
 - Check assumptions match your infrastructure
 
 ### 2. Run Planning Phase
+
 ```bash
 /speckit.plan
 ```
+
 This will generate:
+
 - Implementation plan with technical context
 - Research findings on HelloFresh integration
 - Data model for ingredient normalization
 - Task breakdown by user story
 
 ### 3. Implementation Timeline
+
 With 3 P1 stories and 2 P2 stories:
+
 - **Phase 1**: Complete US1, US2, US3 (core features)
 - **Phase 2**: Add US4, US5 (extensibility & reliability)
 
@@ -185,6 +199,7 @@ With 3 P1 stories and 2 P2 stories:
 **No clarifications needed** - specification is comprehensive and ready for development.
 
 If you need to adjust:
+
 - Batch size (currently 100 recipes)
 - Time window (currently 1 hour)
 - Minimum delay between requests (currently 2 seconds)
@@ -213,6 +228,7 @@ specs/001-hellofresh-recipe-engine/
 ✅ **Specification is complete, comprehensive, and ready for implementation planning.**
 
 The spec captures your vision for a:
+
 - **Production-ready** recipe engine with 100 recipe/hour throughput
 - **Multi-provider extensible** architecture (start with HelloFresh, grow to others)
 - **Ingredient-normalized** system ensuring consistency across providers
