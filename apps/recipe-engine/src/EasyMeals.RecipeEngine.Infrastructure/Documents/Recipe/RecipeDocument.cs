@@ -86,7 +86,7 @@ public class RecipeDocument : BaseSoftDeletableDocument
 	public string SourceUrl { get; set; } = string.Empty;
 
 	/// <summary>
-	///     Source provider (e.g., "HelloFresh", "AllRecipes", etc.)
+	///     Source provider
 	///     Supports multi-provider architecture and data lineage tracking
 	/// </summary>
 	[BsonElement("sourceProvider")]
@@ -129,6 +129,48 @@ public class RecipeDocument : BaseSoftDeletableDocument
 	/// </summary>
 	[BsonElement("reviewCount")]
 	public int ReviewCount { get; set; } = 0;
+
+	// ===== Recipe Engine-Specific Fields =====
+
+	/// <summary>
+	///     Provider identifier
+	///     Used by Recipe Engine for multi-provider support
+	/// </summary>
+	[BsonElement("providerId")]
+	public string? ProviderId { get; set; }
+
+	/// <summary>
+	///     Provider's internal recipe ID
+	///     Preserves original provider reference for auditing
+	/// </summary>
+	[BsonElement("providerRecipeId")]
+	public string? ProviderRecipeId { get; set; }
+
+	/// <summary>
+	///     Content-based fingerprint hash (SHA256) for duplicate detection
+	///     Generated from URL + title + description
+	/// </summary>
+	[BsonElement("fingerprintHash")]
+	public string? FingerprintHash { get; set; }
+
+	/// <summary>
+	///     When the recipe was scraped from the provider
+	/// </summary>
+	[BsonElement("scrapedAt")]
+	public DateTime? ScrapedAt { get; set; }
+
+	/// <summary>
+	///     When the recipe was last updated/reprocessed
+	/// </summary>
+	[BsonElement("lastUpdatedAt")]
+	public DateTime? LastUpdatedAt { get; set; }
+
+	/// <summary>
+	///     Ingredient references with provider codes and canonical forms
+	///     Stores both raw provider data and normalized ingredient mappings
+	/// </summary>
+	[BsonElement("ingredientReferences")]
+	public List<IngredientReferenceDocument> IngredientReferences { get; set; } = [];
 
 	/// <summary>
 	///     Calculated total time for the recipe

@@ -39,6 +39,7 @@ public sealed class Recipe
 		_instructions = [];
 		_tags = [];
 		_domainEvents = [];
+		_ingredientReferences = [];
 
 		CreatedAt = DateTime.UtcNow;
 		UpdatedAt = DateTime.UtcNow;
@@ -55,6 +56,7 @@ public sealed class Recipe
 		_instructions = [];
 		_tags = [];
 		_domainEvents = [];
+		_ingredientReferences = [];
 	}
 
 	/// <summary>
@@ -172,6 +174,28 @@ public sealed class Recipe
 
 	/// <summary>Read-only view of domain events</summary>
 	public IReadOnlyList<IDomainEvent> DomainEvents => _domainEvents.AsReadOnly();
+
+	// ===== Recipe Engine-Specific Properties =====
+
+	/// <summary>Provider identifier (e.g., "provider_001")</summary>
+	public string? ProviderId { get; private set; }
+
+	/// <summary>Provider's internal recipe ID</summary>
+	public string? ProviderRecipeId { get; private set; }
+
+	/// <summary>Content-based fingerprint hash (SHA256)</summary>
+	public string? FingerprintHash { get; private set; }
+
+	/// <summary>When the recipe was scraped</summary>
+	public DateTime? ScrapedAt { get; private set; }
+
+	/// <summary>When the recipe was last updated/reprocessed</summary>
+	public DateTime? LastUpdatedAt { get; private set; }
+
+	private List<ValueObjects.IngredientReference> _ingredientReferences;
+
+	/// <summary>Read-only view of ingredient references with provider codes</summary>
+	public IReadOnlyList<ValueObjects.IngredientReference> IngredientReferences => _ingredientReferences.AsReadOnly();
 
 	#endregion
 
@@ -378,6 +402,50 @@ public sealed class Recipe
 	public void ClearDomainEvents()
 	{
 		_domainEvents.Clear();
+	}
+
+	// ===== Recipe Engine-Specific Methods =====
+
+	/// <summary>
+	///     Sets provider-specific metadata for the recipe
+	/// </summary>
+	public void SetProviderMetadata(string providerId, string? providerRecipeId, DateTime scrapedAt)
+	{
+		if (string.IsNullOrWhiteSpace(providerId))
+			throw new ArgumentException("ProviderId is required", nameof(providerId));
+
+		ProviderId = providerId;
+		ProviderRecipeId = providerRecipeId;
+		ScrapedAt = scrapedAt;
+		LastUpdatedAt = DateTime.UtcNow;
+		UpdatedAt = DateTime.UtcNow;
+	}
+
+	/// <summary>
+	///     Updates the content-based fingerprint hash for duplicate detection
+	/// </summary>
+	public void UpdateFingerprint(string fingerprintHash)
+	{
+		if (string.IsNullOrWhiteSpace(fingerprintHash))
+			throw new ArgumentException("FingerprintHash is required", nameof(fingerprintHash));
+
+		if (fingerprintHash.Length != 64)
+			throw new ArgumentException("FingerprintHash must be a 64-character SHA256 hex string", nameof(fingerprintHash));
+
+		FingerprintHash = fingerprintHash;
+		UpdatedAt = DateTime.UtcNow;
+	}
+
+	/// <summary>
+	///     Adds an ingredient reference with provider code and canonical form
+	/// </summary>
+	public void AddIngredientReference(ValueObjects.IngredientReference ingredientRef)
+	{
+		if (ingredientRef == null)
+			throw new ArgumentNullException(nameof(ingredientRef));
+
+		_ingredientReferences.Add(ingredientRef);
+		UpdatedAt = DateTime.UtcNow;
 	}
 
 	#endregion

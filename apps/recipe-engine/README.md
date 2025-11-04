@@ -17,7 +17,6 @@ This recipe-engine is designed to extract recipe data from various meal kit and 
 
 ## Supported Providers
 
-- **HelloFresh**: Full support with specialized extractor
 - **Extensible**: Easy to add support for additional providers
 
 ## Configuration
@@ -29,7 +28,7 @@ Update your `appsettings.json` to specify the source provider:
 ```json
 {
   "RecipeEngine": {
-    "SourceProvider": "HelloFresh",
+    "SourceProvider": "SourceProvider",
     "DefaultPriority": 1,
     "DelayBetweenRequestsSeconds": 2,
     "RequestTimeoutSeconds": 30,

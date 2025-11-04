@@ -85,7 +85,7 @@ public class RecipeDocument : BaseSoftDeletableDocument
 	public string SourceUrl { get; set; } = string.Empty;
 
 	/// <summary>
-	///     Source provider (e.g., "HelloFresh", "AllRecipes", etc.)
+	///     Source provider
 	///     Supports multi-provider architecture and data lineage tracking
 	/// </summary>
 	[BsonElement("sourceProvider")]

@@ -42,7 +42,7 @@ public class FingerprintDocument : BaseDocument
 	public DateTime ScrapedAt { get; set; }
 
 	/// <summary>
-	///     Source provider that scraped this content (e.g., "HelloFresh", "Tasty")
+	///     Source provider that scraped this content
 	///     Enables provider-specific processing strategies and audit trails
 	/// </summary>
 	[BsonElement("sourceProvider")]

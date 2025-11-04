@@ -10,7 +10,7 @@
   - `packages/shared`: Shared C# infrastructure (MongoDB repositories, domain events)
   - `packages/typescript-config`, `packages/eslint-config`: Shared config
 - **Data flow**: API (C#) provides backend, web app fetches data via API routes or direct fetch.
-- **Recipe Engine**: Batch processing console app (scheduled via Coolify) for scraping recipes from providers (HelloFresh, etc.)
+- **Recipe Engine**: Batch processing console app (scheduled via Coolify) for scraping recipes from providers
 - **UI**: All React UI uses Tailwind, and shadcn patterns. Animations use Motion for React (`motion/react`).
 
 ## Developer Workflows
@@ -60,11 +60,11 @@
 
 ---
 
-## Recipe Engine Architecture (Feature: 001-hellofresh-recipe-engine)
+## Recipe Engine Architecture
 
 ### Overview
 
-The Recipe Engine is a batch processing console application that scrapes recipes from providers (HelloFresh, Blue Apron, etc.) and stores them in MongoDB. It uses **Domain-Driven Design** with **Saga orchestration** for multi-step workflows and **Strategy pattern** for pluggable discovery implementations.
+The Recipe Engine is a batch processing console application that scrapes recipes from providers and stores them in MongoDB. It uses **Domain-Driven Design** with **Saga orchestration** for multi-step workflows and **Strategy pattern** for pluggable discovery implementations.
 
 ### Project Structure
 
@@ -96,7 +96,7 @@ apps/recipe-engine/
 - **Purpose**: Pluggable recipe URL discovery per provider (config-driven)
 - **Strategies**:
   - `StaticCrawlDiscoveryService`: Static HTML parsing (HtmlAgilityPack)
-  - `DynamicCrawlDiscoveryService`: JavaScript rendering (Playwright, headless Chromium) - used by HelloFresh
+  - `DynamicCrawlDiscoveryService`: JavaScript rendering (Playwright, headless Chromium)
   - `ApiDiscoveryService`: API-based discovery (HttpClient + JSON)
 - **Configuration**: `ProviderConfiguration.DiscoveryStrategy` enum (Static/Dynamic/Api)
 - **Resolution**: Resolve by strategy enum at runtime via DI
@@ -219,12 +219,12 @@ Provider settings are stored in the `provider_configurations` MongoDB collection
 
 ### References
 
-- **Specification**: `specs/001-hellofresh-recipe-engine/spec.md`
-- **Implementation Plan**: `specs/001-hellofresh-recipe-engine/plan.md`
-- **Research**: `specs/001-hellofresh-recipe-engine/research.md`
-- **Data Model**: `specs/001-hellofresh-recipe-engine/data-model.md`
-- **Contracts**: `specs/001-hellofresh-recipe-engine/contracts/`
-- **Quickstart**: `specs/001-hellofresh-recipe-engine/quickstart.md`
+- **Specification**: `specs/001-recipe-engine/spec.md`
+- **Implementation Plan**: `specs/001-recipe-engine/plan.md`
+- **Research**: `specs/001-recipe-engine/research.md`
+- **Data Model**: `specs/001-recipe-engine/data-model.md`
+- **Contracts**: `specs/001-recipe-engine/contracts/`
+- **Quickstart**: `specs/001-recipe-engine/quickstart.md`
 
 ---
 
