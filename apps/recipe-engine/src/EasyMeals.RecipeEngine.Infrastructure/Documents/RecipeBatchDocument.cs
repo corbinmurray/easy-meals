@@ -12,9 +12,6 @@ namespace EasyMeals.RecipeEngine.Infrastructure.Documents;
 [BsonCollection("recipe_batches")]
 public class RecipeBatchDocument : BaseDocument
 {
-    [BsonId]
-    [BsonRepresentation(BsonType.String)]
-    public Guid Id { get; set; }
 
     [BsonElement("providerId")]
     [BsonRequired]

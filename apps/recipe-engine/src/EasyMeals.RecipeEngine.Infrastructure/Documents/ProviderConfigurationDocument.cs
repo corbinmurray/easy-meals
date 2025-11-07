@@ -13,10 +13,6 @@ namespace EasyMeals.RecipeEngine.Infrastructure.Documents;
 [BsonCollection("provider_configurations")]
 public class ProviderConfigurationDocument : BaseDocument
 {
-    [BsonId]
-    [BsonRepresentation(BsonType.String)]
-    public Guid Id { get; set; }
-
     [BsonElement("providerId")]
     [BsonRequired]
     public string ProviderId { get; set; } = string.Empty;

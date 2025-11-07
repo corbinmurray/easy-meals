@@ -22,13 +22,9 @@ public class ProviderConfigurationLoader : IProviderConfigurationLoader
         string providerId,
         CancellationToken cancellationToken = default)
     {
-        var filter = Builders<ProviderConfigurationDocument>.Filter.And(
-            Builders<ProviderConfigurationDocument>.Filter.Eq(d => d.ProviderId, providerId),
-            Builders<ProviderConfigurationDocument>.Filter.Eq(d => d.Enabled, true)
-        );
-
-        var documents = await _repository.FindAsync(filter, cancellationToken);
-        var document = documents.FirstOrDefault();
+        var document = await _repository.GetFirstOrDefaultAsync(
+            d => d.ProviderId == providerId && d.Enabled,
+            cancellationToken);
 
         return document != null ? ToDomain(document) : null;
     }
@@ -36,8 +32,7 @@ public class ProviderConfigurationLoader : IProviderConfigurationLoader
     public async Task<IEnumerable<ProviderConfiguration>> GetAllEnabledAsync(
         CancellationToken cancellationToken = default)
     {
-        var filter = Builders<ProviderConfigurationDocument>.Filter.Eq(d => d.Enabled, true);
-        var documents = await _repository.FindAsync(filter, cancellationToken);
+        var documents = await _repository.GetAllAsync(d => d.Enabled, cancellationToken);
 
         return documents.Select(ToDomain).ToList();
     }
@@ -61,14 +56,20 @@ public class ProviderConfigurationLoader : IProviderConfigurationLoader
 
     private static ProviderConfiguration ToDomain(ProviderConfigurationDocument document)
     {
+        // Parse the discovery strategy from string to enum
+        if (!Enum.TryParse<DiscoveryStrategy>(document.DiscoveryStrategy, true, out var strategy))
+        {
+            throw new InvalidOperationException($"Invalid DiscoveryStrategy value: {document.DiscoveryStrategy}");
+        }
+
         return new ProviderConfiguration(
             document.ProviderId,
+            document.Enabled,
+            strategy,
             document.RecipeRootUrl,
-            document.DiscoveryStrategy,
             document.BatchSize,
-            TimeSpan.FromMinutes(document.TimeWindowMinutes),
+            document.TimeWindowMinutes,
             document.MinDelaySeconds,
-            document.MaxDelaySeconds,
             document.MaxRequestsPerMinute,
             document.RetryCount,
             document.RequestTimeoutSeconds
