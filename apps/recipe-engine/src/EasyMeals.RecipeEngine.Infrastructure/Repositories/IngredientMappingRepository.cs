@@ -62,11 +62,11 @@ public class IngredientMappingRepository : MongoRepository<IngredientMappingDocu
 	private static IngredientMappingDocument ToDocument(IngredientMapping mapping) =>
 		new()
 		{
-			Id = Guid.NewGuid().ToString(),
+			Id = mapping.Id.ToString(),
 			ProviderId = mapping.ProviderId,
 			ProviderCode = mapping.ProviderCode,
 			CanonicalForm = mapping.CanonicalForm,
-			CreatedAt = DateTime.UtcNow,
-			UpdatedAt = DateTime.UtcNow
+			CreatedAt = mapping.CreatedAt,
+			UpdatedAt = mapping.UpdatedAt ?? mapping.CreatedAt
 		};
 }

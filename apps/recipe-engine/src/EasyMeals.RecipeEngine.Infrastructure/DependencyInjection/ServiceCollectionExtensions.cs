@@ -4,10 +4,12 @@ using EasyMeals.RecipeEngine.Domain.Repositories;
 using EasyMeals.RecipeEngine.Domain.Services;
 using EasyMeals.RecipeEngine.Infrastructure.Documents;
 using EasyMeals.RecipeEngine.Infrastructure.Documents.Fingerprint;
+using EasyMeals.RecipeEngine.Infrastructure.Documents.Recipe;
 using EasyMeals.RecipeEngine.Infrastructure.Documents.SagaState;
 using EasyMeals.RecipeEngine.Infrastructure.Repositories;
 using EasyMeals.RecipeEngine.Infrastructure.Services;
 using EasyMeals.Shared.Data.DependencyInjection;
+using EasyMeals.Shared.Data.Repositories;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using IRecipeRepository = EasyMeals.RecipeEngine.Domain.Interfaces.IRecipeRepository;
@@ -57,7 +59,7 @@ public static class ServiceCollectionExtensions
 		services.AddScoped<IRecipeBatchRepository, RecipeBatchRepository>();
 		services.AddScoped<IIngredientMappingRepository, IngredientMappingRepository>();
 		services.AddScoped<IRecipeFingerprintRepository, RecipeFingerprintRepository>();
-		services.AddScoped<IRecipeRepository, MongoRecipeRepository>();
+		services.AddScoped<IRecipeRepository, RecipeRepository>();
 
 		// Register domain services
 		services.AddScoped<IRecipeDuplicationChecker, RecipeDuplicationChecker>();

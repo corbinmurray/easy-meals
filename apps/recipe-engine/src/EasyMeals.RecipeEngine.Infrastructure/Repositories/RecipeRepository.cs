@@ -57,7 +57,9 @@ public class RecipeRepository : MongoRepository<RecipeDocument>, Domain.Interfac
 				i.Name,
 				i.Amount,
 				i.Unit,
-				i.Notes ?? string.Empty))
+				i.Notes,
+				i.IsOptional,
+				i.Order))
 			.ToList();
 
 		// Convert embedded instruction documents to value objects
@@ -65,7 +67,11 @@ public class RecipeRepository : MongoRepository<RecipeDocument>, Domain.Interfac
 			.Select(i => new Instruction(
 				i.StepNumber,
 				i.Description,
-				i.TimeMinutes))
+				i.TimeMinutes,
+				i.Temperature,
+				i.Equipment,
+				i.MediaUrl,
+				i.Tips))
 			.ToList();
 
 		// Convert nutritional info if present
@@ -73,11 +79,19 @@ public class RecipeRepository : MongoRepository<RecipeDocument>, Domain.Interfac
 			? null
 			: new NutritionalInfo(
 				document.NutritionInfo.Calories,
-				document.NutritionInfo.ProteinGrams,
-				document.NutritionInfo.CarbohydratesGrams,
 				document.NutritionInfo.FatGrams,
+				document.NutritionInfo.SaturatedFatGrams,
+				document.NutritionInfo.CholesterolMg,
+				document.NutritionInfo.SodiumMg,
+				document.NutritionInfo.CarbohydratesGrams,
 				document.NutritionInfo.FiberGrams,
-				document.NutritionInfo.SugarGrams);
+				document.NutritionInfo.SugarGrams,
+				document.NutritionInfo.ProteinGrams,
+				document.NutritionInfo.VitaminAPercent,
+				document.NutritionInfo.VitaminCPercent,
+				document.NutritionInfo.CalciumPercent,
+				document.NutritionInfo.IronPercent,
+				document.NutritionInfo.AdditionalNutrition);
 
 		// Reconstitute the Recipe aggregate root
 		Recipe recipe = Recipe.Reconstitute(
@@ -109,16 +123,18 @@ public class RecipeRepository : MongoRepository<RecipeDocument>, Domain.Interfac
 	{
 		return new RecipeDocument
 		{
-			Id = recipe.Id,
+			Id = recipe.Id.ToString(),
 			Title = recipe.Title,
 			Description = recipe.Description,
 			Ingredients = recipe.Ingredients
 				.Select(i => new IngredientDocument
 				{
 					Name = i.Name,
-					Quantity = i.Quantity,
+					Amount = i.Amount,
 					Unit = i.Unit,
-					Notes = i.Notes
+					Notes = i.Notes,
+					IsOptional = i.IsOptional,
+					Order = i.Order
 				})
 				.ToList(),
 			Instructions = recipe.Instructions
@@ -126,7 +142,11 @@ public class RecipeRepository : MongoRepository<RecipeDocument>, Domain.Interfac
 				{
 					StepNumber = i.StepNumber,
 					Description = i.Description,
-					TimingMinutes = i.TimingMinutes
+					TimeMinutes = i.TimeMinutes,
+					Temperature = i.Temperature,
+					Equipment = i.Equipment,
+					MediaUrl = i.MediaUrl,
+					Tips = i.Tips
 				})
 				.ToList(),
 			ImageUrl = recipe.ImageUrl,
@@ -138,11 +158,19 @@ public class RecipeRepository : MongoRepository<RecipeDocument>, Domain.Interfac
 				: new NutritionalInfoDocument
 				{
 					Calories = recipe.NutritionalInfo.Calories,
-					Protein = recipe.NutritionalInfo.Protein,
-					Carbohydrates = recipe.NutritionalInfo.Carbohydrates,
-					Fat = recipe.NutritionalInfo.Fat,
-					Fiber = recipe.NutritionalInfo.Fiber,
-					Sugar = recipe.NutritionalInfo.Sugar
+					FatGrams = recipe.NutritionalInfo.FatGrams,
+					SaturatedFatGrams = recipe.NutritionalInfo.SaturatedFatGrams,
+					CholesterolMg = recipe.NutritionalInfo.CholesterolMg,
+					SodiumMg = recipe.NutritionalInfo.SodiumMg,
+					CarbohydratesGrams = recipe.NutritionalInfo.CarbohydratesGrams,
+					FiberGrams = recipe.NutritionalInfo.FiberGrams,
+					SugarGrams = recipe.NutritionalInfo.SugarGrams,
+					ProteinGrams = recipe.NutritionalInfo.ProteinGrams,
+					VitaminAPercent = recipe.NutritionalInfo.VitaminAPercent,
+					VitaminCPercent = recipe.NutritionalInfo.VitaminCPercent,
+					CalciumPercent = recipe.NutritionalInfo.CalciumPercent,
+					IronPercent = recipe.NutritionalInfo.IronPercent,
+					AdditionalNutrition = recipe.NutritionalInfo.AdditionalNutrition
 				},
 			Tags = recipe.Tags.ToList(),
 			SourceUrl = recipe.SourceUrl,
