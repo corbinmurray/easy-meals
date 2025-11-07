@@ -13,10 +13,6 @@ namespace EasyMeals.RecipeEngine.Infrastructure.Documents;
 [BsonCollection("recipe_fingerprints")]
 public class RecipeFingerprintDocument : BaseDocument
 {
-    [BsonId]
-    [BsonRepresentation(BsonType.String)]
-    public Guid Id { get; set; }
-
     [BsonElement("fingerprintHash")]
     [BsonRequired]
     public string FingerprintHash { get; set; } = string.Empty;

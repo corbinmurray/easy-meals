@@ -2,7 +2,6 @@
 using EasyMeals.RecipeEngine.Application.Interfaces;
 using EasyMeals.RecipeEngine.Application.Options;
 using EasyMeals.RecipeEngine.Infrastructure.DependencyInjection;
-using EasyMeals.Shared.Data;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -13,7 +12,6 @@ IConfigurationRoot configuration = new ConfigurationBuilder()
 	.AddJsonFile("appsettings.json", false, true)
 	.AddJsonFile("appsettings.Development.json", true)
 	.AddEnvironmentVariables()
-	.AddUserSecrets<Program>()
 	.Build();
 
 // Services setup
@@ -33,13 +31,7 @@ services.AddLogging(opts =>
 	opts.AddDebug();
 });
 
-// MongoDB configuration
-var connectionString = configuration["MongoDB:ConnectionString"]
-	?? throw new InvalidOperationException("MongoDB:ConnectionString not configured");
-var databaseName = configuration["MongoDB:DatabaseName"] ?? "EasyMeals";
-
-services.AddMongoDb(connectionString, databaseName);
-
+// Recipe Engine infrastructure includes MongoDB setup
 services.AddRecipeEngineInfrastructure(configuration);
 services.AddRecipeEngine();
 

@@ -59,15 +59,20 @@ public class RecipeFingerprintRepository : MongoRepository<RecipeFingerprintDocu
 	}
 
 	private static RecipeFingerprint ToDomain(RecipeFingerprintDocument document) =>
-		new(document.ProviderId, document.RecipeUrl, document.FingerprintHash);
+		RecipeFingerprint.Create(
+			document.FingerprintHash,
+			document.ProviderId,
+			document.RecipeUrl,
+			document.RecipeId);
 
 	private static RecipeFingerprintDocument ToDocument(RecipeFingerprint fingerprint) =>
 		new()
 		{
-			Id = Guid.NewGuid().ToString(),
+			Id = fingerprint.Id.ToString(),
 			ProviderId = fingerprint.ProviderId,
 			RecipeUrl = fingerprint.RecipeUrl,
 			FingerprintHash = fingerprint.FingerprintHash,
-			ProcessedAt = DateTime.UtcNow
+			RecipeId = fingerprint.RecipeId,
+			ProcessedAt = fingerprint.ProcessedAt
 		};
 }

@@ -83,7 +83,7 @@ public class RecipeBatchRepository : MongoRepository<RecipeBatchDocument>, IReci
 	private static RecipeBatchDocument ToDocument(RecipeBatch batch) =>
 		new()
 		{
-			Id = batch.Id,
+			Id = batch.Id.ToString(),
 			ProviderId = batch.ProviderId,
 			BatchSize = batch.BatchSize,
 			TimeWindowMinutes = (int)batch.TimeWindow.TotalMinutes,
