@@ -1,10 +1,16 @@
+using EasyMeals.RecipeEngine.Application.Interfaces;
 using EasyMeals.RecipeEngine.Domain.Interfaces;
+using EasyMeals.RecipeEngine.Domain.Repositories;
+using EasyMeals.RecipeEngine.Domain.Services;
+using EasyMeals.RecipeEngine.Infrastructure.Documents;
 using EasyMeals.RecipeEngine.Infrastructure.Documents.Fingerprint;
 using EasyMeals.RecipeEngine.Infrastructure.Documents.SagaState;
 using EasyMeals.RecipeEngine.Infrastructure.Repositories;
+using EasyMeals.RecipeEngine.Infrastructure.Services;
 using EasyMeals.Shared.Data.DependencyInjection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using IRecipeRepository = EasyMeals.RecipeEngine.Domain.Interfaces.IRecipeRepository;
 
 namespace EasyMeals.RecipeEngine.Infrastructure.DependencyInjection;
 
@@ -39,6 +45,29 @@ public static class ServiceCollectionExtensions
 					.WithDefaultIndexes();
 			})
 			.EnsureDatabaseAsync().GetAwaiter().GetResult();
+
+		// Register MongoDB document repositories for Recipe Engine
+		services.AddScoped<IMongoRepository<ProviderConfigurationDocument>, MongoRepository<ProviderConfigurationDocument>>();
+		services.AddScoped<IMongoRepository<RecipeBatchDocument>, MongoRepository<RecipeBatchDocument>>();
+		services.AddScoped<IMongoRepository<IngredientMappingDocument>, MongoRepository<IngredientMappingDocument>>();
+		services.AddScoped<IMongoRepository<RecipeFingerprintDocument>, MongoRepository<RecipeFingerprintDocument>>();
+		services.AddScoped<IMongoRepository<RecipeDocument>, MongoRepository<RecipeDocument>>();
+
+		// Register domain repositories
+		services.AddScoped<IRecipeBatchRepository, RecipeBatchRepository>();
+		services.AddScoped<IIngredientMappingRepository, IngredientMappingRepository>();
+		services.AddScoped<IRecipeFingerprintRepository, RecipeFingerprintRepository>();
+		services.AddScoped<IRecipeRepository, MongoRecipeRepository>();
+
+		// Register domain services
+		services.AddScoped<IRecipeDuplicationChecker, RecipeDuplicationChecker>();
+		services.AddScoped<IBatchCompletionPolicy, BatchCompletionPolicy>();
+
+		// Register application services
+		services.AddScoped<IProviderConfigurationLoader, ProviderConfigurationLoader>();
+
+		// Register hosted services
+		services.AddHostedService<ConfigurationHostedService>();
 
 		return services;
 	}

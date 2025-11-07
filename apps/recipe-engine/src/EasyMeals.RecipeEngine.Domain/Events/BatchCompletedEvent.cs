@@ -1,5 +1,3 @@
-using EasyMeals.RecipeEngine.Domain.Events;
-
 namespace EasyMeals.RecipeEngine.Domain.Events;
 
 /// <summary>
@@ -10,4 +8,4 @@ public record BatchCompletedEvent(
     int ProcessedCount,
     int SkippedCount,
     int FailedCount,
-    DateTime CompletedAt) : IDomainEvent;
+    DateTime CompletedAt) : BaseDomainEvent;

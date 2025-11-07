@@ -1,5 +1,3 @@
-using EasyMeals.RecipeEngine.Domain.Events;
-
 namespace EasyMeals.RecipeEngine.Domain.Events;
 
 /// <summary>
@@ -8,4 +6,4 @@ namespace EasyMeals.RecipeEngine.Domain.Events;
 public record IngredientMappingMissingEvent(
     string ProviderId,
     string ProviderCode,
-    string RecipeUrl) : IDomainEvent;
+    string RecipeUrl) : BaseDomainEvent;

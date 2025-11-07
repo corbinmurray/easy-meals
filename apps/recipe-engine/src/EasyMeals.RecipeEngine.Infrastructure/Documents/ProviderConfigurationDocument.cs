@@ -1,4 +1,6 @@
-using EasyMeals.Shared.Data;
+using EasyMeals.Shared.Data.Attributes;
+using EasyMeals.Shared.Data.Documents;
+using EasyMeals.RecipeEngine.Domain.ValueObjects;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 

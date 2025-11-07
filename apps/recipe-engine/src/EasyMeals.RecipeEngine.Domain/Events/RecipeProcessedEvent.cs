@@ -1,5 +1,3 @@
-using EasyMeals.RecipeEngine.Domain.Events;
-
 namespace EasyMeals.RecipeEngine.Domain.Events;
 
 /// <summary>
@@ -9,4 +7,4 @@ public record RecipeProcessedEvent(
     Guid RecipeId,
     string Url,
     string ProviderId,
-    DateTime ProcessedAt) : IDomainEvent;
+    DateTime ProcessedAt) : BaseDomainEvent;

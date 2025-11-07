@@ -1,5 +1,3 @@
-using EasyMeals.RecipeEngine.Domain.Events;
-
 namespace EasyMeals.RecipeEngine.Domain.Events;
 
 /// <summary>
@@ -8,4 +6,4 @@ namespace EasyMeals.RecipeEngine.Domain.Events;
 public record BatchStartedEvent(
     Guid BatchId,
     string ProviderId,
-    DateTime StartedAt) : IDomainEvent;
+    DateTime StartedAt) : BaseDomainEvent;

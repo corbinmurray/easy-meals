@@ -2,6 +2,9 @@ using EasyMeals.Shared.Data;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 
+using EasyMeals.Shared.Data.Attributes;
+using EasyMeals.Shared.Data.Documents;
+
 namespace EasyMeals.RecipeEngine.Infrastructure.Documents;
 
 /// <summary>
