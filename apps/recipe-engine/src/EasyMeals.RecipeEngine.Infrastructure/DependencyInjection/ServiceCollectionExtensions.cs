@@ -6,6 +6,7 @@ using EasyMeals.RecipeEngine.Infrastructure.Documents;
 using EasyMeals.RecipeEngine.Infrastructure.Documents.Fingerprint;
 using EasyMeals.RecipeEngine.Infrastructure.Documents.Recipe;
 using EasyMeals.RecipeEngine.Infrastructure.Documents.SagaState;
+using EasyMeals.RecipeEngine.Infrastructure.Normalization;
 using EasyMeals.RecipeEngine.Infrastructure.Repositories;
 using EasyMeals.RecipeEngine.Infrastructure.Services;
 using EasyMeals.Shared.Data.DependencyInjection;
@@ -67,6 +68,7 @@ public static class ServiceCollectionExtensions
 
 		// Register application services
 		services.AddScoped<IProviderConfigurationLoader, ProviderConfigurationLoader>();
+		services.AddScoped<IIngredientNormalizer, IngredientNormalizationService>();
 
 		// Register hosted services
 		services.AddHostedService<ConfigurationHostedService>();
