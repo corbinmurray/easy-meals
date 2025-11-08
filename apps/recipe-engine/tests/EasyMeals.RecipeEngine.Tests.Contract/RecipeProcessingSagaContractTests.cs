@@ -21,17 +21,32 @@ public class RecipeProcessingSagaContractTests
         mockSagaRepo.Setup(r => r.AddAsync(It.IsAny<SagaState>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((SagaState state, CancellationToken _) => state);
 
+        // The saga will execute, so we need to provide all dependencies
+        mockSagaRepo.Setup(r => r.UpdateAsync(It.IsAny<SagaState>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((SagaState state, CancellationToken _) => state);
+
+        var mockConfigLoader = new Mock<Application.Interfaces.IProviderConfigurationLoader>();
+        mockConfigLoader.Setup(c => c.GetByProviderIdAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((ProviderConfiguration?)null); // Will cause exception but that's okay for this test
+
         var saga = new RecipeProcessingSaga(
             Mock.Of<Microsoft.Extensions.Logging.ILogger<RecipeProcessingSaga>>(),
-            mockSagaRepo.Object
+            mockSagaRepo.Object,
+            mockConfigLoader.Object,
+            Mock.Of<Domain.Interfaces.IDiscoveryService>(),
+            Mock.Of<Application.Interfaces.IRecipeFingerprinter>(),
+            Mock.Of<Application.Interfaces.IIngredientNormalizer>(),
+            Mock.Of<Application.Interfaces.IRateLimiter>(),
+            Mock.Of<Domain.Repositories.IRecipeBatchRepository>()
         );
 
-        // Act
-        await saga.StartProcessingAsync(CancellationToken.None);
+        // Act & Assert - Expect exception due to null config
+        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await saga.StartProcessingAsync("provider_001", 100, TimeSpan.FromHours(1), CancellationToken.None));
 
-        // Assert
+        // Verify saga state was created
         mockSagaRepo.Verify(r => r.AddAsync(
-            It.Is<SagaState>(s => s.Status == SagaStatus.Created),
+            It.Is<SagaState>(s => s.Status == SagaStatus.Created || s.Status == SagaStatus.Running),
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -48,20 +63,32 @@ public class RecipeProcessingSagaContractTests
                 capturedState = state;
                 return state;
             });
+        mockSagaRepo.Setup(r => r.UpdateAsync(It.IsAny<SagaState>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((SagaState state, CancellationToken _) => state);
+
+        var mockConfigLoader = new Mock<Application.Interfaces.IProviderConfigurationLoader>();
+        mockConfigLoader.Setup(c => c.GetByProviderIdAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((ProviderConfiguration?)null); // Will trigger exception
 
         var saga = new RecipeProcessingSaga(
             Mock.Of<Microsoft.Extensions.Logging.ILogger<RecipeProcessingSaga>>(),
-            mockSagaRepo.Object
+            mockSagaRepo.Object,
+            mockConfigLoader.Object,
+            Mock.Of<Domain.Interfaces.IDiscoveryService>(),
+            Mock.Of<Application.Interfaces.IRecipeFingerprinter>(),
+            Mock.Of<Application.Interfaces.IIngredientNormalizer>(),
+            Mock.Of<Application.Interfaces.IRateLimiter>(),
+            Mock.Of<Domain.Repositories.IRecipeBatchRepository>()
         );
 
-        // Act
-        await saga.StartProcessingAsync(CancellationToken.None);
+        // Act & Assert
+        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await saga.StartProcessingAsync("provider_001", 100, TimeSpan.FromHours(1), CancellationToken.None));
 
-        // Assert
+        // Assert - State was created and started
         capturedState.Should().NotBeNull();
-        capturedState!.Status.Should().Be(SagaStatus.Created);
-        // Note: Actual transition to Discovering will happen in the saga implementation
-        // This test verifies the saga is created and ready to start
+        capturedState!.Status.Should().Be(SagaStatus.Running);
+        capturedState.CurrentPhase.Should().Be("Discovering");
     }
 
     [Fact(DisplayName = "Saga state includes required workflow data")]
@@ -77,22 +104,40 @@ public class RecipeProcessingSagaContractTests
                 capturedState = state;
                 return state;
             });
+        mockSagaRepo.Setup(r => r.UpdateAsync(It.IsAny<SagaState>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((SagaState state, CancellationToken _) => state);
+
+        var mockConfigLoader = new Mock<Application.Interfaces.IProviderConfigurationLoader>();
+        mockConfigLoader.Setup(c => c.GetByProviderIdAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((ProviderConfiguration?)null);
 
         var saga = new RecipeProcessingSaga(
             Mock.Of<Microsoft.Extensions.Logging.ILogger<RecipeProcessingSaga>>(),
-            mockSagaRepo.Object
+            mockSagaRepo.Object,
+            mockConfigLoader.Object,
+            Mock.Of<Domain.Interfaces.IDiscoveryService>(),
+            Mock.Of<Application.Interfaces.IRecipeFingerprinter>(),
+            Mock.Of<Application.Interfaces.IIngredientNormalizer>(),
+            Mock.Of<Application.Interfaces.IRateLimiter>(),
+            Mock.Of<Domain.Repositories.IRecipeBatchRepository>()
         );
 
         // Act
-        await saga.StartProcessingAsync(CancellationToken.None);
+        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await saga.StartProcessingAsync("provider_001", 100, TimeSpan.FromHours(1), CancellationToken.None));
 
-        // Assert
+        // Assert - State includes workflow data
         capturedState.Should().NotBeNull();
         capturedState!.Id.Should().NotBeEmpty();
         capturedState.CorrelationId.Should().NotBeEmpty();
         capturedState.SagaType.Should().Be("RecipeProcessingSaga");
         capturedState.StateData.Should().NotBeNull();
-        capturedState.CheckpointData.Should().NotBeNull();
+        capturedState.StateData.Should().ContainKey("ProviderId");
+        capturedState.StateData.Should().ContainKey("BatchSize");
+        capturedState.StateData.Should().ContainKey("DiscoveredUrls");
+        capturedState.StateData.Should().ContainKey("ProcessedUrls");
+        capturedState.StateData.Should().ContainKey("FailedUrls");
+        capturedState.StateData.Should().ContainKey("CurrentIndex");
     }
 
     [Fact(DisplayName = "Saga persists state data for crash recovery")]
