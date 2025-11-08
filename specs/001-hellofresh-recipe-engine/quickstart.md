@@ -406,33 +406,126 @@ db.recipes.aggregate([
 
 ## Seeding Test Data
 
-### Ingredient Mappings
+**⚠️ PREREQUISITE**: MongoDB must be running and accessible (see "MongoDB via Docker" section above).
 
-Seed ingredient normalization mappings for testing:
+### Automated Seeding Scripts
 
-```powershell
-# From apps/recipe-engine directory
-dotnet run --project tools/DataSeeder -- --seed-ingredients
+The repository includes MongoDB seeding scripts in the `tools/` directory:
+
+1. **`tools/seed-provider-config.js`** - Seeds provider configuration
+2. **`tools/seed-ingredient-mappings.js`** - Seeds ingredient normalization mappings
+
+### Seed Provider Configuration
+
+Run the provider configuration seeding script:
+
+```bash
+# From repository root
+docker exec -i easy-meals-mongodb mongosh -u admin -p devpassword < tools/seed-provider-config.js
 ```
 
-**Manual Seeding (MongoDB Shell)**:
+**What it creates:**
+- Provider configuration document for `provider_001`
+- Indexes on `providerId`, `enabled`, `discoveryStrategy`, `createdAt`
+- Default settings: `batchSize=10`, `timeWindowMinutes=10`, `minDelaySeconds=2`
 
+**Example output:**
+```
+✓ Inserted new provider configuration: provider_001
+✓ Created unique index on providerId
+✓ Created index on enabled
+```
+
+### Seed Ingredient Mappings
+
+Run the ingredient mappings seeding script:
+
+```bash
+# From repository root
+docker exec -i easy-meals-mongodb mongosh -u admin -p devpassword < tools/seed-ingredient-mappings.js
+```
+
+**What it creates:**
+- 15 sample ingredient mappings for `provider_001`
+- Indexes on `(providerId, providerCode)`, `canonicalForm`, `createdAt`
+- Common ingredients: broccoli, chicken breast, garlic, olive oil, salt, pepper, onion, tomatoes, pasta, parmesan, basil, lemon, butter, cream, spinach
+
+**Example output:**
+```
+✓ Inserted: 15 new ingredient mappings
+✓ Created unique compound index on providerId + providerCode
+```
+
+### Verify Seeded Data
+
+Check that data was seeded successfully:
+
+```bash
+# Count provider configurations
+docker exec easy-meals-mongodb mongosh -u admin -p devpassword --quiet --eval "db.getSiblingDB('easymeals').provider_configurations.countDocuments()"
+# Expected: 1
+
+# Count ingredient mappings
+docker exec easy-meals-mongodb mongosh -u admin -p devpassword --quiet --eval "db.getSiblingDB('easymeals').ingredient_mappings.countDocuments()"
+# Expected: 15
+
+# List all collections
+docker exec easy-meals-mongodb mongosh -u admin -p devpassword --quiet --eval "db.getSiblingDB('easymeals').getCollectionNames()"
+# Expected: [ 'recipes', 'ingredient_mappings', 'saga_states', 'fingerprints', 'provider_configurations' ]
+```
+
+### Re-seeding Data
+
+The seeding scripts are idempotent - running them multiple times will update existing data instead of creating duplicates.
+
+```bash
+# Re-run both scripts to update data
+docker exec -i easy-meals-mongodb mongosh -u admin -p devpassword < tools/seed-provider-config.js
+docker exec -i easy-meals-mongodb mongosh -u admin -p devpassword < tools/seed-ingredient-mappings.js
+```
+
+### Manual Seeding (Alternative Method)
+
+If you prefer manual seeding via MongoDB Compass or mongosh directly:
+
+**Provider Configuration:**
 ```javascript
-db.ingredient_mappings.insertMany([
+db.getSiblingDB("easymeals").provider_configurations.insertOne({
+  _id: "provider_config_001",
+  providerId: "provider_001",
+  enabled: true,
+  discoveryStrategy: "Dynamic",
+  recipeRootUrl: "https://example.com/recipes", // Replace with actual URL
+  batchSize: 10,
+  timeWindowMinutes: 10,
+  minDelaySeconds: 2.0,
+  maxRequestsPerMinute: 10,
+  retryCount: 3,
+  requestTimeoutSeconds: 30,
+  createdAt: new Date(),
+  createdBy: "dev-setup"
+});
+```
+
+**Ingredient Mappings:**
+```javascript
+db.getSiblingDB("easymeals").ingredient_mappings.insertMany([
   {
     providerId: "provider_001",
     providerCode: "BROCCOLI-FROZEN-012",
     canonicalForm: "broccoli, frozen",
+    notes: "Frozen broccoli florets",
     createdAt: new Date(),
-    updatedAt: null,
+    updatedAt: null
   },
   {
     providerId: "provider_001",
     providerCode: "CHICKEN-BREAST-024",
     canonicalForm: "chicken breast, boneless",
+    notes: "Boneless, skinless chicken breast",
     createdAt: new Date(),
-    updatedAt: null,
-  },
+    updatedAt: null
+  }
   // ... add more mappings as needed
 ]);
 ```

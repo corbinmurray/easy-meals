@@ -89,14 +89,14 @@ Repository structure: `apps/recipe-engine/` with DDD layers (Domain, Application
 
 **Approach**: Run the Recipe Engine app once to create collections and indexes, then seed data
 
-- [ ] T040a Run Recipe Engine app in Docker via `docker-compose up easymeals-recipe-engine` to create MongoDB collections and indexes (app will fail due to missing provider config - this is expected)
-- [ ] T040b Verify collections exist in MongoDB via `docker exec -it easymeals-mongodb-local mongosh -u admin -p devpassword --eval "use easymeals; db.getCollectionNames()"` (should show: provider_configurations, recipe_batches, ingredient_mappings, recipe_fingerprints, recipes)
-- [ ] T040c [P] Seed provider configuration via MongoDB Compass or mongosh script in `tools/seed-provider-config.js` with provider_001 settings (enabled=true, discoveryStrategy=Dynamic, recipeRootUrl="{placeholder}", batchSize=10, timeWindowMinutes=10, minDelaySeconds=2, maxRequestsPerMinute=10, retryCount=3, requestTimeoutSeconds=30)
-- [ ] T040d [P] Seed sample ingredient mappings via MongoDB Compass or mongosh script in `tools/seed-ingredient-mappings.js` with at least 10 common ingredients for provider_001 (e.g., BROCCOLI-FROZEN-012 → "broccoli, frozen", CHICKEN-BREAST-024 → "chicken breast, boneless")
-- [ ] T040e [P] Create seeding documentation in `specs/001-hellofresh-recipe-engine/quickstart.md` section "Seeding Test Data" with mongosh commands and MongoDB Compass instructions
-- [ ] T040f Verify seeded data via `docker exec -it easymeals-mongodb-local mongosh -u admin -p devpassword --eval "use easymeals; db.provider_configurations.find(); db.ingredient_mappings.countDocuments()"`
+- [x] T040a Run Recipe Engine app locally to create MongoDB collections and indexes (collections: recipes, saga_states, fingerprints, provider_configurations, ingredient_mappings)
+- [x] T040b Verify collections exist in MongoDB via `docker exec easy-meals-mongodb mongosh -u admin -p devpassword --quiet --eval "db.getSiblingDB('easymeals').getCollectionNames()"` (verified: 5 collections created)
+- [x] T040c [P] Seed provider configuration via mongosh script in `tools/seed-provider-config.js` with provider_001 settings (enabled=true, discoveryStrategy=Dynamic, recipeRootUrl="https://example.com/recipes", batchSize=10, timeWindowMinutes=10, minDelaySeconds=2, maxRequestsPerMinute=10, retryCount=3, requestTimeoutSeconds=30)
+- [x] T040d [P] Seed sample ingredient mappings via mongosh script in `tools/seed-ingredient-mappings.js` with 15 common ingredients for provider_001 (broccoli, chicken, garlic, olive oil, salt, pepper, onion, tomatoes, pasta, parmesan, basil, lemon, butter, cream, spinach)
+- [x] T040e [P] Create seeding documentation in `specs/001-hellofresh-recipe-engine/quickstart.md` section "Seeding Test Data" with automated mongosh commands and manual MongoDB Compass instructions
+- [x] T040f Verify seeded data via mongosh commands (verified: 1 provider configuration, 15 ingredient mappings, 5 collections with proper indexes)
 
-**Checkpoint**: MongoDB is seeded with test data - ready for end-to-end testing
+**Checkpoint**: ✅ MongoDB is seeded with test data - ready for end-to-end testing
 
 ---
 
