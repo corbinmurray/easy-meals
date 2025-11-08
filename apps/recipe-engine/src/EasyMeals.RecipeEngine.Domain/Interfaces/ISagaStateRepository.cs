@@ -56,9 +56,9 @@ public interface ISagaStateRepository
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Collection of failed saga states eligible for retry</returns>
     Task<IEnumerable<SagaState>> GetFailedForRetryAsync(
-        int maxRetries = 3,
-        TimeSpan retryDelay = default,
-        CancellationToken cancellationToken = default);
+		int maxRetries = 3,
+		TimeSpan retryDelay = default,
+		CancellationToken cancellationToken = default);
 
     /// <summary>
     ///     Gets saga states that have exceeded the timeout period
@@ -67,8 +67,8 @@ public interface ISagaStateRepository
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Collection of timed-out saga states</returns>
     Task<IEnumerable<SagaState>> GetTimedOutAsync(
-        TimeSpan timeout,
-        CancellationToken cancellationToken = default);
+		TimeSpan timeout,
+		CancellationToken cancellationToken = default);
 
     /// <summary>
     ///     Gets saga states older than the specified age for cleanup
@@ -78,9 +78,9 @@ public interface ISagaStateRepository
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Collection of stale saga states for cleanup</returns>
     Task<IEnumerable<SagaState>> GetStaleAsync(
-        TimeSpan maxAge,
-        SagaStatus? statusFilter = null,
-        CancellationToken cancellationToken = default);
+		TimeSpan maxAge,
+		SagaStatus? statusFilter = null,
+		CancellationToken cancellationToken = default);
 
     /// <summary>
     ///     Adds a new saga state to the repository
@@ -114,9 +114,9 @@ public interface ISagaStateRepository
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Number of saga states deleted</returns>
     Task<int> DeleteStaleAsync(
-        TimeSpan maxAge,
-        SagaStatus? statusFilter = null,
-        CancellationToken cancellationToken = default);
+		TimeSpan maxAge,
+		SagaStatus? statusFilter = null,
+		CancellationToken cancellationToken = default);
 
     /// <summary>
     ///     Checks if a saga state exists with the specified correlation ID
@@ -134,23 +134,23 @@ public interface ISagaStateRepository
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Statistics about saga states</returns>
     Task<SagaStateStatistics> GetStatisticsAsync(
-        DateTime? since = null,
-        string? sagaType = null,
-        CancellationToken cancellationToken = default);
+		DateTime? since = null,
+		string? sagaType = null,
+		CancellationToken cancellationToken = default);
 }
 
 /// <summary>
 ///     Statistics about saga state data for monitoring and reporting
 /// </summary>
 public record SagaStateStatistics(
-    int TotalCount,
-    int RunningCount,
-    int CompletedCount,
-    int FailedCount,
-    int PausedCount,
-    Dictionary<string, int> StatusCounts,
-    Dictionary<string, int> SagaTypeCounts,
-    DateTime? OldestSagaState,
-    DateTime? NewestSagaState,
-    TimeSpan? AverageExecutionTime,
-    double SuccessRate);
+	int TotalCount,
+	int RunningCount,
+	int CompletedCount,
+	int FailedCount,
+	int PausedCount,
+	Dictionary<string, int> StatusCounts,
+	Dictionary<string, int> SagaTypeCounts,
+	DateTime? OldestSagaState,
+	DateTime? NewestSagaState,
+	TimeSpan? AverageExecutionTime,
+	double SuccessRate);

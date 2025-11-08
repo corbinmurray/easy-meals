@@ -1,3 +1,4 @@
+using EasyMeals.RecipeEngine.Domain.Entities;
 using EasyMeals.RecipeEngine.Domain.ValueObjects.Recipe;
 
 namespace EasyMeals.RecipeEngine.Domain.Events;
@@ -9,14 +10,14 @@ namespace EasyMeals.RecipeEngine.Domain.Events;
 /// <param name="Title">Title of the recipe</param>
 /// <param name="SourceProvider">Source provider of the recipe</param>
 public sealed record RecipeCreatedEvent(
-    Guid RecipeId,
-    string Title,
-    string SourceProvider) : BaseDomainEvent
+	Guid RecipeId,
+	string Title,
+	string SourceProvider) : BaseDomainEvent
 {
-    public RecipeCreatedEvent(Entities.Recipe recipe)
-        : this(recipe.Id, recipe.Title, recipe.SourceProvider)
-    {
-    }
+	public RecipeCreatedEvent(Recipe recipe)
+		: this(recipe.Id, recipe.Title, recipe.SourceProvider)
+	{
+	}
 }
 
 /// <summary>
@@ -32,9 +33,9 @@ public sealed record RecipeUpdatedEvent(Guid RecipeId) : BaseDomainEvent;
 /// <param name="OldTitle">Previous title</param>
 /// <param name="NewTitle">New title</param>
 public sealed record RecipeTitleChangedEvent(
-    Guid RecipeId,
-    string OldTitle,
-    string NewTitle) : BaseDomainEvent;
+	Guid RecipeId,
+	string OldTitle,
+	string NewTitle) : BaseDomainEvent;
 
 /// <summary>
 ///     Event raised when an ingredient is added to a recipe
@@ -42,8 +43,8 @@ public sealed record RecipeTitleChangedEvent(
 /// <param name="RecipeId">ID of the recipe</param>
 /// <param name="Ingredient">The added ingredient</param>
 public sealed record IngredientAddedEvent(
-    Guid RecipeId,
-    Ingredient Ingredient) : BaseDomainEvent;
+	Guid RecipeId,
+	Ingredient Ingredient) : BaseDomainEvent;
 
 /// <summary>
 ///     Event raised when an ingredient is removed from a recipe
@@ -51,8 +52,8 @@ public sealed record IngredientAddedEvent(
 /// <param name="RecipeId">ID of the recipe</param>
 /// <param name="Ingredient">The removed ingredient</param>
 public sealed record IngredientRemovedEvent(
-    Guid RecipeId,
-    Ingredient Ingredient) : BaseDomainEvent;
+	Guid RecipeId,
+	Ingredient Ingredient) : BaseDomainEvent;
 
 /// <summary>
 ///     Event raised when an instruction is added to a recipe
@@ -60,8 +61,8 @@ public sealed record IngredientRemovedEvent(
 /// <param name="RecipeId">ID of the recipe</param>
 /// <param name="Instruction">The added instruction</param>
 public sealed record InstructionAddedEvent(
-    Guid RecipeId,
-    Instruction Instruction) : BaseDomainEvent;
+	Guid RecipeId,
+	Instruction Instruction) : BaseDomainEvent;
 
 /// <summary>
 ///     Event raised when comprehensive nutritional information is added
@@ -77,7 +78,7 @@ public sealed record NutritionalInfoCompletedEvent(Guid RecipeId) : BaseDomainEv
 /// <param name="NewRating">New rating</param>
 /// <param name="ReviewCount">Total number of reviews</param>
 public sealed record RecipeRatedEvent(
-    Guid RecipeId,
-    decimal? OldRating,
-    decimal NewRating,
-    int ReviewCount) : BaseDomainEvent;
+	Guid RecipeId,
+	decimal? OldRating,
+	decimal NewRating,
+	int ReviewCount) : BaseDomainEvent;

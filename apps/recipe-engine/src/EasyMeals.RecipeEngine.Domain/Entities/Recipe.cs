@@ -1,4 +1,5 @@
 using EasyMeals.RecipeEngine.Domain.Events;
+using EasyMeals.RecipeEngine.Domain.ValueObjects;
 using EasyMeals.RecipeEngine.Domain.ValueObjects.Recipe;
 
 namespace EasyMeals.RecipeEngine.Domain.Entities;
@@ -192,10 +193,10 @@ public sealed class Recipe
 	/// <summary>When the recipe was last updated/reprocessed</summary>
 	public DateTime? LastUpdatedAt { get; private set; }
 
-	private List<ValueObjects.IngredientReference> _ingredientReferences;
+	private readonly List<IngredientReference> _ingredientReferences;
 
 	/// <summary>Read-only view of ingredient references with provider codes</summary>
-	public IReadOnlyList<ValueObjects.IngredientReference> IngredientReferences => _ingredientReferences.AsReadOnly();
+	public IReadOnlyList<IngredientReference> IngredientReferences => _ingredientReferences.AsReadOnly();
 
 	#endregion
 
@@ -236,10 +237,7 @@ public sealed class Recipe
 		Servings = ValidateServings(servings);
 		UpdatedAt = DateTime.UtcNow;
 
-		if (oldTitle != Title)
-		{
-			AddDomainEvent(new RecipeTitleChangedEvent(Id, oldTitle, Title));
-		}
+		if (oldTitle != Title) AddDomainEvent(new RecipeTitleChangedEvent(Id, oldTitle, Title));
 
 		AddDomainEvent(new RecipeUpdatedEvent(Id));
 	}
@@ -332,10 +330,7 @@ public sealed class Recipe
 		NutritionalInfo = nutritionalInfo;
 		UpdatedAt = DateTime.UtcNow;
 
-		if (nutritionalInfo?.IsComprehensive == true)
-		{
-			AddDomainEvent(new NutritionalInfoCompletedEvent(Id));
-		}
+		if (nutritionalInfo?.IsComprehensive == true) AddDomainEvent(new NutritionalInfoCompletedEvent(Id));
 	}
 
 	/// <summary>
@@ -439,7 +434,7 @@ public sealed class Recipe
 	/// <summary>
 	///     Adds an ingredient reference with provider code and canonical form
 	/// </summary>
-	public void AddIngredientReference(ValueObjects.IngredientReference ingredientRef)
+	public void AddIngredientReference(IngredientReference ingredientRef)
 	{
 		if (ingredientRef == null)
 			throw new ArgumentNullException(nameof(ingredientRef));

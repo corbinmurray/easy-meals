@@ -27,14 +27,14 @@ public interface IDomainEvent
 /// </summary>
 public abstract record BaseDomainEvent : IDomainEvent
 {
-    protected BaseDomainEvent()
-    {
-        EventId = Guid.NewGuid();
-        OccurredOn = DateTime.UtcNow;
-        Version = 1;
-    }
+	protected BaseDomainEvent()
+	{
+		EventId = Guid.NewGuid();
+		OccurredOn = DateTime.UtcNow;
+		Version = 1;
+	}
 
-    public Guid EventId { get; init; }
-    public DateTime OccurredOn { get; init; }
-    public virtual int Version { get; init; }
+	public Guid EventId { get; init; }
+	public DateTime OccurredOn { get; init; }
+	public virtual int Version { get; init; }
 }

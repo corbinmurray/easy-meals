@@ -138,33 +138,62 @@ public sealed record Instruction
 	/// <summary>
 	///     Creates a copy of this instruction with new timing
 	/// </summary>
-	public Instruction WithTiming(int? timeMinutes)
-	{
-		return this with { TimeMinutes = ValidateTimeMinutes(timeMinutes) };
-	}
+	public Instruction WithTiming(int? timeMinutes) => this with { TimeMinutes = ValidateTimeMinutes(timeMinutes) };
 
 	/// <summary>
 	///     Creates a copy of this instruction with new temperature
 	/// </summary>
-	public Instruction WithTemperature(string? temperature)
-	{
-		return this with { Temperature = string.IsNullOrWhiteSpace(temperature) ? null : temperature.Trim() };
-	}
+	public Instruction WithTemperature(string? temperature) =>
+		this with { Temperature = string.IsNullOrWhiteSpace(temperature) ? null : temperature.Trim() };
 
 	/// <summary>
 	///     Creates a copy of this instruction with new equipment
 	/// </summary>
-	public Instruction WithEquipment(string? equipment)
-	{
-		return this with { Equipment = string.IsNullOrWhiteSpace(equipment) ? null : equipment.Trim() };
-	}
+	public Instruction WithEquipment(string? equipment) => this with { Equipment = string.IsNullOrWhiteSpace(equipment) ? null : equipment.Trim() };
 
 	/// <summary>
 	///     Creates a copy of this instruction with new tips
 	/// </summary>
-	public Instruction WithTips(string? tips)
+	public Instruction WithTips(string? tips) => this with { Tips = string.IsNullOrWhiteSpace(tips) ? null : tips.Trim() };
+
+	/// <summary>
+	///     Common cooking temperatures for validation and assistance
+	/// </summary>
+	public static class CommonTemperatures
 	{
-		return this with { Tips = string.IsNullOrWhiteSpace(tips) ? null : tips.Trim() };
+		public static readonly Dictionary<string, string> OvenTemperatures = new()
+		{
+			{ "low", "300°F (150°C)" },
+			{ "medium", "350°F (175°C)" },
+			{ "medium-high", "375°F (190°C)" },
+			{ "high", "425°F (220°C)" },
+			{ "very high", "450°F (230°C)" }
+		};
+
+		public static readonly Dictionary<string, string> StovetopTemperatures = new()
+		{
+			{ "low heat", "Low flame/setting 2-3" },
+			{ "medium-low heat", "Medium-low flame/setting 3-4" },
+			{ "medium heat", "Medium flame/setting 5-6" },
+			{ "medium-high heat", "Medium-high flame/setting 7-8" },
+			{ "high heat", "High flame/setting 9-10" }
+		};
+
+		/// <summary>
+		///     Gets suggested temperature based on cooking method
+		/// </summary>
+		public static string? GetSuggestedTemperature(string cookingMethod)
+		{
+			return cookingMethod.ToLowerInvariant() switch
+			{
+				var method when method.Contains("bake") || method.Contains("roast") => "350°F (175°C)",
+				var method when method.Contains("broil") => "High broil",
+				var method when method.Contains("sauté") || method.Contains("fry") => "Medium-high heat",
+				var method when method.Contains("simmer") => "Medium-low heat",
+				var method when method.Contains("boil") => "High heat",
+				_ => null
+			};
+		}
 	}
 
 	#region Validation Methods
@@ -223,44 +252,4 @@ public sealed record Instruction
 	}
 
 	#endregion
-
-	/// <summary>
-	///     Common cooking temperatures for validation and assistance
-	/// </summary>
-	public static class CommonTemperatures
-	{
-		public static readonly Dictionary<string, string> OvenTemperatures = new()
-		{
-			{ "low", "300°F (150°C)" },
-			{ "medium", "350°F (175°C)" },
-			{ "medium-high", "375°F (190°C)" },
-			{ "high", "425°F (220°C)" },
-			{ "very high", "450°F (230°C)" }
-		};
-
-		public static readonly Dictionary<string, string> StovetopTemperatures = new()
-		{
-			{ "low heat", "Low flame/setting 2-3" },
-			{ "medium-low heat", "Medium-low flame/setting 3-4" },
-			{ "medium heat", "Medium flame/setting 5-6" },
-			{ "medium-high heat", "Medium-high flame/setting 7-8" },
-			{ "high heat", "High flame/setting 9-10" }
-		};
-
-		/// <summary>
-		///     Gets suggested temperature based on cooking method
-		/// </summary>
-		public static string? GetSuggestedTemperature(string cookingMethod)
-		{
-			return cookingMethod.ToLowerInvariant() switch
-			{
-				var method when method.Contains("bake") || method.Contains("roast") => "350°F (175°C)",
-				var method when method.Contains("broil") => "High broil",
-				var method when method.Contains("sauté") || method.Contains("fry") => "Medium-high heat",
-				var method when method.Contains("simmer") => "Medium-low heat",
-				var method when method.Contains("boil") => "High heat",
-				_ => null
-			};
-		}
-	}
 }

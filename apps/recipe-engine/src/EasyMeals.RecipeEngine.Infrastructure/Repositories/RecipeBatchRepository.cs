@@ -11,13 +11,9 @@ namespace EasyMeals.RecipeEngine.Infrastructure.Repositories;
 /// <summary>
 ///     MongoDB implementation of IRecipeBatchRepository.
 /// </summary>
-public class RecipeBatchRepository : MongoRepository<RecipeBatchDocument>, IRecipeBatchRepository
+public class RecipeBatchRepository(IMongoDatabase database, IClientSessionHandle? session = null)
+	: MongoRepository<RecipeBatchDocument>(database, session), IRecipeBatchRepository
 {
-	public RecipeBatchRepository(IMongoDatabase database, IClientSessionHandle? session = null)
-		: base(database, session)
-	{
-	}
-
 	public async Task<RecipeBatch?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
 	{
 		RecipeBatchDocument? document = await base.GetByIdAsync(id.ToString(), cancellationToken);
@@ -26,7 +22,7 @@ public class RecipeBatchRepository : MongoRepository<RecipeBatchDocument>, IReci
 
 	public async Task<RecipeBatch?> GetActiveAsync(string providerId, CancellationToken cancellationToken = default)
 	{
-		var document = await base.GetFirstOrDefaultAsync(
+		RecipeBatchDocument? document = await GetFirstOrDefaultAsync(
 			d => d.ProviderId == providerId && d.Status == BatchStatus.InProgress.ToString(),
 			cancellationToken);
 
@@ -46,7 +42,7 @@ public class RecipeBatchRepository : MongoRepository<RecipeBatchDocument>, IReci
 	public async Task SaveAsync(RecipeBatch batch, CancellationToken cancellationToken = default)
 	{
 		RecipeBatchDocument document = ToDocument(batch);
-		await base.ReplaceOneAsync(d => d.Id == document.Id, document, upsert: true, cancellationToken);
+		await ReplaceOneAsync(d => d.Id == document.Id, document, true, cancellationToken);
 	}
 
 	public async Task<IEnumerable<RecipeBatch>> GetRecentBatchesAsync(
@@ -54,12 +50,12 @@ public class RecipeBatchRepository : MongoRepository<RecipeBatchDocument>, IReci
 		int count,
 		CancellationToken cancellationToken = default)
 	{
-		var (items, _) = await base.GetPagedAsync(
-			filter: d => d.ProviderId == providerId,
-			sortBy: d => d.StartedAt,
-			sortDirection: -1,
-			pageNumber: 1,
-			pageSize: count,
+		(IEnumerable<RecipeBatchDocument> items, _) = await GetPagedAsync(
+			d => d.ProviderId == providerId,
+			d => d.StartedAt,
+			-1,
+			1,
+			count,
 			cancellationToken);
 
 		return items.Select(ToDomain);

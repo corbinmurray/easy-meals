@@ -6,13 +6,9 @@ using MongoDB.Driver;
 
 namespace EasyMeals.RecipeEngine.Infrastructure.Repositories;
 
-public class SagaStateRepository : MongoRepository<SagaStateDocument>, ISagaStateRepository
+public class SagaStateRepository(IMongoDatabase database, IClientSessionHandle? session = null)
+	: MongoRepository<SagaStateDocument>(database, session), ISagaStateRepository
 {
-	public SagaStateRepository(IMongoDatabase database, IClientSessionHandle? session = null)
-		: base(database, session)
-	{
-	}
-
 	public async Task<SagaState?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default) =>
 		(await base.GetByIdAsync(id.ToString(), cancellationToken))?.ToDomain();
 

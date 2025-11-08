@@ -27,7 +27,7 @@ public class RecipeProcessingSaga(
 	public async Task StartProcessingAsync(CancellationToken cancellationToken)
 	{
 		var correlationId = Guid.NewGuid();
-		var sagaState = SagaState.CreateForRecipeProcessing(correlationId, sagaType: nameof(RecipeProcessingSaga));
+		var sagaState = SagaState.CreateForRecipeProcessing(correlationId, nameof(RecipeProcessingSaga));
 		await sagaStateRepository.AddAsync(sagaState, cancellationToken);
 
 		using IDisposable? _ = logger.BeginScope(new Dictionary<string, object>

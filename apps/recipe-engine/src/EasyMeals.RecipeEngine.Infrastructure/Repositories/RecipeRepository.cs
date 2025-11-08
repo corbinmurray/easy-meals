@@ -1,4 +1,5 @@
 ﻿using EasyMeals.RecipeEngine.Domain.Entities;
+using EasyMeals.RecipeEngine.Domain.Interfaces;
 using EasyMeals.RecipeEngine.Domain.ValueObjects.Recipe;
 using EasyMeals.Shared.Data.Documents.Recipe;
 using EasyMeals.Shared.Data.Repositories;
@@ -6,13 +7,9 @@ using MongoDB.Driver;
 
 namespace EasyMeals.RecipeEngine.Infrastructure.Repositories;
 
-public class RecipeRepository : MongoRepository<RecipeDocument>, Domain.Interfaces.IRecipeRepository
+public class RecipeRepository(IMongoDatabase database, IClientSessionHandle? session = null)
+	: MongoRepository<RecipeDocument>(database, session), IRecipeRepository
 {
-	public RecipeRepository(IMongoDatabase database, IClientSessionHandle? session = null)
-		: base(database, session)
-	{
-	}
-
 	public async Task<Recipe?> GetByIdAsync(Guid recipeId, CancellationToken cancellationToken = default)
 	{
 		RecipeDocument? document = await base.GetByIdAsync(recipeId.ToString(), cancellationToken);
@@ -21,7 +18,7 @@ public class RecipeRepository : MongoRepository<RecipeDocument>, Domain.Interfac
 
 	public async Task<Recipe?> GetByUrlAsync(string recipeUrl, string providerId, CancellationToken cancellationToken = default)
 	{
-		RecipeDocument? document = await base.GetFirstOrDefaultAsync(
+		RecipeDocument? document = await GetFirstOrDefaultAsync(
 			d => d.SourceUrl == recipeUrl && d.SourceProvider == providerId,
 			cancellationToken);
 
@@ -31,7 +28,7 @@ public class RecipeRepository : MongoRepository<RecipeDocument>, Domain.Interfac
 	public async Task SaveAsync(Recipe recipe, CancellationToken cancellationToken = default)
 	{
 		RecipeDocument document = ToDocument(recipe);
-		await base.ReplaceOneAsync(d => d.Id == recipe.Id.ToString(), document, cancellationToken: cancellationToken);
+		await ReplaceOneAsync(d => d.Id == recipe.Id.ToString(), document, cancellationToken: cancellationToken);
 	}
 
 	public async Task SaveBatchAsync(IReadOnlyList<Recipe> recipes, CancellationToken cancellationToken = default)
@@ -40,12 +37,12 @@ public class RecipeRepository : MongoRepository<RecipeDocument>, Domain.Interfac
 			return;
 
 		List<RecipeDocument> documents = recipes.Select(ToDocument).ToList();
-		await base.InsertManyAsync(documents, cancellationToken);
+		await InsertManyAsync(documents, cancellationToken);
 	}
 
 	public async Task<int> CountByProviderAsync(string providerId, CancellationToken cancellationToken = default)
 	{
-		long count = await base.CountAsync(d => d.SourceProvider == providerId, cancellationToken);
+		long count = await CountAsync(d => d.SourceProvider == providerId, cancellationToken);
 		return (int)count;
 	}
 
@@ -115,7 +112,7 @@ public class RecipeRepository : MongoRepository<RecipeDocument>, Domain.Interfac
 			document.ReviewCount,
 			document.CreatedAt,
 			document.UpdatedAt);
-      
+
 		return recipe;
 	}
 

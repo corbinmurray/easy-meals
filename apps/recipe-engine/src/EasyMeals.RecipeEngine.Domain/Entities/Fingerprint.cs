@@ -1,4 +1,6 @@
-﻿using EasyMeals.RecipeEngine.Domain.Events;
+﻿using System.Security.Cryptography;
+using System.Text;
+using EasyMeals.RecipeEngine.Domain.Events;
 using EasyMeals.RecipeEngine.Domain.ValueObjects.Fingerprint;
 
 namespace EasyMeals.RecipeEngine.Domain.Entities;
@@ -257,14 +259,12 @@ public sealed class Fingerprint
 		bool hasChanged = previous.ContentHash != ContentHash;
 
 		if (hasChanged)
-		{
 			AddDomainEvent(new ContentChangedEvent(
 				Id,
 				Url,
 				previous.ContentHash,
 				ContentHash,
 				SourceProvider));
-		}
 
 		return hasChanged;
 	}
@@ -492,8 +492,8 @@ public sealed class Fingerprint
 		if (string.IsNullOrEmpty(content))
 			return string.Empty;
 
-		using var sha256 = System.Security.Cryptography.SHA256.Create();
-		byte[] hashBytes = sha256.ComputeHash(System.Text.Encoding.UTF8.GetBytes(content));
+		using var sha256 = SHA256.Create();
+		byte[] hashBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(content));
 		return Convert.ToHexString(hashBytes).ToLowerInvariant();
 	}
 

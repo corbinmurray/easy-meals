@@ -9,19 +9,15 @@ namespace EasyMeals.RecipeEngine.Infrastructure.Repositories;
 /// <summary>
 ///     MongoDB implementation of IRecipeFingerprintRepository.
 /// </summary>
-public class RecipeFingerprintRepository : MongoRepository<RecipeFingerprintDocument>, IRecipeFingerprintRepository
+public class RecipeFingerprintRepository(IMongoDatabase database, IClientSessionHandle? session = null)
+	: MongoRepository<RecipeFingerprintDocument>(database, session), IRecipeFingerprintRepository
 {
-	public RecipeFingerprintRepository(IMongoDatabase database, IClientSessionHandle? session = null)
-		: base(database, session)
-	{
-	}
-
 	public async Task<RecipeFingerprint?> GetByUrlAsync(
 		string url,
 		string providerId,
 		CancellationToken cancellationToken = default)
 	{
-		var document = await base.GetFirstOrDefaultAsync(
+		RecipeFingerprintDocument? document = await GetFirstOrDefaultAsync(
 			d => d.RecipeUrl == url && d.ProviderId == providerId,
 			cancellationToken);
 
@@ -41,7 +37,7 @@ public class RecipeFingerprintRepository : MongoRepository<RecipeFingerprintDocu
 	public async Task SaveAsync(RecipeFingerprint fingerprint, CancellationToken cancellationToken = default)
 	{
 		RecipeFingerprintDocument document = ToDocument(fingerprint);
-		await base.ReplaceOneAsync(d => d.Id == document.Id, document, upsert: true, cancellationToken);
+		await ReplaceOneAsync(d => d.Id == document.Id, document, true, cancellationToken);
 	}
 
 	public async Task SaveBatchAsync(
@@ -49,12 +45,12 @@ public class RecipeFingerprintRepository : MongoRepository<RecipeFingerprintDocu
 		CancellationToken cancellationToken = default)
 	{
 		List<RecipeFingerprintDocument> documents = fingerprints.Select(ToDocument).ToList();
-		await base.InsertManyAsync(documents, cancellationToken);
+		await InsertManyAsync(documents, cancellationToken);
 	}
 
 	public async Task<int> CountByProviderAsync(string providerId, CancellationToken cancellationToken = default)
 	{
-		var count = await base.CountAsync(d => d.ProviderId == providerId, cancellationToken);
+		long count = await CountAsync(d => d.ProviderId == providerId, cancellationToken);
 		return (int)count;
 	}
 

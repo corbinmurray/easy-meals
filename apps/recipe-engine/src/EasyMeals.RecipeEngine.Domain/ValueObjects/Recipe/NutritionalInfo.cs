@@ -33,40 +33,40 @@ public record NutritionalInfo(
 	decimal? IronPercent,
 	Dictionary<string, object>? AdditionalNutrition)
 {
-    /// <summary>
-    ///     Indicates if basic nutritional information is available
-    /// </summary>
-    public bool HasBasicInfo => Calories.HasValue || ProteinGrams.HasValue || CarbohydratesGrams.HasValue || FatGrams.HasValue;
+	/// <summary>
+	///     Indicates if basic nutritional information is available
+	/// </summary>
+	public bool HasBasicInfo => Calories.HasValue || ProteinGrams.HasValue || CarbohydratesGrams.HasValue || FatGrams.HasValue;
 
-    /// <summary>
-    ///     Indicates if comprehensive nutritional information is available
-    /// </summary>
-    public bool IsComprehensive => Calories.HasValue && ProteinGrams.HasValue && CarbohydratesGrams.HasValue && FatGrams.HasValue;
+	/// <summary>
+	///     Indicates if comprehensive nutritional information is available
+	/// </summary>
+	public bool IsComprehensive => Calories.HasValue && ProteinGrams.HasValue && CarbohydratesGrams.HasValue && FatGrams.HasValue;
 
-    /// <summary>
-    ///     Gets formatted calories display text
-    /// </summary>
-    public string? CaloriesDisplayText => Calories.HasValue ? $"{Calories} cal" : null;
+	/// <summary>
+	///     Gets formatted calories display text
+	/// </summary>
+	public string? CaloriesDisplayText => Calories.HasValue ? $"{Calories} cal" : null;
 
-    /// <summary>
-    ///     Gets formatted protein display text
-    /// </summary>
-    public string? ProteinDisplayText => ProteinGrams.HasValue ? $"{ProteinGrams:F1}g protein" : null;
+	/// <summary>
+	///     Gets formatted protein display text
+	/// </summary>
+	public string? ProteinDisplayText => ProteinGrams.HasValue ? $"{ProteinGrams:F1}g protein" : null;
 
-    /// <summary>
-    ///     Gets formatted carbohydrates display text
-    /// </summary>
-    public string? CarbsDisplayText => CarbohydratesGrams.HasValue ? $"{CarbohydratesGrams:F1}g carbs" : null;
+	/// <summary>
+	///     Gets formatted carbohydrates display text
+	/// </summary>
+	public string? CarbsDisplayText => CarbohydratesGrams.HasValue ? $"{CarbohydratesGrams:F1}g carbs" : null;
 
-    /// <summary>
-    ///     Gets formatted fat display text
-    /// </summary>
-    public string? FatDisplayText => FatGrams.HasValue ? $"{FatGrams:F1}g fat" : null;
+	/// <summary>
+	///     Gets formatted fat display text
+	/// </summary>
+	public string? FatDisplayText => FatGrams.HasValue ? $"{FatGrams:F1}g fat" : null;
 
-    /// <summary>
-    ///     Gets formatted macronutrient summary
-    /// </summary>
-    public string MacroSummary
+	/// <summary>
+	///     Gets formatted macronutrient summary
+	/// </summary>
+	public string MacroSummary
 	{
 		get
 		{
