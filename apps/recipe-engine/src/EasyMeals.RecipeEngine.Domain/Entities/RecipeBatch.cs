@@ -54,6 +54,58 @@ public class RecipeBatch
 	}
 
     /// <summary>
+    ///     Factory method to create a new batch with time window in minutes.
+    /// </summary>
+    public static RecipeBatch CreateBatch(string providerId, int batchSize, int timeWindowMinutes)
+	{
+		return CreateBatch(providerId, batchSize, TimeSpan.FromMinutes(timeWindowMinutes));
+	}
+
+    /// <summary>
+    ///     Reconstitute a batch from persisted data.
+    /// </summary>
+    public static RecipeBatch Reconstitute(
+		Guid id,
+		string providerId,
+		int batchSize,
+		int timeWindowMinutes,
+		DateTime startedAt,
+		DateTime? completedAt,
+		int processedCount,
+		int skippedCount,
+		int failedCount,
+		string status,
+		List<string> processedUrls,
+		List<string> failedUrls)
+	{
+		var batch = new RecipeBatch
+		{
+			Id = id,
+			ProviderId = providerId,
+			BatchSize = batchSize,
+			TimeWindow = TimeSpan.FromMinutes(timeWindowMinutes),
+			StartedAt = startedAt,
+			CompletedAt = completedAt,
+			ProcessedCount = processedCount,
+			SkippedCount = skippedCount,
+			FailedCount = failedCount,
+			Status = Enum.Parse<BatchStatus>(status)
+		};
+
+		foreach (var url in processedUrls)
+		{
+			batch._processedUrls.Add(url);
+		}
+
+		foreach (var url in failedUrls)
+		{
+			batch._failedUrls.Add(url);
+		}
+
+		return batch;
+	}
+
+    /// <summary>
     ///     Mark a recipe as successfully processed.
     /// </summary>
     public void MarkRecipeProcessed(string url)
