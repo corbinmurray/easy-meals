@@ -419,7 +419,6 @@ common/temp/
 
 # Copilot tracking
 .copilot-tracking/
-specs/
 
 # ====================
 # Misc
