@@ -5,8 +5,7 @@ using EasyMeals.RecipeEngine.Domain.Repositories;
 using EasyMeals.RecipeEngine.Infrastructure.Normalization;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
-using NSubstitute;
-using NSubstitute.ReceivedExtensions;
+using Moq;
 
 namespace EasyMeals.RecipeEngine.Tests.Unit.Normalization;
 
@@ -16,17 +15,17 @@ namespace EasyMeals.RecipeEngine.Tests.Unit.Normalization;
 /// </summary>
 public class IngredientNormalizationServiceTests
 {
-    private readonly IIngredientMappingRepository _mockRepository;
-    private readonly ILogger<IngredientNormalizationService> _mockLogger;
-    private readonly IEventBus _mockEventBus;
+    private readonly Mock<IIngredientMappingRepository> _mockRepository;
+    private readonly Mock<ILogger<IngredientNormalizationService>> _mockLogger;
+    private readonly Mock<IEventBus> _mockEventBus;
     private readonly IIngredientNormalizer _sut;
 
     public IngredientNormalizationServiceTests()
     {
-        _mockRepository = Substitute.For<IIngredientMappingRepository>();
-        _mockLogger = Substitute.For<ILogger<IngredientNormalizationService>>();
-        _mockEventBus = Substitute.For<IEventBus>();
-        _sut = new IngredientNormalizationService(_mockRepository, _mockLogger, _mockEventBus);
+        _mockRepository = new Mock<IIngredientMappingRepository>();
+        _mockLogger = new Mock<ILogger<IngredientNormalizationService>>();
+        _mockEventBus = new Mock<IEventBus>();
+        _sut = new IngredientNormalizationService(_mockRepository.Object, _mockLogger.Object, _mockEventBus.Object);
     }
 
     #region NormalizeAsync Tests (T061 & T062)
@@ -38,17 +37,20 @@ public class IngredientNormalizationServiceTests
         const string providerId = "provider_001";
         const string providerCode = "HF-BROCCOLI-FROZEN-012";
         const string expectedCanonical = "broccoli, frozen";
-        
+
         var mapping = IngredientMapping.Create(providerId, providerCode, expectedCanonical);
-        _mockRepository.GetByCodeAsync(providerId, providerCode, Arg.Any<CancellationToken>())
-            .Returns(mapping);
+        _mockRepository
+            .Setup(r => r.GetByCodeAsync(providerId, providerCode, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(mapping);
 
         // Act
         var result = await _sut.NormalizeAsync(providerId, providerCode);
 
         // Assert
         result.Should().Be(expectedCanonical);
-        await _mockRepository.Received(1).GetByCodeAsync(providerId, providerCode, Arg.Any<CancellationToken>());
+        _mockRepository.Verify(
+            r => r.GetByCodeAsync(providerId, providerCode, It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 
     [Fact(DisplayName = "NormalizeAsync with unmapped code returns null and logs warning")]
@@ -57,24 +59,28 @@ public class IngredientNormalizationServiceTests
         // Arrange
         const string providerId = "provider_001";
         const string providerCode = "UNKNOWN-INGREDIENT-999";
-        
-        _mockRepository.GetByCodeAsync(providerId, providerCode, Arg.Any<CancellationToken>())
-            .Returns((IngredientMapping?)null);
+
+        _mockRepository
+            .Setup(r => r.GetByCodeAsync(providerId, providerCode, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IngredientMapping?)null);
 
         // Act
         var result = await _sut.NormalizeAsync(providerId, providerCode);
 
         // Assert
         result.Should().BeNull();
-        await _mockRepository.Received(1).GetByCodeAsync(providerId, providerCode, Arg.Any<CancellationToken>());
-        
-        // Verify warning was logged (checking logger was called)
-        _mockLogger.ReceivedWithAnyArgs(1).Log(
-            LogLevel.Warning,
-            Arg.Any<EventId>(),
-            Arg.Any<object>(),
-            Arg.Any<Exception>(),
-            Arg.Any<Func<object, Exception?, string>>());
+        _mockRepository.Verify(
+            r => r.GetByCodeAsync(providerId, providerCode, It.IsAny<CancellationToken>()),
+            Times.Once);
+
+        _mockLogger.Verify(
+            l => l.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
     }
 
     [Fact(DisplayName = "NormalizeAsync with null provider ID throws ArgumentException")]
@@ -114,10 +120,11 @@ public class IngredientNormalizationServiceTests
         const string providerId = "provider_001";
         const string providerCode = "HF-GARLIC-012";
         const string canonicalForm = "garlic";
-        
+
         var mapping = IngredientMapping.Create(providerId, providerCode, canonicalForm);
-        _mockRepository.GetByCodeAsync(providerId, providerCode, Arg.Any<CancellationToken>())
-            .Returns(mapping);
+        _mockRepository
+            .Setup(r => r.GetByCodeAsync(providerId, providerCode, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(mapping);
 
         // Act - Call twice
         var result1 = await _sut.NormalizeAsync(providerId, providerCode);
@@ -126,9 +133,10 @@ public class IngredientNormalizationServiceTests
         // Assert
         result1.Should().Be(canonicalForm);
         result2.Should().Be(canonicalForm);
-        
-        // Repository should only be called once (second call uses cache)
-        await _mockRepository.Received(1).GetByCodeAsync(providerId, providerCode, Arg.Any<CancellationToken>());
+
+        _mockRepository.Verify(
+            r => r.GetByCodeAsync(providerId, providerCode, It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 
     #endregion
@@ -141,16 +149,19 @@ public class IngredientNormalizationServiceTests
         // Arrange
         const string providerId = "provider_001";
         var providerCodes = new[] { "HF-BROCCOLI-012", "HF-GARLIC-015", "UNKNOWN-999" };
-        
+
         var broccoliMapping = IngredientMapping.Create(providerId, "HF-BROCCOLI-012", "broccoli");
         var garlicMapping = IngredientMapping.Create(providerId, "HF-GARLIC-015", "garlic");
-        
-        _mockRepository.GetByCodeAsync(providerId, "HF-BROCCOLI-012", Arg.Any<CancellationToken>())
-            .Returns(broccoliMapping);
-        _mockRepository.GetByCodeAsync(providerId, "HF-GARLIC-015", Arg.Any<CancellationToken>())
-            .Returns(garlicMapping);
-        _mockRepository.GetByCodeAsync(providerId, "UNKNOWN-999", Arg.Any<CancellationToken>())
-            .Returns((IngredientMapping?)null);
+
+        _mockRepository
+            .Setup(r => r.GetByCodeAsync(providerId, "HF-BROCCOLI-012", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(broccoliMapping);
+        _mockRepository
+            .Setup(r => r.GetByCodeAsync(providerId, "HF-GARLIC-015", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(garlicMapping);
+        _mockRepository
+            .Setup(r => r.GetByCodeAsync(providerId, "UNKNOWN-999", It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IngredientMapping?)null);
 
         // Act
         var result = await _sut.NormalizeBatchAsync(providerId, providerCodes);
@@ -174,7 +185,9 @@ public class IngredientNormalizationServiceTests
 
         // Assert
         result.Should().BeEmpty();
-        await _mockRepository.DidNotReceiveWithAnyArgs().GetByCodeAsync(default!, default!, default);
+        _mockRepository.Verify(
+            r => r.GetByCodeAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 
     [Fact(DisplayName = "NormalizeBatchAsync logs unmapped ingredients")]
@@ -183,20 +196,23 @@ public class IngredientNormalizationServiceTests
         // Arrange
         const string providerId = "provider_001";
         var providerCodes = new[] { "UNKNOWN-1", "UNKNOWN-2" };
-        
-        _mockRepository.GetByCodeAsync(providerId, Arg.Any<string>(), Arg.Any<CancellationToken>())
-            .Returns((IngredientMapping?)null);
+
+        _mockRepository
+            .Setup(r => r.GetByCodeAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IngredientMapping?)null);
 
         // Act
         await _sut.NormalizeBatchAsync(providerId, providerCodes);
 
         // Assert - Verify at least 2 warnings were logged for unmapped codes
-        _mockLogger.Received(2).Log(
-            LogLevel.Warning,
-            Arg.Any<EventId>(),
-            Arg.Any<object>(),
-            Arg.Any<Exception>(),
-            Arg.Any<Func<object, Exception?, string>>());
+        _mockLogger.Verify(
+            l => l.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.AtLeast(2));
     }
 
     [Fact(DisplayName = "NormalizeBatchAsync with duplicate codes processes only once")]
@@ -205,10 +221,11 @@ public class IngredientNormalizationServiceTests
         // Arrange
         const string providerId = "provider_001";
         var providerCodes = new[] { "HF-BROCCOLI-012", "HF-BROCCOLI-012", "HF-BROCCOLI-012" };
-        
+
         var mapping = IngredientMapping.Create(providerId, "HF-BROCCOLI-012", "broccoli");
-        _mockRepository.GetByCodeAsync(providerId, "HF-BROCCOLI-012", Arg.Any<CancellationToken>())
-            .Returns(mapping);
+        _mockRepository
+            .Setup(r => r.GetByCodeAsync(providerId, "HF-BROCCOLI-012", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(mapping);
 
         // Act
         var result = await _sut.NormalizeBatchAsync(providerId, providerCodes);
@@ -216,9 +233,10 @@ public class IngredientNormalizationServiceTests
         // Assert
         result.Should().HaveCount(1);
         result["HF-BROCCOLI-012"].Should().Be("broccoli");
-        
-        // Should only query repository once for the unique code
-        await _mockRepository.Received(1).GetByCodeAsync(providerId, "HF-BROCCOLI-012", Arg.Any<CancellationToken>());
+
+        _mockRepository.Verify(
+            r => r.GetByCodeAsync(providerId, "HF-BROCCOLI-012", It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 
     #endregion
@@ -231,18 +249,20 @@ public class IngredientNormalizationServiceTests
         // Arrange
         const string providerId = "provider_001";
         const string providerCode = "UNKNOWN-INGREDIENT";
-        
-        _mockRepository.GetByCodeAsync(providerId, providerCode, Arg.Any<CancellationToken>())
-            .Returns((IngredientMapping?)null);
+
+        _mockRepository
+            .Setup(r => r.GetByCodeAsync(providerId, providerCode, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IngredientMapping?)null);
 
         // Act
         await _sut.NormalizeAsync(providerId, providerCode);
 
         // Assert - Event is published synchronously
-        _mockEventBus.Received(1).Publish(
-            Arg.Is<IngredientMappingMissingEvent>(e => 
-                e.ProviderId == providerId && 
-                e.ProviderCode == providerCode));
+        _mockEventBus.Verify(
+            eb => eb.Publish(It.Is<IngredientMappingMissingEvent>(e =>
+                e.ProviderId == providerId &&
+                e.ProviderCode == providerCode)),
+            Times.Once);
     }
 
     #endregion

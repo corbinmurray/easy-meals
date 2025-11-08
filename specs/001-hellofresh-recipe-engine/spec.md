@@ -11,6 +11,11 @@
 
 - Q: How should the engine discover recipe URLs from providers (e.g., sitemap, API, crawling)? → A: Recipe discovery should be configurable per provider with support for: (1) Static site crawling, (2) Dynamic site crawling (JavaScript-rendered sites), and (3) API-based discovery. Each provider chooses one strategy via configuration and the system must be extensible for future strategies. For HelloFresh specifically, use dynamic discovery starting from a configurable 'recipe-root' URL and recursively discover recipe URLs that need fingerprinting and processing.
 
+### Session 2025-11-08
+
+- Q: Which unit testing frameworks and tools should be used for test infrastructure? → A: Unit tests MUST use: **xUnit** for test framework, **Moq** for mocking/test doubles, **Shouldly** for fluent assertions, and **AutoFixture** for test data generation and object graph fixtures. These tools provide superior readability, flexibility, and maintainability compared to alternatives (NUnit, NSubstitute, raw assertions, manual builders).
+- Q: How should unit test folder structure relate to source code structure? → A: Unit test folder structure MUST mirror the source code folder structure for discoverability and maintainability. Example: source code at `/apps/recipe-engine/src/EasyMeals.RecipeEngine.Domain/Events` maps to tests at `/apps/recipe-engine/tests/EasyMeals.RecipeEngine.Tests.Unit/Domain/Events`. This pattern applies across all layers (Domain, Application, Infrastructure).
+
 ## User Scenarios & Testing _(mandatory)_
 
 <!--
@@ -146,6 +151,17 @@
 - **FR-011**: System MUST support adding new recipe providers without code changes (configuration-driven provider discovery)
 - **FR-012**: System MUST store both the raw provider ingredient identifier and normalized canonical form for auditability
 - **FR-013**: System MUST support configurable discovery strategies per provider: (1) static site crawling, (2) dynamic site crawling for JavaScript-rendered sites, and (3) API-based discovery; HelloFresh uses dynamic discovery starting from a configurable recipe-root URL with recursive link discovery
+
+### Testing Strategy
+
+- **TS-001**: All unit tests MUST use **xUnit** as the test framework
+- **TS-002**: All mocking and test doubles MUST be created using **Moq**
+- **TS-003**: All assertions MUST use **Shouldly** fluent assertion library for improved readability and maintainability
+- **TS-004**: All test fixtures and object graph generation MUST use **AutoFixture** for consistent, maintainable test data patterns
+- **TS-005**: Contract tests for saga state machine transitions MUST verify all valid state paths using xUnit + Moq + Shouldly
+- **TS-006**: Integration tests for end-to-end workflows MUST use Testcontainers (MongoDB) for data layer and mocked HTTP endpoints
+- **TS-007**: Unit test coverage target is 80%+ for critical paths: saga orchestration, normalization logic, fingerprinting, and rate limiting
+- **TS-008**: Unit test folder structure MUST mirror source code structure for discoverability. Example: `/apps/recipe-engine/src/EasyMeals.RecipeEngine.Domain/Events` maps to `/apps/recipe-engine/tests/EasyMeals.RecipeEngine.Tests.Unit/Domain/Events`. This pattern applies across all layers (Domain, Application, Infrastructure).
 
 ### Key Entities
 
