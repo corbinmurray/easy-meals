@@ -23,7 +23,9 @@ public class RecipeProcessingSagaContractTests
 
         var saga = new RecipeProcessingSaga(
             Mock.Of<Microsoft.Extensions.Logging.ILogger<RecipeProcessingSaga>>(),
-            mockSagaRepo.Object
+            mockSagaRepo.Object,
+            Mock.Of<Application.Interfaces.IIngredientNormalizer>(),
+            Mock.Of<Application.Interfaces.IEventBus>()
         );
 
         // Act
