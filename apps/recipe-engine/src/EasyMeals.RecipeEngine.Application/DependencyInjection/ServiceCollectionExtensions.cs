@@ -1,4 +1,5 @@
-﻿using EasyMeals.RecipeEngine.Application.EventHandlers.DiscoveryEvents;
+﻿using EasyMeals.RecipeEngine.Application.EventHandlers;
+using EasyMeals.RecipeEngine.Application.EventHandlers.DiscoveryEvents;
 using EasyMeals.RecipeEngine.Application.Interfaces;
 using EasyMeals.RecipeEngine.Application.Sagas;
 using EasyMeals.RecipeEngine.Domain.Events;
@@ -26,6 +27,7 @@ public static class ServiceCollectionExtensions
 	{
 		// Register all event handlers
 		services.AddTransient<IEventHandler<RecipeUrlsDiscoveredEvent>, RecipeUrlsDiscoveredHandler>();
+		services.AddTransient<IEventHandler<IngredientMappingMissingEvent>, IngredientMappingMissingEventHandler>();
 
 		// Register event bus and subscribe to events
 		services.AddSingleton<IEventBus>(sp =>
@@ -34,6 +36,7 @@ public static class ServiceCollectionExtensions
 
 			// Generic registration method
 			RegisterHandler<RecipeUrlsDiscoveredEvent, RecipeUrlsDiscoveredHandler>(eventBus, sp);
+			RegisterHandler<IngredientMappingMissingEvent, IngredientMappingMissingEventHandler>(eventBus, sp);
 
 			return eventBus;
 		});
