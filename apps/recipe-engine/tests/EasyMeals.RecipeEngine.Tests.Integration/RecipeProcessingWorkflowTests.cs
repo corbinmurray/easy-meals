@@ -99,7 +99,8 @@ public class RecipeProcessingWorkflowTests : IAsyncLifetime
 			mockFingerprinter.Object,
 			Mock.Of<IIngredientNormalizer>(),
 			mockRateLimiter.Object,
-			mockBatchRepo.Object
+			mockBatchRepo.Object,
+		Mock.Of<IEventBus>()
 		);
 		
 		// Act
@@ -178,7 +179,8 @@ public class RecipeProcessingWorkflowTests : IAsyncLifetime
 			mockFingerprinter.Object,
 			Mock.Of<IIngredientNormalizer>(),
 			mockRateLimiter.Object,
-			Mock.Of<IRecipeBatchRepository>()
+			Mock.Of<IRecipeBatchRepository>(),
+		Mock.Of<IEventBus>()
 		);
 		
 		// Act
@@ -208,7 +210,8 @@ public class RecipeProcessingWorkflowTests : IAsyncLifetime
 			Mock.Of<IRecipeFingerprinter>(),
 			Mock.Of<IIngredientNormalizer>(),
 			Mock.Of<IRateLimiter>(),
-			Mock.Of<IRecipeBatchRepository>()
+			Mock.Of<IRecipeBatchRepository>(),
+		Mock.Of<IEventBus>()
 		);
 		
 		// Act & Assert
@@ -272,7 +275,8 @@ public class RecipeProcessingWorkflowTests : IAsyncLifetime
 			mockFingerprinter.Object,
 			Mock.Of<IIngredientNormalizer>(),
 			mockRateLimiter.Object,
-			Mock.Of<IRecipeBatchRepository>()
+			Mock.Of<IRecipeBatchRepository>(),
+		Mock.Of<IEventBus>()
 		);
 		
 		// Act

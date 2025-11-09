@@ -44,7 +44,8 @@ public class RecipeProcessingSagaContractTests
             Mock.Of<Application.Interfaces.IRecipeFingerprinter>(),
             Mock.Of<Application.Interfaces.IIngredientNormalizer>(),
             Mock.Of<Application.Interfaces.IRateLimiter>(),
-            Mock.Of<Domain.Repositories.IRecipeBatchRepository>()
+            Mock.Of<Domain.Repositories.IRecipeBatchRepository>(),
+            Mock.Of<Application.Interfaces.IEventBus>()
         );
 
         // Act & Assert - Expect exception due to null config
@@ -89,7 +90,8 @@ public class RecipeProcessingSagaContractTests
             Mock.Of<Application.Interfaces.IRecipeFingerprinter>(),
             Mock.Of<Application.Interfaces.IIngredientNormalizer>(),
             Mock.Of<Application.Interfaces.IRateLimiter>(),
-            Mock.Of<Domain.Repositories.IRecipeBatchRepository>()
+            Mock.Of<Domain.Repositories.IRecipeBatchRepository>(),
+            Mock.Of<Application.Interfaces.IEventBus>()
         );
 
         // Act & Assert - Expect exception when config is null
@@ -131,7 +133,8 @@ public class RecipeProcessingSagaContractTests
             Mock.Of<Application.Interfaces.IRecipeFingerprinter>(),
             Mock.Of<Application.Interfaces.IIngredientNormalizer>(),
             Mock.Of<Application.Interfaces.IRateLimiter>(),
-            Mock.Of<Domain.Repositories.IRecipeBatchRepository>()
+            Mock.Of<Domain.Repositories.IRecipeBatchRepository>(),
+            Mock.Of<Application.Interfaces.IEventBus>()
         );
 
         // Act

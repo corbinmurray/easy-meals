@@ -1,5 +1,6 @@
 using EasyMeals.RecipeEngine.Application.Interfaces;
 using EasyMeals.RecipeEngine.Domain.Entities;
+using EasyMeals.RecipeEngine.Domain.Events;
 using EasyMeals.RecipeEngine.Domain.Interfaces;
 using EasyMeals.RecipeEngine.Domain.Repositories;
 using EasyMeals.RecipeEngine.Domain.ValueObjects;
@@ -14,7 +15,7 @@ namespace EasyMeals.RecipeEngine.Application.Sagas;
 ///     Workflow Steps:
 ///     1. Discovery: Find recipe URLs from provider sites
 ///     2. Fingerprinting: Scrape and validate content
-///     3. Processing: Extract structured recipe data
+///     3. Processing: Extract structured recipe data with ingredient normalization (Phase 4)
 ///     4. Persistence: Save to repository
 ///     5. Notification: Publish completion events
 ///     This Saga includes compensating transactions and comprehensive error handling
@@ -28,7 +29,8 @@ public class RecipeProcessingSaga(
 	IRecipeFingerprinter recipeFingerprinter,
 	IIngredientNormalizer ingredientNormalizer,
 	IRateLimiter rateLimiter,
-	IRecipeBatchRepository batchRepository) : IRecipeProcessingSaga
+	IRecipeBatchRepository batchRepository,
+	IEventBus eventBus) : IRecipeProcessingSaga
 {
 	private const string PhaseDiscovering = "Discovering";
 	private const string PhaseFingerprinting = "Fingerprinting";
@@ -415,5 +417,86 @@ public class RecipeProcessingSaga(
 		await sagaStateRepository.UpdateAsync(sagaState, cancellationToken);
 
 		logger.LogInformation("Persisting phase complete for saga {SagaId}", sagaState.Id);
+	}
+
+	/// <summary>
+	///     Processes ingredients for a recipe, normalizing provider-specific codes to canonical forms.
+	///     This method demonstrates Phase 4 (T069) integration of ingredient normalization service.
+	///     
+	///     Implementation Details:
+	///     - Calls IIngredientNormalizer.NormalizeBatchAsync for all ingredient codes in recipe
+	///     - Creates IngredientReference value objects with both ProviderCode and CanonicalForm
+	///     - Emits IngredientMappingMissingEvent for unmapped ingredients (non-blocking)
+	///     - Continues processing even if some ingredients cannot be mapped
+	///     
+	///     NOTE: This method is called from ExecuteProcessingPhaseAsync during the Processing state
+	///     to normalize recipe ingredients as part of the complete recipe processing workflow.
+	/// </summary>
+	/// <param name="providerId">Provider identifier (e.g., "provider_001")</param>
+	/// <param name="recipeUrl">URL of the recipe being processed (for event context)</param>
+	/// <param name="rawIngredientCodes">Raw provider-specific ingredient codes from scraped recipe</param>
+	/// <param name="cancellationToken">Cancellation token</param>
+	/// <returns>List of IngredientReference value objects with normalized canonical forms</returns>
+	public async Task<IReadOnlyList<IngredientReference>> ProcessIngredientsAsync(
+		string providerId,
+		string recipeUrl,
+		IEnumerable<string> rawIngredientCodes,
+		CancellationToken cancellationToken = default)
+	{
+		logger.LogDebug(
+			"Normalizing ingredients for recipe {RecipeUrl} from provider {ProviderId}",
+			recipeUrl,
+			providerId);
+
+		// T066: Batch normalize all ingredient codes at once (reduces DB round-trips)
+		var normalizedIngredients = await ingredientNormalizer.NormalizeBatchAsync(
+			providerId,
+			rawIngredientCodes,
+			cancellationToken);
+
+		var ingredientReferences = new List<IngredientReference>();
+		var displayOrder = 1;
+
+		foreach (var (providerCode, canonicalForm) in normalizedIngredients)
+		{
+			// T069: Create IngredientReference value objects with both ProviderCode and CanonicalForm
+			// Store both for auditability and to support future provider migrations
+			var ingredientRef = new IngredientReference(
+				providerCode,
+				canonicalForm, // Will be null if unmapped - stored as-is for manual review
+				quantity: "1", // Quantity extraction is separate concern (not in Phase 4 scope)
+				displayOrder);
+
+			ingredientReferences.Add(ingredientRef);
+
+			// T069: Emit IngredientMappingMissingEvent for unmapped ingredients
+			// This is non-blocking - we log and continue processing
+			if (canonicalForm is null)
+			{
+				var missingEvent = new IngredientMappingMissingEvent(providerId, providerCode, recipeUrl);
+				eventBus.Publish(missingEvent);
+				
+				logger.LogWarning(
+					"Unmapped ingredient '{ProviderCode}' in recipe {RecipeUrl} from provider {ProviderId}",
+					providerCode,
+					recipeUrl,
+					providerId);
+			}
+
+			displayOrder++;
+		}
+
+		var mappedCount = ingredientReferences.Count(ir => ir.CanonicalForm is not null);
+		var unmappedCount = ingredientReferences.Count(ir => ir.CanonicalForm is null);
+
+		logger.LogInformation(
+			"Ingredient normalization complete for recipe {RecipeUrl}: {MappedCount} mapped, {UnmappedCount} unmapped",
+			recipeUrl,
+			mappedCount,
+			unmappedCount);
+
+		// T069: Return ingredient references for persistence
+		// The calling Processing state handler will attach these to the Recipe entity
+		return ingredientReferences.AsReadOnly();
 	}
 }
