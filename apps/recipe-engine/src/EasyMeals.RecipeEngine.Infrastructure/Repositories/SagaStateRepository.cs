@@ -12,8 +12,12 @@ public class SagaStateRepository(IMongoDatabase database, IClientSessionHandle? 
 	public async Task<SagaState?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default) =>
 		(await base.GetByIdAsync(id.ToString(), cancellationToken))?.ToDomain();
 
-	public async Task<SagaState?> GetByCorrelationIdAsync(Guid correlationId, CancellationToken cancellationToken = default) =>
-		throw new NotImplementedException();
+	public async Task<SagaState?> GetByCorrelationIdAsync(Guid correlationId, CancellationToken cancellationToken = default)
+	{
+		var filter = Builders<SagaStateDocument>.Filter.Eq(s => s.CorrelationId, correlationId.ToString());
+		var document = await _collection.Find(filter).FirstOrDefaultAsync(cancellationToken);
+		return document?.ToDomain();
+	}
 
 	public async Task<IEnumerable<SagaState>> GetBySagaTypeAsync(string sagaType, CancellationToken cancellationToken = default) =>
 		throw new NotImplementedException();
@@ -35,8 +39,12 @@ public class SagaStateRepository(IMongoDatabase database, IClientSessionHandle? 
 	public async Task<SagaState> AddAsync(SagaState sagaState, CancellationToken cancellationToken = default)
 		=> (await InsertOneAsync(SagaStateDocument.FromDomain(sagaState), cancellationToken)).ToDomain();
 
-	public async Task<SagaState> UpdateAsync(SagaState sagaState, CancellationToken cancellationToken = default) =>
-		throw new NotImplementedException();
+	public async Task<SagaState> UpdateAsync(SagaState sagaState, CancellationToken cancellationToken = default)
+	{
+		var document = SagaStateDocument.FromDomain(sagaState);
+		await ReplaceByIdAsync(document.Id, document, cancellationToken);
+		return sagaState;
+	}
 
 	public async Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken = default) => throw new NotImplementedException();
 

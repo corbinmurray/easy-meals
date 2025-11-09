@@ -56,7 +56,14 @@ try
 {
 	await using AsyncServiceScope scope = serviceProvider.CreateAsyncScope();
 	var processor = scope.ServiceProvider.GetRequiredService<IRecipeProcessingSaga>();
-	await processor.StartProcessingAsync(cts.Token);
+	
+	// Start processing with default configuration
+	// In production, these would come from configuration or command-line arguments
+	var providerId = "provider_001";
+	var batchSize = 100;
+	var timeWindow = TimeSpan.FromHours(1);
+	
+	await processor.StartProcessingAsync(providerId, batchSize, timeWindow, cts.Token);
 }
 catch (OperationCanceledException)
 {

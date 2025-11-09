@@ -2,6 +2,7 @@
 using EasyMeals.RecipeEngine.Application.EventHandlers.DiscoveryEvents;
 using EasyMeals.RecipeEngine.Application.Interfaces;
 using EasyMeals.RecipeEngine.Application.Sagas;
+using EasyMeals.RecipeEngine.Application.Services;
 using EasyMeals.RecipeEngine.Domain.Events;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -12,7 +13,13 @@ public static class ServiceCollectionExtensions
 {
 	public static IServiceCollection AddRecipeEngine(this IServiceCollection services)
 	{
+		// Register saga
 		services.AddScoped<IRecipeProcessingSaga, RecipeProcessingSaga>();
+		
+		// Register application services
+		services.AddScoped<RecipeProcessingApplicationService>();
+		
+		// Register event bus and handlers
 		services.AddEventBus();
 
 		return services;
@@ -28,6 +35,8 @@ public static class ServiceCollectionExtensions
 		// Register all event handlers
 		services.AddTransient<IEventHandler<RecipeUrlsDiscoveredEvent>, RecipeUrlsDiscoveredHandler>();
 		services.AddTransient<IEventHandler<IngredientMappingMissingEvent>, IngredientMappingMissingEventHandler>();
+		services.AddTransient<IEventHandler<BatchStartedEvent>, BatchStartedEventHandler>();
+		services.AddTransient<IEventHandler<RecipeProcessedEvent>, RecipeProcessedEventHandler>();
 
 		// Register event bus and subscribe to events
 		services.AddSingleton<IEventBus>(sp =>
@@ -37,6 +46,8 @@ public static class ServiceCollectionExtensions
 			// Generic registration method
 			RegisterHandler<RecipeUrlsDiscoveredEvent, RecipeUrlsDiscoveredHandler>(eventBus, sp);
 			RegisterHandler<IngredientMappingMissingEvent, IngredientMappingMissingEventHandler>(eventBus, sp);
+			RegisterHandler<BatchStartedEvent, BatchStartedEventHandler>(eventBus, sp);
+			RegisterHandler<RecipeProcessedEvent, RecipeProcessedEventHandler>(eventBus, sp);
 
 			return eventBus;
 		});
