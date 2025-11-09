@@ -88,19 +88,56 @@ public class RecipeProcessingSaga(
 				await ExecuteProcessingPhaseAsync(sagaState, timeWindow, cancellationToken);
 				await ExecutePersistingPhaseAsync(sagaState, cancellationToken);
 				
-				sagaState.Complete();
+				// Calculate comprehensive metrics
+				var processedUrls = (sagaState.StateData["ProcessedUrls"] as List<string>)?.Count ?? 0;
+				var failedUrls = (sagaState.StateData["FailedUrls"] as List<Dictionary<string, object>>)?.Count ?? 0;
+				var discoveredUrls = (sagaState.StateData["DiscoveredUrls"] as List<string>)?.Count ?? 0;
+				var fingerprintedUrls = (sagaState.StateData["FingerprintedUrls"] as List<string>)?.Count ?? 0;
+				var skippedDuplicates = discoveredUrls - fingerprintedUrls;
+				var duration = DateTime.UtcNow - (sagaState.StartedAt ?? DateTime.UtcNow);
+				var averageTimePerRecipe = processedUrls > 0 
+					? duration.TotalSeconds / processedUrls 
+					: 0;
+				
+				sagaState.Complete(new Dictionary<string, object>
+				{
+					["ProcessedCount"] = processedUrls,
+					["FailedCount"] = failedUrls,
+					["SkippedDuplicates"] = skippedDuplicates,
+					["TotalDuration"] = duration.ToString(),
+					["AverageTimePerRecipe"] = averageTimePerRecipe
+				});
 				sagaState.UpdateProgress(PhaseCompleted, 100);
 				await sagaStateRepository.UpdateAsync(sagaState, cancellationToken);
 
+				// T082: Comprehensive batch completion logging
 				logger.LogInformation(
-					"Saga {SagaId} completed successfully. Processed: {ProcessedCount}, Failed: {FailedCount}",
+					"Saga {SagaId} completed successfully for provider {ProviderId}. " +
+					"Discovered: {Discovered}, Duplicates: {Duplicates}, Fingerprinted: {Fingerprinted}, " +
+					"Processed: {Processed}, Failed: {Failed}, " +
+					"Duration: {Duration:F2}s, AvgTimePerRecipe: {AvgTime:F2}s",
 					sagaState.Id,
-					(sagaState.StateData["ProcessedUrls"] as List<string>)?.Count ?? 0,
-					(sagaState.StateData["FailedUrls"] as List<Dictionary<string, object>>)?.Count ?? 0);
+					providerId,
+					discoveredUrls,
+					skippedDuplicates,
+					fingerprintedUrls,
+					processedUrls,
+					failedUrls,
+					duration.TotalSeconds,
+					averageTimePerRecipe);
 			}
 			catch (Exception ex)
 			{
-				logger.LogError(ex, "Saga {SagaId} failed: {ErrorMessage}", sagaState.Id, ex.Message);
+				var errorType = Helpers.ErrorClassifier.GetErrorType(ex);
+				
+				logger.LogError(
+					ex,
+					"Saga {SagaId} failed for provider {ProviderId}. ErrorType: {ErrorType}, ErrorMessage: {ErrorMessage}",
+					sagaState.Id,
+					providerId,
+					errorType,
+					ex.Message);
+					
 				sagaState.Fail(ex.Message, ex.StackTrace);
 				await sagaStateRepository.UpdateAsync(sagaState, cancellationToken);
 				throw;
@@ -208,42 +245,72 @@ public class RecipeProcessingSaga(
 
 	private async Task ExecuteDiscoveryPhaseAsync(SagaState sagaState, CancellationToken cancellationToken)
 	{
-		logger.LogInformation("Executing Discovery phase for saga {SagaId}", sagaState.Id);
-		
 		var providerId = sagaState.StateData["ProviderId"] as string ?? throw new InvalidOperationException("ProviderId not found");
 		
-		// Load provider configuration
-		var config = await configurationLoader.GetByProviderIdAsync(providerId, cancellationToken);
-		if (config == null)
+		using (logger.BeginScope(new Dictionary<string, object>
 		{
-			throw new InvalidOperationException($"Provider configuration not found for {providerId}");
-		}
-
-		// Discover recipe URLs using the Domain service
-		// For now, we'll use basic discovery with the provider's root URL
-		var discoveredUrlsResult = await discoveryService.DiscoverRecipeUrlsAsync(
-			config.RecipeRootUrl,
-			providerId,
-			maxDepth: 2,
-			maxUrls: (int)config.BatchSize,
-			cancellationToken);
-		
-		var urlList = discoveredUrlsResult.Select(u => u.Url).ToList();
-
-		logger.LogInformation("Discovered {Count} URLs for provider {ProviderId}", urlList.Count, providerId);
-
-		// Update state
-		sagaState.StateData["DiscoveredUrls"] = urlList;
-		sagaState.UpdateProgress(PhaseDiscovering, 100);
-		
-		// Create checkpoint
-		sagaState.CreateCheckpoint("DiscoveryComplete", new Dictionary<string, object>
-		{
-			["DiscoveredCount"] = urlList.Count,
+			["SagaId"] = sagaState.Id,
+			["CorrelationId"] = sagaState.CorrelationId,
+			["ProviderId"] = providerId,
 			["Phase"] = PhaseDiscovering
-		});
+		}))
+		{
+			logger.LogInformation("Executing Discovery phase for saga {SagaId}", sagaState.Id);
+			
+			// Load provider configuration
+			var config = await configurationLoader.GetByProviderIdAsync(providerId, cancellationToken);
+			if (config == null)
+			{
+				throw new InvalidOperationException($"Provider configuration not found for {providerId}");
+			}
 
-		await sagaStateRepository.UpdateAsync(sagaState, cancellationToken);
+			try
+			{
+				// Discover recipe URLs with retry for transient errors
+				var discoveredUrlsResult = await Helpers.RetryPolicyHelper.ExecuteWithRetryAsync(
+					async () => await discoveryService.DiscoverRecipeUrlsAsync(
+						config.RecipeRootUrl,
+						providerId,
+						maxDepth: 2,
+						maxUrls: (int)config.BatchSize,
+						cancellationToken),
+					maxRetryAttempts: (int)config.RetryCount,
+					baseDelayMs: 1000,
+					logger: logger,
+					operationName: $"Discovery-{providerId}");
+				
+				var urlList = discoveredUrlsResult.Select(u => u.Url).ToList();
+
+				logger.LogInformation("Discovered {Count} URLs for provider {ProviderId}", urlList.Count, providerId);
+
+				// Update state
+				sagaState.StateData["DiscoveredUrls"] = urlList;
+				sagaState.UpdateProgress(PhaseDiscovering, 100);
+				
+				// Create checkpoint
+				sagaState.CreateCheckpoint("DiscoveryComplete", new Dictionary<string, object>
+				{
+					["DiscoveredCount"] = urlList.Count,
+					["Phase"] = PhaseDiscovering
+				});
+
+				await sagaStateRepository.UpdateAsync(sagaState, cancellationToken);
+			}
+			catch (Exception ex)
+			{
+				// Log error with full context
+				logger.LogError(
+					ex,
+					"Discovery phase failed for saga {SagaId}, provider {ProviderId}. ErrorType: {ErrorType}, ErrorMessage: {ErrorMessage}",
+					sagaState.Id,
+					providerId,
+					Helpers.ErrorClassifier.GetErrorType(ex),
+					ex.Message);
+				
+				// Re-throw to fail the saga
+				throw;
+			}
+		}
 	}
 
 	private async Task ExecuteFingerprintingPhaseAsync(SagaState sagaState, CancellationToken cancellationToken)
@@ -297,110 +364,218 @@ public class RecipeProcessingSaga(
 
 	private async Task ExecuteProcessingPhaseAsync(SagaState sagaState, TimeSpan timeWindow, CancellationToken cancellationToken)
 	{
-		logger.LogInformation("Executing Processing phase for saga {SagaId}", sagaState.Id);
-
-		var fingerprintedUrls = sagaState.StateData["FingerprintedUrls"] as List<string> ?? new List<string>();
-		var processedUrls = sagaState.StateData["ProcessedUrls"] as List<string> ?? new List<string>();
-		var failedUrlsList = sagaState.StateData["FailedUrls"] as List<Dictionary<string, object>> ?? new List<Dictionary<string, object>>();
-		var currentIndexObj = sagaState.StateData["CurrentIndex"];
-		var currentIndex = currentIndexObj switch
-		{
-			int i => i,
-			long l => (int)l,
-			_ => 0
-		};
 		var providerId = sagaState.StateData["ProviderId"] as string ?? "";
-		var batchSizeObj = sagaState.StateData["BatchSize"];
-		var batchSize = batchSizeObj switch
+		
+		using (logger.BeginScope(new Dictionary<string, object>
 		{
-			int i => i,
-			long l => (int)l,
-			_ => 100
-		};
-
-		var startTime = DateTime.UtcNow;
-		var totalUrls = fingerprintedUrls.Count;
-
-		// Process URLs from CurrentIndex
-		for (var i = currentIndex; i < fingerprintedUrls.Count; i++)
+			["SagaId"] = sagaState.Id,
+			["CorrelationId"] = sagaState.CorrelationId,
+			["ProviderId"] = providerId,
+			["Phase"] = PhaseProcessing
+		}))
 		{
-			// Check batch size limit
-			if (processedUrls.Count >= batchSize)
+			logger.LogInformation("Executing Processing phase for saga {SagaId}", sagaState.Id);
+
+			var fingerprintedUrls = sagaState.StateData["FingerprintedUrls"] as List<string> ?? new List<string>();
+			var processedUrls = sagaState.StateData["ProcessedUrls"] as List<string> ?? new List<string>();
+			var failedUrlsList = sagaState.StateData["FailedUrls"] as List<Dictionary<string, object>> ?? new List<Dictionary<string, object>>();
+			var currentIndexObj = sagaState.StateData["CurrentIndex"];
+			var currentIndex = currentIndexObj switch
 			{
-				logger.LogInformation("Batch size limit reached ({BatchSize}), stopping processing", batchSize);
-				break;
+				int i => i,
+				long l => (int)l,
+				_ => 0
+			};
+			var batchSizeObj = sagaState.StateData["BatchSize"];
+			var batchSize = batchSizeObj switch
+			{
+				int i => i,
+				long l => (int)l,
+				_ => 100
+			};
+
+			var startTime = DateTime.UtcNow;
+			var totalUrls = fingerprintedUrls.Count;
+
+			// Load provider configuration for retry settings
+			var config = await configurationLoader.GetByProviderIdAsync(providerId, cancellationToken);
+			if (config == null)
+			{
+				throw new InvalidOperationException($"Provider configuration not found for {providerId}");
 			}
 
-			// Check time window limit
-			if (DateTime.UtcNow - startTime >= timeWindow)
+			// Process URLs from CurrentIndex
+			for (var i = currentIndex; i < fingerprintedUrls.Count; i++)
 			{
-				logger.LogInformation("Time window exceeded, stopping processing");
-				break;
-			}
-
-			var url = fingerprintedUrls[i];
-
-			try
-			{
-				// Wait for rate limit token
-				var acquired = await rateLimiter.TryAcquireAsync(providerId, cancellationToken);
-				if (!acquired)
+				// Check batch size limit
+				if (processedUrls.Count >= batchSize)
 				{
-					// Wait a bit if rate limited
-					await Task.Delay(TimeSpan.FromSeconds(1), cancellationToken);
-					acquired = await rateLimiter.TryAcquireAsync(providerId, cancellationToken);
+					logger.LogInformation("Batch size limit reached ({BatchSize}), stopping processing", batchSize);
+					break;
 				}
 
-				// TODO: In full implementation, we would:
-				// 1. Fetch the recipe page
-				// 2. Parse the recipe data
-				// 3. Normalize ingredients
-				// 4. Create Recipe entity
-				// For now, we'll just mark as processed
-				
-				processedUrls.Add(url);
-				logger.LogDebug("Processed URL {Url} ({Index}/{Total})", url, i + 1, totalUrls);
-			}
-			catch (Exception ex)
-			{
-				logger.LogWarning(ex, "Failed to process URL {Url}: {ErrorMessage}", url, ex.Message);
-				
-				// Add to failed URLs
-				failedUrlsList.Add(new Dictionary<string, object>
+				// Check time window limit
+				if (DateTime.UtcNow - startTime >= timeWindow)
 				{
-					["Url"] = url,
-					["Error"] = ex.Message,
-					["Timestamp"] = DateTime.UtcNow,
-					["RetryCount"] = 0
-				});
+					logger.LogInformation("Time window exceeded ({TimeWindow}), stopping processing. Processed {Processed}/{Total} URLs",
+						timeWindow, processedUrls.Count, totalUrls);
+					break;
+				}
+
+				var url = fingerprintedUrls[i];
+				var retryCount = 0;
+
+				try
+				{
+					// Wait for rate limit token
+					var acquired = await rateLimiter.TryAcquireAsync(providerId, cancellationToken);
+					if (!acquired)
+					{
+						// Wait a bit if rate limited
+						await Task.Delay(TimeSpan.FromSeconds(1), cancellationToken);
+						acquired = await rateLimiter.TryAcquireAsync(providerId, cancellationToken);
+					}
+
+					// TODO: In full implementation, we would:
+					// 1. Fetch the recipe page
+					// 2. Parse the recipe data
+					// 3. Normalize ingredients
+					// 4. Create Recipe entity
+					// For now, we'll just mark as processed
+					
+					processedUrls.Add(url);
+					logger.LogDebug("Processed URL {Url} ({Index}/{Total})", url, i + 1, totalUrls);
+				}
+				catch (Exception ex)
+				{
+					// Classify error as transient or permanent
+					var isTransient = Helpers.ErrorClassifier.IsTransient(ex);
+					var isPermanent = Helpers.ErrorClassifier.IsPermanent(ex);
+					var errorType = Helpers.ErrorClassifier.GetErrorType(ex);
+
+					// Log with structured context
+					using (logger.BeginScope(new Dictionary<string, object>
+					{
+						["Url"] = url,
+						["ErrorType"] = errorType,
+						["IsTransient"] = isTransient,
+						["IsPermanent"] = isPermanent,
+						["RetryCount"] = retryCount
+					}))
+					{
+						if (isPermanent)
+						{
+							// Permanent error - skip and continue
+							logger.LogWarning(
+								ex,
+								"Permanent error processing URL {Url}: {ErrorMessage}. Skipping and continuing.",
+								url,
+								ex.Message);
+							
+							// Add to failed URLs with permanent flag
+							failedUrlsList.Add(new Dictionary<string, object>
+							{
+								["Url"] = url,
+								["Error"] = ex.Message,
+								["ErrorType"] = errorType,
+								["IsPermanent"] = true,
+								["IsTransient"] = false,
+								["Timestamp"] = DateTime.UtcNow,
+								["RetryCount"] = 0,
+								["StackTrace"] = ex.StackTrace ?? ""
+							});
+							
+							// Emit ProcessingErrorEvent for monitoring
+							eventBus.Publish(new Domain.Events.ProcessingErrorEvent(url, providerId, ex.Message, DateTime.UtcNow));
+						}
+						else if (isTransient)
+						{
+							// Transient error - will be retried on next run or if we implement inline retries
+							logger.LogWarning(
+								ex,
+								"Transient error processing URL {Url}: {ErrorMessage}. Will retry.",
+								url,
+								ex.Message);
+							
+							failedUrlsList.Add(new Dictionary<string, object>
+							{
+								["Url"] = url,
+								["Error"] = ex.Message,
+								["ErrorType"] = errorType,
+								["IsPermanent"] = false,
+								["IsTransient"] = true,
+								["Timestamp"] = DateTime.UtcNow,
+								["RetryCount"] = retryCount,
+								["StackTrace"] = ex.StackTrace ?? ""
+							});
+							
+							eventBus.Publish(new Domain.Events.ProcessingErrorEvent(url, providerId, ex.Message, DateTime.UtcNow));
+						}
+						else
+						{
+							// Unknown error - treat as permanent to avoid infinite retries
+							logger.LogError(
+								ex,
+								"Unknown error processing URL {Url}: {ErrorMessage}. Treating as permanent.",
+								url,
+								ex.Message);
+							
+							failedUrlsList.Add(new Dictionary<string, object>
+							{
+								["Url"] = url,
+								["Error"] = ex.Message,
+								["ErrorType"] = "Unknown",
+								["IsPermanent"] = true,
+								["IsTransient"] = false,
+								["Timestamp"] = DateTime.UtcNow,
+								["RetryCount"] = 0,
+								["StackTrace"] = ex.StackTrace ?? ""
+							});
+							
+							eventBus.Publish(new Domain.Events.ProcessingErrorEvent(url, providerId, ex.Message, DateTime.UtcNow));
+						}
+					}
+				}
+
+				// Update current index and save state for crash recovery
+				sagaState.StateData["CurrentIndex"] = i + 1;
+				sagaState.StateData["ProcessedUrls"] = processedUrls;
+				sagaState.StateData["FailedUrls"] = failedUrlsList;
+				
+				var progress = (int)((double)(i + 1) / totalUrls * 100);
+				sagaState.UpdateProgress(PhaseProcessing, progress);
+
+				// Checkpoint every 10 recipes for crash recovery
+				if ((i + 1) % 10 == 0)
+				{
+					sagaState.CreateCheckpoint($"Processing_{i + 1}", new Dictionary<string, object>
+					{
+						["ProcessedCount"] = processedUrls.Count,
+						["FailedCount"] = failedUrlsList.Count,
+						["CurrentIndex"] = i + 1,
+						["Phase"] = PhaseProcessing,
+						["ElapsedTime"] = (DateTime.UtcNow - startTime).ToString()
+					});
+					await sagaStateRepository.UpdateAsync(sagaState, cancellationToken);
+					
+					logger.LogDebug(
+						"Checkpoint saved at {Index}/{Total}. Processed: {Processed}, Failed: {Failed}",
+						i + 1,
+						totalUrls,
+						processedUrls.Count,
+						failedUrlsList.Count);
+				}
 			}
 
-			// Update current index and save state for crash recovery
-			sagaState.StateData["CurrentIndex"] = i + 1;
-			sagaState.StateData["ProcessedUrls"] = processedUrls;
-			sagaState.StateData["FailedUrls"] = failedUrlsList;
-			
-			var progress = (int)((double)(i + 1) / totalUrls * 100);
-			sagaState.UpdateProgress(PhaseProcessing, progress);
+			logger.LogInformation(
+				"Processing phase complete. Processed: {ProcessedCount}, Failed: {FailedCount}, Total: {Total}",
+				processedUrls.Count,
+				failedUrlsList.Count,
+				totalUrls);
 
-			// Checkpoint every 10 recipes
-			if ((i + 1) % 10 == 0)
-			{
-				sagaState.CreateCheckpoint($"Processing_{i + 1}", new Dictionary<string, object>
-				{
-					["ProcessedCount"] = processedUrls.Count,
-					["CurrentIndex"] = i + 1,
-					["Phase"] = PhaseProcessing
-				});
-				await sagaStateRepository.UpdateAsync(sagaState, cancellationToken);
-			}
+			sagaState.UpdateProgress(PhaseProcessing, 100);
+			await sagaStateRepository.UpdateAsync(sagaState, cancellationToken);
 		}
-
-		logger.LogInformation("Processing phase complete. Processed: {ProcessedCount}, Failed: {FailedCount}",
-			processedUrls.Count, failedUrlsList.Count);
-
-		sagaState.UpdateProgress(PhaseProcessing, 100);
-		await sagaStateRepository.UpdateAsync(sagaState, cancellationToken);
 	}
 
 	private async Task ExecutePersistingPhaseAsync(SagaState sagaState, CancellationToken cancellationToken)
