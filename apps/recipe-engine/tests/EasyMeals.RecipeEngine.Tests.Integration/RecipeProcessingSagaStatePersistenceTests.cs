@@ -112,13 +112,14 @@ public class RecipeProcessingSagaStatePersistenceTests : IAsyncLifetime
         var mockFingerprinter = new Mock<IRecipeFingerprinter>();
         mockFingerprinter
             .Setup(f => f.GenerateFingerprint(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
-            .Returns("test-fingerprint");
+            .Returns((string url, string title, string description) => 
+                url.Contains("recipe2-duplicate") ? "fingerprint-recipe2" : $"fingerprint-{url}");
         
         // Mark recipe2 as duplicate
         mockFingerprinter
             .Setup(f => f.IsDuplicateAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((string fingerprint, CancellationToken ct) => 
-                fingerprint.Contains("recipe2"));
+                fingerprint == "fingerprint-recipe2");
 
         var mockNormalizer = CreateMockNormalizer();
         var mockRateLimiter = CreateMockRateLimiter();

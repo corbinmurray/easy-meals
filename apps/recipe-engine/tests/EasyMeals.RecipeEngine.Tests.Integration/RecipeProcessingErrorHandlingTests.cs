@@ -67,7 +67,7 @@ public class RecipeProcessingErrorHandlingTests : IAsyncLifetime
                     throw new HttpRequestException("Connection timeout");
                 }
                 // Success on third attempt
-                return Task.FromResult<IReadOnlyList<DiscoveredUrl>>(new List<DiscoveredUrl>
+                return Task.FromResult<IEnumerable<DiscoveredUrl>>(new List<DiscoveredUrl>
                 {
                     new("https://test.com/recipe1", provider, DateTime.UtcNow)
                 });
@@ -90,16 +90,17 @@ public class RecipeProcessingErrorHandlingTests : IAsyncLifetime
             mockBatchRepository.Object,
             mockEventBus.Object);
 
-        // Act & Assert
-        // For now, this will fail because retry logic is not yet implemented
-        // After implementation, this should succeed on the third attempt
-        await Assert.ThrowsAsync<HttpRequestException>(async () =>
-        {
-            await saga.StartProcessingAsync("test-provider", 10, TimeSpan.FromMinutes(10), CancellationToken.None);
-        });
+        // Act
+        var batchId = await saga.StartProcessingAsync("test-provider", 10, TimeSpan.FromMinutes(10), CancellationToken.None);
 
-        // Verify that multiple attempts were made (will be validated after retry implementation)
-        attemptCount.Should().BeGreaterThan(0, "should have attempted discovery at least once");
+        // Assert
+        batchId.Should().NotBeEmpty("should successfully complete after retries");
+        attemptCount.Should().Be(3, "should have retried exactly 3 times (2 failures + 1 success)");
+        
+        // Verify saga completed successfully
+        var sagaState = await _sagaRepository!.GetByCorrelationIdAsync(batchId, CancellationToken.None);
+        sagaState.Should().NotBeNull();
+        sagaState!.Status.Should().Be(SagaStatus.Completed, "saga should complete successfully after retries");
     }
 
     [Fact(DisplayName = "Saga skips permanent processing errors and continues")]
