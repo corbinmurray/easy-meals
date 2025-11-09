@@ -200,16 +200,16 @@ Repository structure: `apps/recipe-engine/` with DDD layers (Domain, Application
 
 ### Tests for User Story 4
 
-- [ ] T083 [P] [US4] Unit test for provider configuration loader (load all enabled providers from MongoDB) in `apps/recipe-engine/tests/EasyMeals.RecipeEngine.Tests.Unit/Configuration/ProviderConfigurationLoaderTests.cs`
-- [ ] T084 [P] [US4] Unit test for provider configuration validation (invalid settings throw exceptions at startup) in `apps/recipe-engine/tests/EasyMeals.RecipeEngine.Tests.Unit/Configuration/ProviderConfigurationValidationTests.cs`
-- [ ] T085 [US4] Integration test for provider configuration caching (load from MongoDB, cache in memory, refresh on TTL) in `apps/recipe-engine/tests/EasyMeals.RecipeEngine.Tests.Integration/ProviderConfigurationCachingTests.cs` with MongoDB Testcontainers
-- [ ] T086 [US4] Integration test for multi-provider processing (load configs for provider_001 and provider_002, process batches sequentially with different settings) in `apps/recipe-engine/tests/EasyMeals.RecipeEngine.Tests.Integration/MultiProviderProcessingTests.cs` with MongoDB Testcontainers
+- [x] T083 [P] [US4] Unit test for provider configuration loader (load all enabled providers from MongoDB) in `apps/recipe-engine/tests/EasyMeals.RecipeEngine.Tests.Unit/Configuration/ProviderConfigurationLoaderTests.cs`
+- [x] T084 [P] [US4] Unit test for provider configuration validation (invalid settings throw exceptions at startup) in `apps/recipe-engine/tests/EasyMeals.RecipeEngine.Tests.Unit/Configuration/ProviderConfigurationValidationTests.cs`
+- [x] T085 [US4] Integration test for provider configuration caching (load from MongoDB, cache in memory, refresh on TTL) in `apps/recipe-engine/tests/EasyMeals.RecipeEngine.Tests.Integration/ProviderConfigurationCachingTests.cs` with MongoDB Testcontainers
+- [x] T086 [US4] Integration test for multi-provider processing (load configs for provider_001 and provider_002, process batches sequentially with different settings) in `apps/recipe-engine/tests/EasyMeals.RecipeEngine.Tests.Integration/MultiProviderProcessingTests.cs` with MongoDB Testcontainers
 
 ### Implementation for User Story 4
 
-- [ ] T087 [P] [US4] Add configuration caching to `ProviderConfigurationLoader.cs` with in-memory cache (key=ProviderId, TTL=1 hour, invalidate on refresh), LoadConfigurationsAsync method to load all enabled providers at startup
-- [ ] T088 [P] [US4] Add configuration validation to `ProviderConfiguration` value object constructor (ProviderId required, BatchSize > 0, TimeWindow > 0, MinDelay >= 0, MaxRequestsPerMinute > 0, RetryCount >= 0, RequestTimeout > 0, RecipeRootUrl valid HTTPS URL)
-- [ ] T089 [US4] Update `ProviderConfigurationHostedService.cs` to call ProviderConfigurationLoader.LoadConfigurationsAsync on startup, log all loaded providers with settings (sanitize RecipeRootUrl in logs), fail fast if no enabled providers or invalid configuration
+- [x] T087 [P] [US4] Add configuration caching to `ProviderConfigurationLoader.cs` with in-memory cache (key=ProviderId, TTL=1 hour, invalidate on refresh), LoadConfigurationsAsync method to load all enabled providers at startup
+- [x] T088 [P] [US4] Add configuration validation to `ProviderConfiguration` value object constructor (ProviderId required, BatchSize > 0, TimeWindow > 0, MinDelay >= 0, MaxRequestsPerMinute > 0, RetryCount >= 0, RequestTimeout > 0, RecipeRootUrl valid HTTPS URL)
+- [x] T089 [US4] Update `ProviderConfigurationHostedService.cs` to call ProviderConfigurationLoader.LoadConfigurationsAsync on startup, log all loaded providers with settings (sanitize RecipeRootUrl in logs), fail fast if no enabled providers or invalid configuration
 - [ ] T090 [US4] Update `RecipeProcessingApplicationService.cs` to iterate through all enabled providers, create RecipeBatch for each provider, call IRecipeProcessingSaga.StartProcessingAsync sequentially (respect batch time windows, avoid overlapping batches)
 - [ ] T091 [US4] Add provider filtering in `RecipeProcessingApplicationService.cs` to skip disabled providers (Enabled=false), log skipped providers with reason
 - [ ] T092 [US4] Add provider-specific rate limiters in `TokenBucketRateLimiter.cs` to maintain separate token buckets per ProviderId (use ConcurrentDictionary<string, RateLimitToken>), resolve rate limiter by ProviderId at runtime

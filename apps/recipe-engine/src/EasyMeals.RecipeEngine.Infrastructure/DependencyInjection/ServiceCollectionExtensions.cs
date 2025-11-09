@@ -71,7 +71,7 @@ public static class ServiceCollectionExtensions
 		services.AddScoped<IIngredientNormalizer, IngredientNormalizationService>();
 
 		// Register hosted services
-		services.AddHostedService<ConfigurationHostedService>();
+		services.AddHostedService<ProviderConfigurationHostedService>();
 
 		return services;
 	}
