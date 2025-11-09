@@ -2,6 +2,7 @@ using EasyMeals.RecipeEngine.Application.Interfaces;
 using EasyMeals.RecipeEngine.Application.Sagas;
 using EasyMeals.RecipeEngine.Domain.Events;
 using EasyMeals.RecipeEngine.Domain.Interfaces;
+using EasyMeals.RecipeEngine.Domain.Repositories;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -30,7 +31,12 @@ public class RecipeProcessingSagaIngredientTests
         _sut = new RecipeProcessingSaga(
             _mockLogger.Object,
             _mockSagaStateRepository.Object,
+            Mock.Of<IProviderConfigurationLoader>(),
+            Mock.Of<IDiscoveryService>(),
+            Mock.Of<IRecipeFingerprinter>(),
             _mockIngredientNormalizer.Object,
+            Mock.Of<IRateLimiter>(),
+            Mock.Of<IRecipeBatchRepository>(),
             _mockEventBus.Object);
     }
 
