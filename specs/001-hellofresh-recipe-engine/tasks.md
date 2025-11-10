@@ -254,23 +254,23 @@ Repository structure: `apps/recipe-engine/` with DDD layers (Domain, Application
 
 ### Tests for Discovery Strategies
 
-- [ ] T105 [P] [DISC] Unit test for static crawl discovery service (parse static HTML with HtmlAgilityPack, extract recipe links via CSS selectors) in `apps/recipe-engine/tests/EasyMeals.RecipeEngine.Tests.Unit/Discovery/StaticCrawlDiscoveryServiceTests.cs`
-- [ ] T106 [P] [DISC] Unit test for dynamic crawl discovery service (mock Playwright, verify JavaScript rendering, pagination, recursive discovery) in `apps/recipe-engine/tests/EasyMeals.RecipeEngine.Tests.Unit/Discovery/DynamicCrawlDiscoveryServiceTests.cs`
-- [ ] T107 [P] [DISC] Unit test for API discovery service (mock API responses, parse JSON, extract recipe URLs) in `apps/recipe-engine/tests/EasyMeals.RecipeEngine.Tests.Unit/Discovery/ApiDiscoveryServiceTests.cs`
+- [x] T105 [P] [DISC] Unit test for static crawl discovery service (parse static HTML with HtmlAgilityPack, extract recipe links via CSS selectors) in `apps/recipe-engine/tests/EasyMeals.RecipeEngine.Tests.Unit/Discovery/StaticCrawlDiscoveryServiceTests.cs`
+- [x] T106 [P] [DISC] Unit test for dynamic crawl discovery service (mock Playwright, verify JavaScript rendering, pagination, recursive discovery) in `apps/recipe-engine/tests/EasyMeals.RecipeEngine.Tests.Unit/Discovery/DynamicCrawlDiscoveryServiceTests.cs`
+- [x] T107 [P] [DISC] Unit test for API discovery service (mock API responses, parse JSON, extract recipe URLs) in `apps/recipe-engine/tests/EasyMeals.RecipeEngine.Tests.Unit/Discovery/ApiDiscoveryServiceTests.cs`
 - [ ] T108 [DISC] Integration test for dynamic crawl discovery with Playwright (headless Chromium, real JavaScript execution, pagination handling) in `apps/recipe-engine/tests/EasyMeals.RecipeEngine.Tests.Integration/DynamicCrawlDiscoveryIntegrationTests.cs`
 
 ### Implementation of Discovery Strategies
 
-- [ ] T109 [P] [DISC] Implement `StaticCrawlDiscoveryService` in `apps/recipe-engine/src/EasyMeals.RecipeEngine.Infrastructure/Discovery/StaticCrawlDiscoveryService.cs` implementing IDiscoveryService with HttpClient and HtmlAgilityPack dependencies, DiscoverRecipeUrlsAsync method to fetch HTML from RecipeRootUrl, parse with HtmlAgilityPack, extract recipe links via CSS selectors from configuration, return absolute HTTPS URLs
-- [ ] T110 [P] [DISC] Implement `DynamicCrawlDiscoveryService` in `apps/recipe-engine/src/EasyMeals.RecipeEngine.Infrastructure/Discovery/DynamicCrawlDiscoveryService.cs` implementing IDiscoveryService with Playwright dependencies, DiscoverRecipeUrlsAsync method to launch headless Chromium, navigate to RecipeRootUrl, wait for JavaScript to render (configurable wait selector), extract recipe URLs, handle pagination (configurable pagination pattern), recursively discover links (configurable max depth), return absolute HTTPS URLs
-- [ ] T111 [P] [DISC] Implement `ApiDiscoveryService` in `apps/recipe-engine/src/EasyMeals.RecipeEngine.Infrastructure/Discovery/ApiDiscoveryService.cs` implementing IDiscoveryService with HttpClient dependency, DiscoverRecipeUrlsAsync method to call API endpoint from RecipeRootUrl, parse JSON response, extract recipe URLs from configured JSON path, handle pagination via API parameters, return absolute HTTPS URLs
-- [ ] T112 [DISC] Create discovery service factory in `ServiceCollectionExtensions.cs` to resolve IDiscoveryService by DiscoveryStrategy enum (Static → StaticCrawlDiscoveryService, Dynamic → DynamicCrawlDiscoveryService, Api → ApiDiscoveryService)
-- [ ] T113 [DISC] Update saga Discovering state handler in `RecipeProcessingSaga.cs` to resolve IDiscoveryService via factory by ProviderConfiguration.DiscoveryStrategy, call DiscoverRecipeUrlsAsync, store URLs in sagaState.DiscoveredUrls
-- [ ] T114 [DISC] Configure Playwright browser launch options in `DynamicCrawlDiscoveryService.cs` (headless=true, args=[--no-sandbox, --disable-setuid-sandbox] for Docker, timeout=30s)
-- [ ] T115 [DISC] Add discovery error handling in all three discovery services to throw DiscoveryException with context (ProviderId, RecipeRootUrl, error message, inner exception)
-- [ ] T116 [DISC] Register all three discovery services and factory in DI via `ServiceCollectionExtensions.cs`
+- [x] T109 [P] [DISC] Implement `StaticCrawlDiscoveryService` in `apps/recipe-engine/src/EasyMeals.RecipeEngine.Infrastructure/Discovery/StaticCrawlDiscoveryService.cs` implementing IDiscoveryService with HttpClient and HtmlAgilityPack dependencies, DiscoverRecipeUrlsAsync method to fetch HTML from RecipeRootUrl, parse with HtmlAgilityPack, extract recipe links via CSS selectors from configuration, return absolute HTTPS URLs
+- [x] T110 [P] [DISC] Implement `DynamicCrawlDiscoveryService` in `apps/recipe-engine/src/EasyMeals.RecipeEngine.Infrastructure/Discovery/DynamicCrawlDiscoveryService.cs` implementing IDiscoveryService with Playwright dependencies, DiscoverRecipeUrlsAsync method to launch headless Chromium, navigate to RecipeRootUrl, wait for JavaScript to render (configurable wait selector), extract recipe URLs, handle pagination (configurable pagination pattern), recursively discover links (configurable max depth), return absolute HTTPS URLs
+- [x] T111 [P] [DISC] Implement `ApiDiscoveryService` in `apps/recipe-engine/src/EasyMeals.RecipeEngine.Infrastructure/Discovery/ApiDiscoveryService.cs` implementing IDiscoveryService with HttpClient dependency, DiscoverRecipeUrlsAsync method to call API endpoint from RecipeRootUrl, parse JSON response, extract recipe URLs from configured JSON path, handle pagination via API parameters, return absolute HTTPS URLs
+- [x] T112 [DISC] Create discovery service factory in `ServiceCollectionExtensions.cs` to resolve IDiscoveryService by DiscoveryStrategy enum (Static → StaticCrawlDiscoveryService, Dynamic → DynamicCrawlDiscoveryService, Api → ApiDiscoveryService)
+- [x] T113 [DISC] Update saga Discovering state handler in `RecipeProcessingSaga.cs` to resolve IDiscoveryService via factory by ProviderConfiguration.DiscoveryStrategy, call DiscoverRecipeUrlsAsync, store URLs in sagaState.DiscoveredUrls
+- [x] T114 [DISC] Configure Playwright browser launch options in `DynamicCrawlDiscoveryService.cs` (headless=true, args=[--no-sandbox, --disable-setuid-sandbox] for Docker, timeout=30s)
+- [x] T115 [DISC] Add discovery error handling in all three discovery services to throw DiscoveryException with context (ProviderId, RecipeRootUrl, error message, inner exception)
+- [x] T116 [DISC] Register all three discovery services and factory in DI via `ServiceCollectionExtensions.cs`
 
-**Checkpoint**: All three discovery strategies are implemented and tested - providers can use different discovery methods based on configuration
+**Checkpoint**: All three discovery strategies are implemented and tested - providers can use different discovery methods based on configuration ✅ COMPLETE
 
 ---
 
