@@ -82,6 +82,9 @@ public static class ServiceCollectionExtensions
 		});
 		services.AddSingleton<IRandomizedDelayService, RandomizedDelayService>();
 		services.AddSingleton<IUserAgentRotationService, UserAgentRotationService>();
+		
+		// T103: Register stealthy HTTP client
+		services.AddScoped<IStealthyHttpClient, StealthyHttpClient>();
 
 		// T101, T102: Configure HttpClient with connection pooling and Polly policies
 		services.AddHttpClient("RecipeEngineHttpClient", client =>
