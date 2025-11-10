@@ -2,6 +2,7 @@ using EasyMeals.RecipeEngine.Application.Interfaces;
 using EasyMeals.RecipeEngine.Domain.Interfaces;
 using EasyMeals.RecipeEngine.Domain.Repositories;
 using EasyMeals.RecipeEngine.Domain.Services;
+using EasyMeals.RecipeEngine.Infrastructure.Discovery;
 using EasyMeals.RecipeEngine.Infrastructure.Documents;
 using EasyMeals.RecipeEngine.Infrastructure.Documents.Fingerprint;
 using EasyMeals.RecipeEngine.Infrastructure.Documents.Recipe;
@@ -73,6 +74,15 @@ public static class ServiceCollectionExtensions
 		// Register application services
 		services.AddScoped<IProviderConfigurationLoader, ProviderConfigurationLoader>();
 		services.AddScoped<IIngredientNormalizer, IngredientNormalizationService>();
+
+		// T116: Register discovery services (Phase 8)
+		services.AddScoped<StaticCrawlDiscoveryService>();
+		services.AddScoped<DynamicCrawlDiscoveryService>();
+		services.AddScoped<ApiDiscoveryService>();
+		services.AddScoped<IDiscoveryServiceFactory, DiscoveryServiceFactory>();
+		
+		// Register Playwright for dynamic discovery
+		services.AddSingleton(_ => Microsoft.Playwright.Playwright.CreateAsync().GetAwaiter().GetResult());
 
 		// T098, T099: Register stealth services for IP ban avoidance
 		services.Configure<UserAgentOptions>(options =>
