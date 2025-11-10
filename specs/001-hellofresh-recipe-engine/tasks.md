@@ -292,8 +292,10 @@ Repository structure: `apps/recipe-engine/` with DDD layers (Domain, Application
 - [x] T121 [FP] Implement GenerateFingerprintAsync method in `RecipeFingerprintService.cs` to normalize URL (lowercase, remove query params), normalize title (trim, lowercase), normalize description (substring first 200 chars, trim, lowercase), compute SHA256 hash of concatenated string, return hex string
 - [x] T122 [FP] Implement IsDuplicateAsync method in `RecipeFingerprintService.cs` to query MongoDB via IRecipeFingerprintRepository.GetByUrlAsync, compare fingerprint hashes, return true if match
 - [x] T123 [FP] Implement SaveFingerprintAsync method in `RecipeFingerprintService.cs` to create RecipeFingerprint entity, persist via IRecipeFingerprintRepository.SaveAsync
-- [ ] T124 [FP] Update saga Fingerprinting state handler in `RecipeProcessingSaga.cs` to call IRecipeFingerprinter.GenerateFingerprintAsync for each URL in DiscoveredUrls, call IRecipeFingerprinter.IsDuplicateAsync, add non-duplicates to FingerprintedUrls, log skipped duplicates with count
+- [x] T124 [FP] Update saga Fingerprinting state handler in `RecipeProcessingSaga.cs` to call IRecipeFingerprinter.GenerateFingerprintAsync for each URL in DiscoveredUrls, call IRecipeFingerprinter.IsDuplicateAsync, add non-duplicates to FingerprintedUrls, log skipped duplicates with count
 - [x] T125 [FP] Register `RecipeFingerprintService` in DI via `ServiceCollectionExtensions.cs`
+
+**Checkpoint**: Fingerprinting is complete - duplicates are detected and skipped, fingerprints are stored for auditability
 
 **Checkpoint**: Fingerprinting is complete - duplicates are detected and skipped, fingerprints are stored for auditability
 
