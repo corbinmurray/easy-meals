@@ -204,8 +204,8 @@ public class ApiDiscoveryServiceTests
 
 		var service = new ApiDiscoveryService(_mockLogger.Object, _httpClient);
 
-		// Act & Assert
-		await Assert.ThrowsAnyAsync<JsonException>(async () =>
+		// Act & Assert - Expect DiscoveryException which wraps JSON parsing errors
+		var exception = await Assert.ThrowsAsync<DiscoveryException>(async () =>
 		{
 			await service.DiscoverRecipeUrlsAsync(
 				baseUrl,
@@ -213,6 +213,10 @@ public class ApiDiscoveryServiceTests
 				maxDepth: 1,
 				maxUrls: 100);
 		});
+		
+		// Verify inner exception is a JSON-related exception
+		Assert.NotNull(exception.InnerException);
+		Assert.Contains("JSON", exception.Message);
 	}
 
 	[Fact(DisplayName = "IsRecipeUrl_ValidRecipeUrl_ReturnsTrue")]

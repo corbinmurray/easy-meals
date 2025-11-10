@@ -99,6 +99,8 @@ public class StaticCrawlDiscoveryService : IDiscoveryService
 		{
 			// Fetch HTML content
 			var response = await _httpClient.GetAsync(currentUrl, cancellationToken);
+			
+			// Ensure success status code - throws HttpRequestException on error
 			response.EnsureSuccessStatusCode();
 
 			var html = await response.Content.ReadAsStringAsync(cancellationToken);
@@ -165,12 +167,24 @@ public class StaticCrawlDiscoveryService : IDiscoveryService
 			_logger.LogWarning(ex,
 				"Failed to fetch URL {Url} at depth {Depth}",
 				currentUrl, currentDepth);
+			
+			// Re-throw for the base URL (depth 0) to fail fast
+			if (currentDepth == 0)
+			{
+				throw;
+			}
 		}
-		catch (TaskCanceledException)
+		catch (TaskCanceledException ex)
 		{
-			_logger.LogWarning(
+			_logger.LogWarning(ex,
 				"Request timeout for URL {Url} at depth {Depth}",
 				currentUrl, currentDepth);
+			
+			// Re-throw for the base URL (depth 0) to fail fast
+			if (currentDepth == 0)
+			{
+				throw;
+			}
 		}
 	}
 
