@@ -8,6 +8,7 @@ using EasyMeals.RecipeEngine.Infrastructure.Documents.Fingerprint;
 using EasyMeals.RecipeEngine.Infrastructure.Documents.Recipe;
 using EasyMeals.RecipeEngine.Infrastructure.Documents.SagaState;
 using EasyMeals.RecipeEngine.Infrastructure.Fingerprinting;
+using EasyMeals.RecipeEngine.Infrastructure.HealthChecks;
 using EasyMeals.RecipeEngine.Infrastructure.Normalization;
 using EasyMeals.RecipeEngine.Infrastructure.Repositories;
 using EasyMeals.RecipeEngine.Infrastructure.Services;
@@ -120,6 +121,12 @@ public static class ServiceCollectionExtensions
 
 		// Register hosted services
 		services.AddHostedService<ProviderConfigurationHostedService>();
+
+		// T128: Register health checks
+		services.AddHealthChecks()
+			.AddCheck<MongoDbHealthCheck>("mongodb", tags: new[] { "database", "ready" })
+			.AddCheck<RateLimiterHealthCheck>("rate-limiter", tags: new[] { "application", "ready" })
+			.AddCheck<DiscoveryServiceHealthCheck>("discovery-services", tags: new[] { "application", "ready" });
 
 		return services;
 	}
