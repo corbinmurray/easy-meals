@@ -210,9 +210,9 @@ Repository structure: `apps/recipe-engine/` with DDD layers (Domain, Application
 - [x] T087 [P] [US4] Add configuration caching to `ProviderConfigurationLoader.cs` with in-memory cache (key=ProviderId, TTL=1 hour, invalidate on refresh), LoadConfigurationsAsync method to load all enabled providers at startup
 - [x] T088 [P] [US4] Add configuration validation to `ProviderConfiguration` value object constructor (ProviderId required, BatchSize > 0, TimeWindow > 0, MinDelay >= 0, MaxRequestsPerMinute > 0, RetryCount >= 0, RequestTimeout > 0, RecipeRootUrl valid HTTPS URL)
 - [x] T089 [US4] Update `ProviderConfigurationHostedService.cs` to call ProviderConfigurationLoader.LoadConfigurationsAsync on startup, log all loaded providers with settings (sanitize RecipeRootUrl in logs), fail fast if no enabled providers or invalid configuration
-- [ ] T090 [US4] Update `RecipeProcessingApplicationService.cs` to iterate through all enabled providers, create RecipeBatch for each provider, call IRecipeProcessingSaga.StartProcessingAsync sequentially (respect batch time windows, avoid overlapping batches)
-- [ ] T091 [US4] Add provider filtering in `RecipeProcessingApplicationService.cs` to skip disabled providers (Enabled=false), log skipped providers with reason
-- [ ] T092 [US4] Add provider-specific rate limiters in `TokenBucketRateLimiter.cs` to maintain separate token buckets per ProviderId (use ConcurrentDictionary<string, RateLimitToken>), resolve rate limiter by ProviderId at runtime
+- [x] T090 [US4] Update `RecipeProcessingApplicationService.cs` to iterate through all enabled providers, create RecipeBatch for each provider, call IRecipeProcessingSaga.StartProcessingAsync sequentially (respect batch time windows, avoid overlapping batches)
+- [x] T091 [US4] Add provider filtering in `RecipeProcessingApplicationService.cs` to skip disabled providers (Enabled=false), log skipped providers with reason
+- [x] T092 [US4] Add provider-specific rate limiters in `TokenBucketRateLimiter.cs` to maintain separate token buckets per ProviderId (use ConcurrentDictionary<string, RateLimitToken>), resolve rate limiter by ProviderId at runtime
 
 **Checkpoint**: At this point, User Stories 1, 2, 3, AND 4 are complete - the engine supports multiple providers with database-driven configuration
 
