@@ -6,11 +6,15 @@ namespace EasyMeals.RecipeEngine.Infrastructure.RateLimiting;
 /// <summary>
 /// Token bucket rate limiter implementation for controlling request frequency.
 /// Implements the token bucket algorithm with automatic token refill.
+/// Supports provider-specific rate limiting by maintaining separate token buckets per provider ID.
 /// </summary>
 public class TokenBucketRateLimiter : IRateLimiter
 {
     private readonly int _maxTokens;
     private readonly double _refillRatePerSecond;
+    
+    // Provider-specific token buckets: key = ProviderId, value = TokenBucket
+    // Each provider gets its own isolated token bucket for rate limiting
     private readonly ConcurrentDictionary<string, TokenBucket> _buckets;
 
     public TokenBucketRateLimiter(int maxTokens, int refillRatePerMinute)
@@ -26,11 +30,26 @@ public class TokenBucketRateLimiter : IRateLimiter
         _buckets = new ConcurrentDictionary<string, TokenBucket>();
     }
 
+    /// <summary>
+    /// Attempts to acquire a single permit for the specified provider.
+    /// Each provider has its own isolated token bucket for rate limiting.
+    /// </summary>
+    /// <param name="key">Provider identifier (e.g., "provider_001")</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>True if permit was acquired, false if rate limit exceeded</returns>
     public Task<bool> TryAcquireAsync(string key, CancellationToken cancellationToken = default)
     {
         return TryAcquireAsync(key, permits: 1, cancellationToken);
     }
 
+    /// <summary>
+    /// Attempts to acquire multiple permits for the specified provider.
+    /// Each provider has its own isolated token bucket for rate limiting.
+    /// </summary>
+    /// <param name="key">Provider identifier (e.g., "provider_001")</param>
+    /// <param name="permits">Number of permits to acquire</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>True if all permits were acquired, false if rate limit exceeded</returns>
     public Task<bool> TryAcquireAsync(string key, int permits, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(key))
@@ -39,18 +58,25 @@ public class TokenBucketRateLimiter : IRateLimiter
         if (permits <= 0)
             throw new ArgumentException("Permits must be positive", nameof(permits));
 
-        var bucket = GetOrCreateBucket(key);
+        // Get or create provider-specific bucket
+        var bucket = GetOrCreateBucketForProvider(key);
         var acquired = bucket.TryConsume(permits);
 
         return Task.FromResult(acquired);
     }
 
+    /// <summary>
+    /// Gets the current rate limit status for the specified provider.
+    /// </summary>
+    /// <param name="key">Provider identifier</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Rate limit status including remaining requests and reset time</returns>
     public Task<RateLimitStatus> GetStatusAsync(string key, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(key))
             throw new ArgumentException("Key cannot be empty", nameof(key));
 
-        var bucket = GetOrCreateBucket(key);
+        var bucket = GetOrCreateBucketForProvider(key);
         var remaining = bucket.GetAvailableTokens();
         var resetTime = bucket.GetResetTime();
         var isLimited = remaining == 0;
@@ -64,20 +90,31 @@ public class TokenBucketRateLimiter : IRateLimiter
         return Task.FromResult(status);
     }
 
+    /// <summary>
+    /// Resets the rate limit for the specified provider by refilling its token bucket.
+    /// </summary>
+    /// <param name="key">Provider identifier</param>
+    /// <param name="cancellationToken">Cancellation token</param>
     public Task ResetAsync(string key, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(key))
             throw new ArgumentException("Key cannot be empty", nameof(key));
 
-        var bucket = GetOrCreateBucket(key);
+        var bucket = GetOrCreateBucketForProvider(key);
         bucket.Reset();
 
         return Task.CompletedTask;
     }
 
-    private TokenBucket GetOrCreateBucket(string key)
+    /// <summary>
+    /// Gets or creates a provider-specific token bucket.
+    /// Each provider gets its own isolated bucket to prevent cross-provider rate limit interference.
+    /// </summary>
+    /// <param name="providerId">Provider identifier</param>
+    /// <returns>Token bucket for the specified provider</returns>
+    private TokenBucket GetOrCreateBucketForProvider(string providerId)
     {
-        return _buckets.GetOrAdd(key, _ => new TokenBucket(_maxTokens, _refillRatePerSecond));
+        return _buckets.GetOrAdd(providerId, _ => new TokenBucket(_maxTokens, _refillRatePerSecond));
     }
 
     /// <summary>

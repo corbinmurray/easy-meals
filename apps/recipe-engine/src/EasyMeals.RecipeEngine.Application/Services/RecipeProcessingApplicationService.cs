@@ -94,4 +94,84 @@ public class RecipeProcessingApplicationService(
 	{
 		return await recipeProcessingSaga.GetBatchStatusAsync(batchId, cancellationToken);
 	}
+
+	/// <summary>
+	/// Processes recipes for all enabled providers sequentially.
+	/// Creates a batch for each provider and respects batch time windows to avoid overlapping batches.
+	/// </summary>
+	/// <param name="cancellationToken">Cancellation token</param>
+	/// <returns>Dictionary of provider IDs to their batch correlation IDs</returns>
+	public async Task<Dictionary<string, Guid>> ProcessAllProvidersAsync(
+		CancellationToken cancellationToken = default)
+	{
+		logger.LogInformation("Starting batch processing for all enabled providers");
+
+		var results = new Dictionary<string, Guid>();
+
+		// Load all enabled provider configurations
+		var configurations = await configurationLoader.GetAllEnabledAsync(cancellationToken);
+		var configList = configurations.ToList();
+
+		logger.LogInformation("Found {Count} enabled provider(s) to process", configList.Count);
+
+		// Process each provider sequentially to respect batch time windows
+		foreach (var config in configList)
+		{
+			// Skip disabled providers (defensive check, should already be filtered)
+			if (!config.Enabled)
+			{
+				logger.LogWarning(
+					"Skipping disabled provider {ProviderId} (filtered by GetAllEnabledAsync but Enabled=false)",
+					config.ProviderId);
+				continue;
+			}
+
+			try
+			{
+				logger.LogInformation(
+					"Processing provider {ProviderId} with batch size {BatchSize} and time window {TimeWindow}",
+					config.ProviderId,
+					config.BatchSize,
+					config.TimeWindow);
+
+				// Start batch processing for this provider
+				var correlationId = await StartBatchProcessingAsync(config.ProviderId, cancellationToken);
+				results[config.ProviderId] = correlationId;
+
+				logger.LogInformation(
+					"Started batch processing for provider {ProviderId} with correlation ID {CorrelationId}",
+					config.ProviderId,
+					correlationId);
+
+				// Respect batch time windows - wait before starting next provider
+				// This ensures batches don't overlap and respects rate limits
+				if (configList.IndexOf(config) < configList.Count - 1)
+				{
+					logger.LogInformation(
+						"Waiting for provider {ProviderId} batch time window ({TimeWindow}) before processing next provider",
+						config.ProviderId,
+						config.TimeWindow);
+
+					await Task.Delay(config.TimeWindow, cancellationToken);
+				}
+			}
+			catch (Exception ex)
+			{
+				logger.LogError(
+					ex,
+					"Failed to start batch processing for provider {ProviderId}. Continuing with remaining providers.",
+					config.ProviderId);
+
+				// Continue processing remaining providers even if one fails
+				// This ensures partial failures don't block other providers
+			}
+		}
+
+		logger.LogInformation(
+			"Completed batch processing initialization for {SuccessCount}/{TotalCount} providers",
+			results.Count,
+			configList.Count);
+
+		return results;
+	}
 }
