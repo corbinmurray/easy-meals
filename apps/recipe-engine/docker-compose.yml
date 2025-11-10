@@ -1,0 +1,76 @@
+# T134: Docker Compose configuration for local development
+# Provides MongoDB and Recipe Engine services for easy local testing
+
+version: '3.8'
+
+services:
+  # MongoDB service for Recipe Engine data storage
+  mongodb:
+    image: mongo:7.0
+    container_name: recipe-engine-mongodb
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: devpassword
+      MONGO_INITDB_DATABASE: easymeals
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+      - mongodb_config:/data/configdb
+    networks:
+      - recipe-engine-network
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/easymeals --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # Recipe Engine application
+  recipe-engine:
+    build:
+      context: ../../..
+      dockerfile: apps/recipe-engine/src/EasyMeals.RecipeEngine/Dockerfile
+    container_name: recipe-engine-app
+    restart: unless-stopped
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    environment:
+      # MongoDB connection (using service name for Docker networking)
+      MongoDB__ConnectionString: mongodb://admin:devpassword@mongodb:27017
+      MongoDB__DatabaseName: easymeals
+      MongoDB__ApplicationName: EasyMeals.RecipeEngine
+      MongoDB__EnableHealthChecks: "true"
+      MongoDB__EnableDetailedLogging: "true"
+      # Application settings
+      ASPNETCORE_ENVIRONMENT: Development
+      DOTNET_ENVIRONMENT: Development
+      # Logging configuration
+      Serilog__MinimumLevel__Default: Debug
+      Serilog__MinimumLevel__Override__Microsoft: Information
+      Serilog__MinimumLevel__Override__System: Information
+    networks:
+      - recipe-engine-network
+    # Optional: Uncomment to expose ports for debugging
+    # ports:
+    #   - "8080:8080"
+    healthcheck:
+      test: ["CMD", "dotnet", "/app/EasyMeals.RecipeEngine.dll", "--health-check"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+# Persistent volumes for data
+volumes:
+  mongodb_data:
+    driver: local
+  mongodb_config:
+    driver: local
+
+# Network for service communication
+networks:
+  recipe-engine-network:
+    driver: bridge
