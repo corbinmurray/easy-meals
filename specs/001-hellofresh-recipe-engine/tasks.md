@@ -282,18 +282,18 @@ Repository structure: `apps/recipe-engine/` with DDD layers (Domain, Application
 
 ### Tests for Fingerprinting
 
-- [ ] T117 [P] [FP] Unit test for fingerprint generation (SHA256 hash of normalized URL + title + description) in `apps/recipe-engine/tests/EasyMeals.RecipeEngine.Tests.Unit/Fingerprinting/RecipeFingerprintServiceTests.cs`
-- [ ] T118 [P] [FP] Unit test for fingerprint duplicate detection (same content → same hash) in `apps/recipe-engine/tests/EasyMeals.RecipeEngine.Tests.Unit/Fingerprinting/RecipeFingerprintServiceTests.cs`
-- [ ] T119 [FP] Integration test for fingerprint persistence and lookup (save to MongoDB, query by hash, verify fast lookup with index) in `apps/recipe-engine/tests/EasyMeals.RecipeEngine.Tests.Integration/RecipeFingerprintingIntegrationTests.cs` with MongoDB Testcontainers
+- [x] T117 [P] [FP] Unit test for fingerprint generation (SHA256 hash of normalized URL + title + description) in `apps/recipe-engine/tests/EasyMeals.RecipeEngine.Tests.Unit/Fingerprinting/RecipeFingerprintServiceTests.cs`
+- [x] T118 [P] [FP] Unit test for fingerprint duplicate detection (same content → same hash) in `apps/recipe-engine/tests/EasyMeals.RecipeEngine.Tests.Unit/Fingerprinting/RecipeFingerprintServiceTests.cs`
+- [x] T119 [FP] Integration test for fingerprint persistence and lookup (save to MongoDB, query by hash, verify fast lookup with index) in `apps/recipe-engine/tests/EasyMeals.RecipeEngine.Tests.Integration/RecipeFingerprintingIntegrationTests.cs` with MongoDB Testcontainers
 
 ### Implementation of Fingerprinting
 
-- [ ] T120 [P] [FP] Implement `RecipeFingerprintService` in `apps/recipe-engine/src/EasyMeals.RecipeEngine.Infrastructure/Fingerprinting/RecipeFingerprintService.cs` implementing IRecipeFingerprinter interface with IRecipeFingerprintRepository dependency
-- [ ] T121 [FP] Implement GenerateFingerprintAsync method in `RecipeFingerprintService.cs` to normalize URL (lowercase, remove query params), normalize title (trim, lowercase), normalize description (substring first 200 chars, trim, lowercase), compute SHA256 hash of concatenated string, return hex string
-- [ ] T122 [FP] Implement IsDuplicateAsync method in `RecipeFingerprintService.cs` to query MongoDB via IRecipeFingerprintRepository.GetByUrlAsync, compare fingerprint hashes, return true if match
-- [ ] T123 [FP] Implement SaveFingerprintAsync method in `RecipeFingerprintService.cs` to create RecipeFingerprint entity, persist via IRecipeFingerprintRepository.SaveAsync
+- [x] T120 [P] [FP] Implement `RecipeFingerprintService` in `apps/recipe-engine/src/EasyMeals.RecipeEngine.Infrastructure/Fingerprinting/RecipeFingerprintService.cs` implementing IRecipeFingerprinter interface with IRecipeFingerprintRepository dependency
+- [x] T121 [FP] Implement GenerateFingerprintAsync method in `RecipeFingerprintService.cs` to normalize URL (lowercase, remove query params), normalize title (trim, lowercase), normalize description (substring first 200 chars, trim, lowercase), compute SHA256 hash of concatenated string, return hex string
+- [x] T122 [FP] Implement IsDuplicateAsync method in `RecipeFingerprintService.cs` to query MongoDB via IRecipeFingerprintRepository.GetByUrlAsync, compare fingerprint hashes, return true if match
+- [x] T123 [FP] Implement SaveFingerprintAsync method in `RecipeFingerprintService.cs` to create RecipeFingerprint entity, persist via IRecipeFingerprintRepository.SaveAsync
 - [ ] T124 [FP] Update saga Fingerprinting state handler in `RecipeProcessingSaga.cs` to call IRecipeFingerprinter.GenerateFingerprintAsync for each URL in DiscoveredUrls, call IRecipeFingerprinter.IsDuplicateAsync, add non-duplicates to FingerprintedUrls, log skipped duplicates with count
-- [ ] T125 [FP] Register `RecipeFingerprintService` in DI via `ServiceCollectionExtensions.cs`
+- [x] T125 [FP] Register `RecipeFingerprintService` in DI via `ServiceCollectionExtensions.cs`
 
 **Checkpoint**: Fingerprinting is complete - duplicates are detected and skipped, fingerprints are stored for auditability
 

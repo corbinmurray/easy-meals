@@ -34,6 +34,15 @@ public class RecipeFingerprintRepository(IMongoDatabase database, IClientSession
 			cancellationToken);
 	}
 
+	public async Task<bool> ExistsByHashAsync(
+		string fingerprintHash,
+		CancellationToken cancellationToken = default)
+	{
+		return await base.ExistsAsync(
+			d => d.FingerprintHash == fingerprintHash,
+			cancellationToken);
+	}
+
 	public async Task SaveAsync(RecipeFingerprint fingerprint, CancellationToken cancellationToken = default)
 	{
 		RecipeFingerprintDocument document = ToDocument(fingerprint);

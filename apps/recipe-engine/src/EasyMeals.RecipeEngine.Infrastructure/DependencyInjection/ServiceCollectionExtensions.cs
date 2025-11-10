@@ -7,6 +7,7 @@ using EasyMeals.RecipeEngine.Infrastructure.Documents;
 using EasyMeals.RecipeEngine.Infrastructure.Documents.Fingerprint;
 using EasyMeals.RecipeEngine.Infrastructure.Documents.Recipe;
 using EasyMeals.RecipeEngine.Infrastructure.Documents.SagaState;
+using EasyMeals.RecipeEngine.Infrastructure.Fingerprinting;
 using EasyMeals.RecipeEngine.Infrastructure.Normalization;
 using EasyMeals.RecipeEngine.Infrastructure.Repositories;
 using EasyMeals.RecipeEngine.Infrastructure.Services;
@@ -74,6 +75,9 @@ public static class ServiceCollectionExtensions
 		// Register application services
 		services.AddScoped<IProviderConfigurationLoader, ProviderConfigurationLoader>();
 		services.AddScoped<IIngredientNormalizer, IngredientNormalizationService>();
+		
+		// T125: Register fingerprinting service (Phase 9)
+		services.AddScoped<IRecipeFingerprinter, RecipeFingerprintService>();
 
 		// T116: Register discovery services (Phase 8)
 		services.AddScoped<StaticCrawlDiscoveryService>();
