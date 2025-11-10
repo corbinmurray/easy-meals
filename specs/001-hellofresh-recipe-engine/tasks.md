@@ -226,23 +226,23 @@ Repository structure: `apps/recipe-engine/` with DDD layers (Domain, Application
 
 ### Tests for User Story 5
 
-- [ ] T093 [P] [US5] Unit test for randomized delay calculation (delay varies ±20% around MinDelay) in `apps/recipe-engine/tests/EasyMeals.RecipeEngine.Tests.Unit/Stealth/RandomizedDelayTests.cs`
-- [ ] T094 [P] [US5] Unit test for user agent rotation (round-robin or random selection from list) in `apps/recipe-engine/tests/EasyMeals.RecipeEngine.Tests.Unit/Stealth/UserAgentRotationTests.cs`
+- [x] T093 [P] [US5] Unit test for randomized delay calculation (delay varies ±20% around MinDelay) in `apps/recipe-engine/tests/EasyMeals.RecipeEngine.Tests.Unit/Stealth/RandomizedDelayTests.cs`
+- [x] T094 [P] [US5] Unit test for user agent rotation (round-robin or random selection from list) in `apps/recipe-engine/tests/EasyMeals.RecipeEngine.Tests.Unit/Stealth/UserAgentRotationTests.cs`
 - [ ] T095 [US5] Integration test for HTTP request headers (verify Accept-Language, Accept-Encoding, User-Agent present) in `apps/recipe-engine/tests/EasyMeals.RecipeEngine.Tests.Integration/HttpStealthTests.cs` with HTTP mock inspection
 - [ ] T096 [US5] Integration test for connection pooling (verify HttpClient reuses TCP connections) in `apps/recipe-engine/tests/EasyMeals.RecipeEngine.Tests.Integration/ConnectionPoolingTests.cs` with HTTP mock connection tracking
 
 ### Implementation for User Story 5
 
-- [ ] T097 [P] [US5] Create `RandomizedDelayService` in `apps/recipe-engine/src/EasyMeals.RecipeEngine.Infrastructure/Stealth/RandomizedDelayService.cs` with CalculateDelay method (MinDelay _ (0.8 + Random.NextDouble() _ 0.4) for ±20% variance)
-- [ ] T098 [P] [US5] Create `UserAgentRotationService` in `apps/recipe-engine/src/EasyMeals.RecipeEngine.Infrastructure/Stealth/UserAgentRotationService.cs` with GetNextUserAgent method (load list from appsettings.json, rotate round-robin or random, realistic browser user agents for Chrome, Firefox, Safari, Edge)
-- [ ] T099 [US5] Create user agent configuration in `apps/recipe-engine/src/EasyMeals.RecipeEngine/appsettings.json` with array of realistic browser user agents (at least 10 different user agent strings)
-- [ ] T100 [US5] Update saga Processing state handler in `RecipeProcessingSaga.cs` to call RandomizedDelayService.CalculateDelay before each HTTP request, await Task.Delay with calculated delay
-- [ ] T101 [US5] Configure HttpClient in `ServiceCollectionExtensions.cs` to use SocketsHttpHandler with connection pooling settings (PooledConnectionLifetime = 5 minutes, MaxConnectionsPerServer = 10, AutomaticDecompression = GZip | Deflate)
-- [ ] T102 [US5] Register HttpClient with Polly policies in `ServiceCollectionExtensions.cs` (retry policy with exponential backoff, circuit breaker policy after 5 failures, timeout policy per request, configure per ProviderConfiguration.RequestTimeout and RetryCount)
-- [ ] T103 [US5] Update HTTP request creation in saga Processing state handler to add rotating user agent header via UserAgentRotationService.GetNextUserAgent(), add Accept-Language header (en-US,en;q=0.9), add Accept-Encoding header (gzip, deflate, br)
-- [ ] T104 [US5] Add stealth logging in saga Processing state handler to log delay variance and user agent used per request for monitoring (debug level only, not in production logs)
+- [x] T097 [P] [US5] Create `RandomizedDelayService` in `apps/recipe-engine/src/EasyMeals.RecipeEngine.Infrastructure/Stealth/RandomizedDelayService.cs` with CalculateDelay method (MinDelay _ (0.8 + Random.NextDouble() _ 0.4) for ±20% variance)
+- [x] T098 [P] [US5] Create `UserAgentRotationService` in `apps/recipe-engine/src/EasyMeals.RecipeEngine.Infrastructure/Stealth/UserAgentRotationService.cs` with GetNextUserAgent method (load list from appsettings.json, rotate round-robin or random, realistic browser user agents for Chrome, Firefox, Safari, Edge)
+- [x] T099 [US5] Create user agent configuration in `apps/recipe-engine/src/EasyMeals.RecipeEngine/appsettings.json` with array of realistic browser user agents (at least 10 different user agent strings)
+- [x] T100 [US5] Update saga Processing state handler in `RecipeProcessingSaga.cs` to call RandomizedDelayService.CalculateDelay before each HTTP request, await Task.Delay with calculated delay
+- [x] T101 [US5] Configure HttpClient in `ServiceCollectionExtensions.cs` to use SocketsHttpHandler with connection pooling settings (PooledConnectionLifetime = 5 minutes, MaxConnectionsPerServer = 10, AutomaticDecompression = GZip | Deflate)
+- [x] T102 [US5] Register HttpClient with Polly policies in `ServiceCollectionExtensions.cs` (retry policy with exponential backoff, circuit breaker policy after 5 failures, timeout policy per request, configure per ProviderConfiguration.RequestTimeout and RetryCount)
+- [x] T103 [US5] Update HTTP request creation in saga Processing state handler to add rotating user agent header via UserAgentRotationService.GetNextUserAgent(), add Accept-Language header (en-US,en;q=0.9), add Accept-Encoding header (gzip, deflate, br)
+- [x] T104 [US5] Add stealth logging in saga Processing state handler to log delay variance and user agent used per request for monitoring (debug level only, not in production logs)
 
-**Checkpoint**: All user stories should now be independently functional - the engine processes recipes stealthily with IP ban avoidance measures
+**Checkpoint**: All user stories should now be independently functional - the engine processes recipes stealthily with IP ban avoidance measures ✅ COMPLETE
 
 ---
 

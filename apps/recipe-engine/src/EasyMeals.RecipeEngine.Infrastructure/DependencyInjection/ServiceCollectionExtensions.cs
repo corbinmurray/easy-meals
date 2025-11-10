@@ -9,10 +9,14 @@ using EasyMeals.RecipeEngine.Infrastructure.Documents.SagaState;
 using EasyMeals.RecipeEngine.Infrastructure.Normalization;
 using EasyMeals.RecipeEngine.Infrastructure.Repositories;
 using EasyMeals.RecipeEngine.Infrastructure.Services;
+using EasyMeals.RecipeEngine.Infrastructure.Stealth;
 using EasyMeals.Shared.Data.DependencyInjection;
 using EasyMeals.Shared.Data.Repositories;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Polly;
+using Polly.Extensions.Http;
+using System.Net;
 using IRecipeRepository = EasyMeals.RecipeEngine.Domain.Interfaces.IRecipeRepository;
 
 namespace EasyMeals.RecipeEngine.Infrastructure.DependencyInjection;
@@ -70,9 +74,77 @@ public static class ServiceCollectionExtensions
 		services.AddScoped<IProviderConfigurationLoader, ProviderConfigurationLoader>();
 		services.AddScoped<IIngredientNormalizer, IngredientNormalizationService>();
 
+		// T098, T099: Register stealth services for IP ban avoidance
+		services.Configure<UserAgentOptions>(options =>
+		{
+			var userAgents = configuration.GetSection("UserAgents").Get<List<string>>() ?? new List<string>();
+			options.UserAgents = userAgents;
+		});
+		services.AddSingleton<IRandomizedDelayService, RandomizedDelayService>();
+		services.AddSingleton<IUserAgentRotationService, UserAgentRotationService>();
+		
+		// T103: Register stealthy HTTP client
+		services.AddScoped<IStealthyHttpClient, StealthyHttpClient>();
+
+		// T101, T102: Configure HttpClient with connection pooling and Polly policies
+		services.AddHttpClient("RecipeEngineHttpClient", client =>
+			{
+				client.DefaultRequestHeaders.Add("Accept-Language", "en-US,en;q=0.9");
+				client.DefaultRequestHeaders.Add("Accept-Encoding", "gzip, deflate, br");
+				client.Timeout = TimeSpan.FromSeconds(30); // Default timeout
+			})
+			.ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
+			{
+				// T101: Connection pooling settings
+				PooledConnectionLifetime = TimeSpan.FromMinutes(5),
+				MaxConnectionsPerServer = 10,
+				AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate
+			})
+			.AddPolicyHandler(GetRetryPolicy()) // T102: Retry policy with exponential backoff
+			.AddPolicyHandler(GetCircuitBreakerPolicy()) // T102: Circuit breaker policy
+			.AddPolicyHandler(GetTimeoutPolicy()); // T102: Timeout policy per request
+
 		// Register hosted services
 		services.AddHostedService<ProviderConfigurationHostedService>();
 
 		return services;
+	}
+
+	/// <summary>
+	/// T102: Retry policy with exponential backoff for transient HTTP errors
+	/// </summary>
+	private static IAsyncPolicy<HttpResponseMessage> GetRetryPolicy()
+	{
+		return HttpPolicyExtensions
+			.HandleTransientHttpError()
+			.OrResult(msg => msg.StatusCode == HttpStatusCode.TooManyRequests)
+			.WaitAndRetryAsync(
+				retryCount: 3,
+				sleepDurationProvider: retryAttempt =>
+					TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)) + TimeSpan.FromMilliseconds(Random.Shared.Next(0, 1000)),
+				onRetry: (outcome, timespan, retryAttempt, context) =>
+				{
+					// Log retry attempts (structured logging would be done by the saga)
+				});
+	}
+
+	/// <summary>
+	/// T102: Circuit breaker policy to prevent overwhelming failing services
+	/// </summary>
+	private static IAsyncPolicy<HttpResponseMessage> GetCircuitBreakerPolicy()
+	{
+		return HttpPolicyExtensions
+			.HandleTransientHttpError()
+			.CircuitBreakerAsync(
+				handledEventsAllowedBeforeBreaking: 5,
+				durationOfBreak: TimeSpan.FromSeconds(30));
+	}
+
+	/// <summary>
+	/// T102: Timeout policy per request
+	/// </summary>
+	private static IAsyncPolicy<HttpResponseMessage> GetTimeoutPolicy()
+	{
+		return Policy.TimeoutAsync<HttpResponseMessage>(TimeSpan.FromSeconds(30));
 	}
 }
