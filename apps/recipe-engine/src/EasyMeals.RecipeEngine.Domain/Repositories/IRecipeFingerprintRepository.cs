@@ -24,6 +24,14 @@ public interface IRecipeFingerprintRepository
 		CancellationToken cancellationToken = default);
 
     /// <summary>
+    ///     Check if a fingerprint with the given hash already exists.
+    ///     Used for duplicate detection based on content hash.
+    /// </summary>
+    Task<bool> ExistsByHashAsync(
+		string fingerprintHash,
+		CancellationToken cancellationToken = default);
+
+    /// <summary>
     ///     Save a fingerprint.
     /// </summary>
     Task SaveAsync(RecipeFingerprint fingerprint, CancellationToken cancellationToken = default);

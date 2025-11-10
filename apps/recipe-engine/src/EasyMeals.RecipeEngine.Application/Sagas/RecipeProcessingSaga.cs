@@ -322,11 +322,12 @@ public class RecipeProcessingSaga(
 
 		var totalUrls = discoveredUrls.Count;
 		var processedCount = 0;
+		var duplicateCount = 0;
 
 		foreach (var url in discoveredUrls)
 		{
-			// For now, we'll do basic fingerprinting by URL
-			// In a full implementation, we'd fetch the page to get title/description
+			// T124: Generate fingerprint based on URL (title and description will be fetched during Processing phase)
+			// For now, fingerprint is based on normalized URL only for quick duplicate detection
 			var fingerprint = recipeFingerprinter.GenerateFingerprint(url, "", "");
 			var isDuplicate = await recipeFingerprinter.IsDuplicateAsync(fingerprint, cancellationToken);
 
@@ -336,7 +337,8 @@ public class RecipeProcessingSaga(
 			}
 			else
 			{
-				logger.LogDebug("Skipping duplicate URL {Url}", url);
+				duplicateCount++;
+				logger.LogDebug("Skipping duplicate URL {Url} with fingerprint {Fingerprint}", url, fingerprint);
 			}
 
 			processedCount++;
@@ -344,8 +346,12 @@ public class RecipeProcessingSaga(
 			sagaState.UpdateProgress(PhaseFingerprinting, progress);
 		}
 
-		logger.LogInformation("Fingerprinted {Count} non-duplicate URLs from {Total} discovered URLs",
-			fingerprintedUrls.Count, totalUrls);
+		// T124: Log skipped duplicates with count
+		logger.LogInformation(
+			"Fingerprinting complete: {FingerprintedCount} non-duplicate URLs from {TotalDiscovered} discovered URLs. Skipped {DuplicateCount} duplicates.",
+			fingerprintedUrls.Count,
+			totalUrls,
+			duplicateCount);
 
 		// Update state
 		sagaState.StateData["FingerprintedUrls"] = fingerprintedUrls;
@@ -355,7 +361,7 @@ public class RecipeProcessingSaga(
 		sagaState.CreateCheckpoint("FingerprintingComplete", new Dictionary<string, object>
 		{
 			["FingerprintedCount"] = fingerprintedUrls.Count,
-			["SkippedDuplicates"] = totalUrls - fingerprintedUrls.Count,
+			["SkippedDuplicates"] = duplicateCount,
 			["Phase"] = PhaseFingerprinting
 		});
 
