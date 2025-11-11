@@ -76,7 +76,7 @@ try
 		// Load all enabled provider configurations from MongoDB
 		Log.Information("Loading enabled provider configurations from MongoDB...");
 		IEnumerable<ProviderConfiguration> providers = await configLoader.GetAllEnabledAsync(cts.Token);
-		var providerList = providers.ToList();
+		List<ProviderConfiguration> providerList = providers.ToList();
 
 		if (providerList.Count == 0)
 		{
@@ -87,7 +87,7 @@ try
 		Log.Information("Found {ProviderCount} enabled provider(s)", providerList.Count);
 
 		// Process each enabled provider
-		foreach (var providerConfig in providerList)
+		foreach (ProviderConfiguration providerConfig in providerList)
 		{
 			try
 			{
