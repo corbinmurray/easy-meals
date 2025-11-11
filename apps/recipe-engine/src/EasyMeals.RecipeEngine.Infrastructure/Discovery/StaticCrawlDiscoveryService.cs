@@ -151,6 +151,7 @@ public class StaticCrawlDiscoveryService : IDiscoveryService
 				// Check if this is a category/listing page we should crawl
 				else if (IsCategoryUrl(absoluteUrl) && currentDepth < maxDepth)
 				{
+					_logger.LogDebug("Discovered recipe category URL: {Url}", absoluteUrl);
 					categoryUrlsToCrawl.Add(absoluteUrl);
 				}
 			}
@@ -257,16 +258,15 @@ public class StaticCrawlDiscoveryService : IDiscoveryService
 		string lowerUrl = url.ToLowerInvariant();
 
 		// Check if URL matches exclude patterns
-		if (excludePatterns.Any(pattern => lowerUrl.Contains(pattern))) return false;
-
-		// Check if URL matches recipe patterns
-		return recipePatterns.Any(pattern => lowerUrl.Contains(pattern));
+		return !excludePatterns.Any(pattern => lowerUrl.Contains(pattern)) &&
+		       // Check if URL matches recipe patterns
+		       recipePatterns.Any(pattern => lowerUrl.Contains(pattern));
 	}
 
 	/// <summary>
 	///     Checks if a URL is a category/listing page that should be crawled for recipes
 	/// </summary>
-	private bool IsCategoryUrl(string url)
+	private static bool IsCategoryUrl(string url)
 	{
 		if (string.IsNullOrWhiteSpace(url)) return false;
 
@@ -301,10 +301,9 @@ public class StaticCrawlDiscoveryService : IDiscoveryService
 		string lowerUrl = url.ToLowerInvariant();
 
 		// Don't crawl excluded pages
-		if (excludePatterns.Any(pattern => lowerUrl.Contains(pattern))) return false;
-
-		// Check if URL matches category patterns
-		return categoryPatterns.Any(pattern => lowerUrl.Contains(pattern));
+		return !excludePatterns.Any(pattern => lowerUrl.Contains(pattern)) &&
+		       // Check if URL matches category patterns
+		       categoryPatterns.Any(pattern => lowerUrl.Contains(pattern));
 	}
 
 	/// <summary>
