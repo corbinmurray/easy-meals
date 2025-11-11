@@ -15,8 +15,8 @@ db.provider_configurations.insertOne({
     enabled: true,
     discoveryStrategy: "Static", // Static HTML parsing for Hello Fresh
     recipeRootUrl: "https://www.hellofresh.com/recipes",
-    recipeUrlPattern: "\\/recipe\\/[a-z0-9\\-]+\\-[a-f0-9]{24}$",
-    categoryUrlPattern: "\\/recipes\\/(category|tag)\\/[a-z\\-]+",
+    recipeUrlPattern: "\\/recipes?\\/[a-z0-9\\-]+\\-[a-f0-9]{24}$",
+    categoryUrlPattern: "\\/recipes?\\/(category|tag)\\/[a-z\\-]+",
     batchSize: 20,
     timeWindowMinutes: 30,
     minDelaySeconds: 2.0,
