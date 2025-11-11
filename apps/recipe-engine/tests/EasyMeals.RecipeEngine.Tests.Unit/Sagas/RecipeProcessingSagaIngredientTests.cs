@@ -33,7 +33,7 @@ public class RecipeProcessingSagaIngredientTests
 			_mockLogger.Object,
 			_mockSagaStateRepository.Object,
 			Mock.Of<IProviderConfigurationLoader>(),
-			Mock.Of<IDiscoveryService>(),
+			Mock.Of<IDiscoveryServiceFactory>(),
 			Mock.Of<IRecipeFingerprinter>(),
 			_mockIngredientNormalizer.Object,
 			Mock.Of<IRateLimiter>(),
