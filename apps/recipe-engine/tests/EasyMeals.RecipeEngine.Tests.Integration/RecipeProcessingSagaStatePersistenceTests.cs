@@ -6,7 +6,7 @@ using EasyMeals.RecipeEngine.Domain.Repositories;
 using EasyMeals.RecipeEngine.Domain.ValueObjects;
 using EasyMeals.RecipeEngine.Domain.ValueObjects.Discovery;
 using EasyMeals.RecipeEngine.Infrastructure.Repositories;
-using FluentAssertions;
+using Shouldly;
 using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
 using Moq;
@@ -150,7 +150,7 @@ public class RecipeProcessingSagaStatePersistenceTests : IAsyncLifetime
 
 		// Act - Verify state was persisted
 		SagaState? originalState = await _sagaRepository!.GetByCorrelationIdAsync(batchId, CancellationToken.None);
-		originalState.Should().NotBeNull();
+		originalState.ShouldNotBeNull();
 
 		// Reconstitute from persisted data
 		SagaState reconstitutedState = SagaState.Reconstitute(
@@ -171,12 +171,12 @@ public class RecipeProcessingSagaStatePersistenceTests : IAsyncLifetime
 			originalState.CompletedAt);
 
 		// Assert - Reconstituted state should match original
-		reconstitutedState.Should().NotBeNull();
-		reconstitutedState.Id.Should().Be(originalState.Id);
-		reconstitutedState.CorrelationId.Should().Be(originalState.CorrelationId);
-		reconstitutedState.StateData["DiscoveredUrls"].Should().BeEquivalentTo(originalState.StateData["DiscoveredUrls"]);
-		reconstitutedState.StateData["ProcessedUrls"].Should().BeEquivalentTo(originalState.StateData["ProcessedUrls"]);
-		reconstitutedState.StateData["CurrentIndex"].Should().Be(originalState.StateData["CurrentIndex"]);
+		reconstitutedState.ShouldNotBeNull();
+		reconstitutedState.Id.ShouldBe(originalState.Id);
+		reconstitutedState.CorrelationId.ShouldBe(originalState.CorrelationId);
+		reconstitutedState.StateData["DiscoveredUrls"].ShouldBeEquivalentTo(originalState.StateData["DiscoveredUrls"]);
+		reconstitutedState.StateData["ProcessedUrls"].ShouldBeEquivalentTo(originalState.StateData["ProcessedUrls"]);
+		reconstitutedState.StateData["CurrentIndex"].ShouldBe(originalState.StateData["CurrentIndex"]);
 	}
 
 	[Fact(DisplayName = "Saga persists DiscoveredUrls after discovery phase")]
@@ -224,13 +224,13 @@ public class RecipeProcessingSagaStatePersistenceTests : IAsyncLifetime
 
 		// Assert
 		SagaState? sagaState = await _sagaRepository!.GetByCorrelationIdAsync(batchId, CancellationToken.None);
-		sagaState.Should().NotBeNull();
-		sagaState!.StateData.Should().ContainKey("DiscoveredUrls");
+		sagaState.ShouldNotBeNull();
+		sagaState!.StateData.ShouldContainKey("DiscoveredUrls");
 
 		var discoveredUrls = sagaState.StateData["DiscoveredUrls"] as List<string>;
-		discoveredUrls.Should().NotBeNull();
-		discoveredUrls.Should().HaveCount(expectedUrls.Length);
-		discoveredUrls.Should().BeEquivalentTo(expectedUrls);
+		discoveredUrls.ShouldNotBeNull();
+		discoveredUrls!.Count.ShouldBe(expectedUrls.Length);
+		discoveredUrls.ShouldBeEquivalentTo(expectedUrls);
 	}
 
 	[Fact(DisplayName = "Saga persists FailedUrls with error details")]
@@ -274,11 +274,11 @@ public class RecipeProcessingSagaStatePersistenceTests : IAsyncLifetime
 
 		// Assert
 		SagaState? sagaState = await _sagaRepository!.GetByCorrelationIdAsync(batchId, CancellationToken.None);
-		sagaState.Should().NotBeNull();
-		sagaState!.StateData.Should().ContainKey("FailedUrls");
+		sagaState.ShouldNotBeNull();
+		sagaState!.StateData.ShouldContainKey("FailedUrls");
 
 		var failedUrls = sagaState.StateData["FailedUrls"] as List<Dictionary<string, object>>;
-		failedUrls.Should().NotBeNull();
+		failedUrls.ShouldNotBeNull();
 
 		// In Phase 5, when errors occur, FailedUrls should contain:
 		// - Url
@@ -340,14 +340,14 @@ public class RecipeProcessingSagaStatePersistenceTests : IAsyncLifetime
 
 		// Assert
 		SagaState? sagaState = await _sagaRepository!.GetByCorrelationIdAsync(batchId, CancellationToken.None);
-		sagaState.Should().NotBeNull();
-		sagaState!.StateData.Should().ContainKey("FingerprintedUrls");
+		sagaState.ShouldNotBeNull();
+		sagaState!.StateData.ShouldContainKey("FingerprintedUrls");
 
 		var fingerprintedUrls = sagaState.StateData["FingerprintedUrls"] as List<string>;
-		fingerprintedUrls.Should().NotBeNull();
+		fingerprintedUrls.ShouldNotBeNull();
 
 		// Should exclude duplicates
-		fingerprintedUrls.Should().NotContain(url => url.Contains("recipe2-duplicate"));
+		fingerprintedUrls.ShouldNotContain(url => url.Contains("recipe2-duplicate"));
 	}
 
 	[Fact(DisplayName = "Saga persists ProcessedUrls and CurrentIndex during processing")]
@@ -393,17 +393,17 @@ public class RecipeProcessingSagaStatePersistenceTests : IAsyncLifetime
 
 		// Assert
 		SagaState? sagaState = await _sagaRepository!.GetByCorrelationIdAsync(batchId, CancellationToken.None);
-		sagaState.Should().NotBeNull();
+		sagaState.ShouldNotBeNull();
 
 		// Verify ProcessedUrls are tracked
-		sagaState!.StateData.Should().ContainKey("ProcessedUrls");
+		sagaState!.StateData.ShouldContainKey("ProcessedUrls");
 		var processedUrls = sagaState.StateData["ProcessedUrls"] as List<string>;
-		processedUrls.Should().NotBeNull();
+		processedUrls.ShouldNotBeNull();
 
 		// Verify CurrentIndex is tracked for resumability
-		sagaState.StateData.Should().ContainKey("CurrentIndex");
+		sagaState.StateData.ShouldContainKey("CurrentIndex");
 		object currentIndex = sagaState.StateData["CurrentIndex"];
-		currentIndex.Should().NotBeNull();
+		currentIndex.ShouldNotBeNull();
 
 		// In Phase 5, CurrentIndex should equal ProcessedUrls.Count after completion
 	}

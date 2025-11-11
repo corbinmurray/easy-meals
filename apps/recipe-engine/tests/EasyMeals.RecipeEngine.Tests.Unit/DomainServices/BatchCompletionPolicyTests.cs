@@ -1,7 +1,7 @@
 using EasyMeals.RecipeEngine.Domain.Entities;
 using EasyMeals.RecipeEngine.Domain.Services;
 using EasyMeals.RecipeEngine.Infrastructure.Services;
-using FluentAssertions;
+using Shouldly;
 
 namespace EasyMeals.RecipeEngine.Tests.Unit.DomainServices;
 
@@ -32,7 +32,7 @@ public class BatchCompletionPolicyTests
 		BatchCompletionReason reason = policy.GetCompletionReason(batch, DateTime.UtcNow);
 
 		// Assert
-		reason.Should().Be(BatchCompletionReason.BatchSizeReached);
+		reason.ShouldBe(BatchCompletionReason.BatchSizeReached);
 	}
 
 	[Fact(DisplayName = "Should not complete when batch size not reached and time window not exceeded")]
@@ -56,7 +56,7 @@ public class BatchCompletionPolicyTests
 		bool shouldComplete = policy.ShouldCompleteBatch(batch, DateTime.UtcNow);
 
 		// Assert
-		shouldComplete.Should().BeFalse();
+		shouldComplete.ShouldBeFalse();
 	}
 
 	[Fact(DisplayName = "Should complete when batch size reached")]
@@ -81,8 +81,8 @@ public class BatchCompletionPolicyTests
 		BatchCompletionReason reason = policy.GetCompletionReason(batch, DateTime.UtcNow);
 
 		// Assert
-		shouldComplete.Should().BeTrue();
-		reason.Should().Be(BatchCompletionReason.BatchSizeReached);
+		shouldComplete.ShouldBeTrue();
+		reason.ShouldBe(BatchCompletionReason.BatchSizeReached);
 	}
 
 	[Fact(DisplayName = "Should complete when both batch size and time window conditions met")]
@@ -116,8 +116,8 @@ public class BatchCompletionPolicyTests
 		BatchCompletionReason reason = policy.GetCompletionReason(batch, DateTime.UtcNow);
 
 		// Assert
-		shouldComplete.Should().BeTrue();
-		reason.Should().Be(BatchCompletionReason.Both);
+		shouldComplete.ShouldBeTrue();
+		reason.ShouldBe(BatchCompletionReason.Both);
 	}
 
 	[Fact(DisplayName = "Should complete when approaching time window limit with no progress")]
@@ -150,7 +150,7 @@ public class BatchCompletionPolicyTests
 		bool shouldComplete = policy.ShouldCompleteBatch(batch, DateTime.UtcNow);
 
 		// Assert - Should not complete yet, still within time window
-		shouldComplete.Should().BeFalse();
+		shouldComplete.ShouldBeFalse();
 	}
 
 	[Fact(DisplayName = "Should complete when time window exceeded")]
@@ -185,8 +185,8 @@ public class BatchCompletionPolicyTests
 		BatchCompletionReason reason = policy.GetCompletionReason(batch, DateTime.UtcNow);
 
 		// Assert
-		shouldComplete.Should().BeTrue();
-		reason.Should().Be(BatchCompletionReason.TimeWindowExceeded);
+		shouldComplete.ShouldBeTrue();
+		reason.ShouldBe(BatchCompletionReason.TimeWindowExceeded);
 	}
 
 	[Fact(DisplayName = "Should handle zero batch size gracefully")]
@@ -215,6 +215,6 @@ public class BatchCompletionPolicyTests
 		bool shouldComplete = policy.ShouldCompleteBatch(batch, DateTime.UtcNow);
 
 		// Assert - With zero batch size, processedCount (0) >= batchSize (0), so it should complete
-		shouldComplete.Should().BeTrue();
+		shouldComplete.ShouldBeTrue();
 	}
 }

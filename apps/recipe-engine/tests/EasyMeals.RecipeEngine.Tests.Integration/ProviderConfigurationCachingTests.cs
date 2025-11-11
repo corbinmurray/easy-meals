@@ -2,7 +2,7 @@ using EasyMeals.RecipeEngine.Domain.ValueObjects;
 using EasyMeals.RecipeEngine.Infrastructure.Documents;
 using EasyMeals.RecipeEngine.Infrastructure.Services;
 using EasyMeals.Shared.Data.Repositories;
-using FluentAssertions;
+using Shouldly;
 using MongoDB.Driver;
 using Testcontainers.MongoDb;
 
@@ -64,8 +64,7 @@ public class ProviderConfigurationCachingTests : IAsyncLifetime
 		await _repository!.InsertOneAsync(config);
 
 		// Act & Assert
-		await _loader!.Invoking(async l => await l.LoadConfigurationsAsync())
-			.Should().NotThrowAsync();
+		await Should.NotThrowAsync(async () => await _loader!.LoadConfigurationsAsync());
 	}
 
 	[Fact(DisplayName = "LoadConfigurationsAsync throws when no enabled providers")]
@@ -74,9 +73,9 @@ public class ProviderConfigurationCachingTests : IAsyncLifetime
 		// Arrange - No providers inserted
 
 		// Act & Assert
-		await _loader!.Invoking(async l => await l.LoadConfigurationsAsync())
-			.Should().ThrowAsync<InvalidOperationException>()
-			.WithMessage("*No enabled provider configurations found*");
+		var exception = await Should.ThrowAsync<InvalidOperationException>(async () => 
+			await _loader!.LoadConfigurationsAsync());
+		exception.Message.ShouldContain("No enabled provider configurations found");
 	}
 
 	[Fact(DisplayName = "Loader filters out disabled providers")]
@@ -94,9 +93,9 @@ public class ProviderConfigurationCachingTests : IAsyncLifetime
 		List<ProviderConfiguration> configList = configs.ToList();
 
 		// Assert
-		configList.Should().HaveCount(1);
-		configList.Should().Contain(c => c.ProviderId == "provider_enabled");
-		configList.Should().NotContain(c => c.ProviderId == "provider_disabled");
+		configList!.Count.ShouldBe(1);
+		configList.ShouldContain(c => c.ProviderId == "provider_enabled");
+		configList.ShouldNotContain(c => c.ProviderId == "provider_disabled");
 	}
 
 	// NOTE: Caching with TTL will be tested after T087 implementation
@@ -124,9 +123,9 @@ public class ProviderConfigurationCachingTests : IAsyncLifetime
 		await _repository!.InsertOneAsync(invalidDoc);
 
 		// Act & Assert
-		await _loader!.Invoking(async l => await l.GetAllEnabledAsync())
-			.Should().ThrowAsync<InvalidOperationException>()
-			.WithMessage("*Invalid DiscoveryStrategy*");
+		var exception = await Should.ThrowAsync<InvalidOperationException>(async () => 
+			await _loader!.GetAllEnabledAsync());
+		exception.Message.ShouldContain("Invalid DiscoveryStrategy");
 	}
 
 	[Fact(DisplayName = "Loader handles multiple concurrent reads")]
@@ -144,8 +143,11 @@ public class ProviderConfigurationCachingTests : IAsyncLifetime
 		ProviderConfiguration?[] results = await Task.WhenAll(tasks);
 
 		// Assert - All should succeed
-		results.Should().AllSatisfy(r => r.Should().NotBeNull());
-		results.Should().AllSatisfy(r => r!.ProviderId.Should().Be("provider_concurrent"));
+		foreach (var result in results)
+		{
+			result.ShouldNotBeNull();
+			result!.ProviderId.ShouldBe("provider_concurrent");
+		}
 	}
 
 	[Fact(DisplayName = "Loader loads configurations from MongoDB successfully")]
@@ -163,9 +165,9 @@ public class ProviderConfigurationCachingTests : IAsyncLifetime
 		List<ProviderConfiguration> configList = configs.ToList();
 
 		// Assert
-		configList.Should().HaveCount(2);
-		configList.Should().Contain(c => c.ProviderId == "provider_001");
-		configList.Should().Contain(c => c.ProviderId == "provider_002");
+		configList!.Count.ShouldBe(2);
+		configList.ShouldContain(c => c.ProviderId == "provider_001");
+		configList.ShouldContain(c => c.ProviderId == "provider_002");
 	}
 
 	[Fact(DisplayName = "Loader returns null for non-existent provider")]
@@ -175,7 +177,7 @@ public class ProviderConfigurationCachingTests : IAsyncLifetime
 		ProviderConfiguration? result = await _loader!.GetByProviderIdAsync("nonexistent");
 
 		// Assert
-		result.Should().BeNull();
+		result.ShouldBeNull();
 	}
 
 	[Fact(DisplayName = "Loader returns specific provider by ID")]
@@ -189,9 +191,9 @@ public class ProviderConfigurationCachingTests : IAsyncLifetime
 		ProviderConfiguration? result = await _loader!.GetByProviderIdAsync("provider_specific");
 
 		// Assert
-		result.Should().NotBeNull();
-		result!.ProviderId.Should().Be("provider_specific");
-		result.BatchSize.Should().Be(10);
-		result.RecipeRootUrl.Should().Be("https://example.com/recipes");
+		result.ShouldNotBeNull();
+		result!.ProviderId.ShouldBe("provider_specific");
+		result.BatchSize.ShouldBe(10);
+		result.RecipeRootUrl.ShouldBe("https://example.com/recipes");
 	}
 }

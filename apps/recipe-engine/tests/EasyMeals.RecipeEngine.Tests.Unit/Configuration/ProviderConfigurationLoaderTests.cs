@@ -3,7 +3,7 @@ using EasyMeals.RecipeEngine.Domain.ValueObjects;
 using EasyMeals.RecipeEngine.Infrastructure.Documents;
 using EasyMeals.RecipeEngine.Infrastructure.Services;
 using EasyMeals.Shared.Data.Repositories;
-using FluentAssertions;
+using Shouldly;
 using Moq;
 
 namespace EasyMeals.RecipeEngine.Tests.Unit.Configuration;
@@ -57,9 +57,9 @@ public class ProviderConfigurationLoaderTests
 		List<ProviderConfiguration> configs = result.ToList();
 
 		// Assert
-		configs.Should().HaveCount(2);
-		configs.Should().Contain(c => c.ProviderId == "provider_001");
-		configs.Should().Contain(c => c.ProviderId == "provider_002");
+		configs!.Count.ShouldBe(2);
+		configs.ShouldContain(c => c.ProviderId == "provider_001");
+		configs.ShouldContain(c => c.ProviderId == "provider_002");
 	}
 
 	[Fact]
@@ -76,7 +76,7 @@ public class ProviderConfigurationLoaderTests
 		IEnumerable<ProviderConfiguration> result = await _loader.GetAllEnabledAsync();
 
 		// Assert
-		result.Should().BeEmpty();
+		result.ShouldBeEmpty();
 	}
 
 	[Fact]
@@ -109,8 +109,8 @@ public class ProviderConfigurationLoaderTests
 				It.IsAny<CancellationToken>()),
 			Times.Never());
 
-		result.Should().NotBeNull();
-		result!.ProviderId.Should().Be("provider_001");
+		result.ShouldNotBeNull();
+		result!.ProviderId.ShouldBe("provider_001");
 	}
 
 	[Fact]
@@ -128,8 +128,8 @@ public class ProviderConfigurationLoaderTests
 		ProviderConfiguration? result = await _loader.GetByProviderIdAsync("provider_001");
 
 		// Assert
-		result.Should().NotBeNull();
-		result!.ProviderId.Should().Be("provider_001");
+		result.ShouldNotBeNull();
+		result!.ProviderId.ShouldBe("provider_001");
 	}
 
 	[Fact]
@@ -146,7 +146,7 @@ public class ProviderConfigurationLoaderTests
 		ProviderConfiguration? result = await _loader.GetByProviderIdAsync("nonexistent");
 
 		// Assert
-		result.Should().BeNull();
+		result.ShouldBeNull();
 	}
 
 	[Fact]
@@ -165,8 +165,7 @@ public class ProviderConfigurationLoaderTests
 			.ReturnsAsync(documents);
 
 		// Act & Assert
-		await _loader.Invoking(async l => await l.LoadConfigurationsAsync())
-			.Should().NotThrowAsync();
+		await Should.NotThrowAsync(async () => await _loader.LoadConfigurationsAsync());
 	}
 
 	[Fact]
@@ -180,8 +179,8 @@ public class ProviderConfigurationLoaderTests
 			.ReturnsAsync(new List<ProviderConfigurationDocument>());
 
 		// Act & Assert
-		await _loader.Invoking(async l => await l.LoadConfigurationsAsync())
-			.Should().ThrowAsync<InvalidOperationException>()
-			.WithMessage("*No enabled provider configurations found*");
+		var exception = await Should.ThrowAsync<InvalidOperationException>(async () => 
+			await _loader.LoadConfigurationsAsync());
+		exception.Message.ShouldContain("No enabled provider configurations found");
 	}
 }

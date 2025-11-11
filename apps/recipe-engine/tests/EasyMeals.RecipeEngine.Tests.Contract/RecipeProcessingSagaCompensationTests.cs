@@ -1,7 +1,7 @@
 using System.Net.Sockets;
 using System.Text.Json;
 using EasyMeals.RecipeEngine.Domain.Entities;
-using FluentAssertions;
+using Shouldly;
 
 namespace EasyMeals.RecipeEngine.Tests.Contract;
 
@@ -28,7 +28,7 @@ public class RecipeProcessingSagaCompensationTests
 		foreach ((int retryAttempt, int expectedDelay) in expectedDelays)
 		{
 			double calculatedDelay = baseDelaySeconds * Math.Pow(2, retryAttempt);
-			calculatedDelay.Should().Be(expectedDelay);
+			calculatedDelay.ShouldBe(expectedDelay);
 		}
 	}
 
@@ -60,11 +60,11 @@ public class RecipeProcessingSagaCompensationTests
 		sagaState.UpdateProgress("Processing", 66, stateData);
 
 		// Assert
-		sagaState.Status.Should().Be(SagaStatus.Running);
-		sagaState.StateData["CurrentIndex"].Should().Be(2); // Moved to next URL
+		sagaState.Status.ShouldBe(SagaStatus.Running);
+		sagaState.StateData["CurrentIndex"].ShouldBe(2); // Moved to next URL
 		var failedUrls = sagaState.StateData["FailedUrls"] as List<Dictionary<string, object>>;
-		failedUrls.Should().HaveCount(1);
-		failedUrls![0]["Skipped"].Should().Be(true);
+		failedUrls!.Count.ShouldBe(1);
+		failedUrls![0]["Skipped"].ShouldBe(true);
 	}
 
 	[Fact(DisplayName = "Saga identifies permanent errors")]
@@ -81,7 +81,7 @@ public class RecipeProcessingSagaCompensationTests
 		// Assert - These should be classified as permanent (skip, don't retry)
 		foreach (Exception error in permanentErrors)
 		{
-			error.Should().NotBeNull();
+			error.ShouldNotBeNull();
 			// The saga implementation should skip these URLs and continue processing
 			// This is a contract test - we verify the error types exist and are recognizable
 		}
@@ -101,7 +101,7 @@ public class RecipeProcessingSagaCompensationTests
 		// Assert - These should be classified as transient (retryable)
 		foreach (Exception error in transientErrors)
 		{
-			error.Should().NotBeNull();
+			error.ShouldNotBeNull();
 			// The saga implementation should retry these errors
 			// This is a contract test - we verify the error types exist and are recognizable
 		}
@@ -121,8 +121,8 @@ public class RecipeProcessingSagaCompensationTests
 		}
 
 		// Assert
-		retryAttempts.Count.Should().Be(maxRetryCount);
-		retryAttempts.Should().BeEquivalentTo(new[] { 0, 1, 2 });
+		retryAttempts.Count.ShouldBe(maxRetryCount);
+		retryAttempts.ShouldBeEquivalentTo(new[] { 0, 1, 2 });
 	}
 
 	[Fact(DisplayName = "Saga logs compensation events")]
@@ -146,9 +146,9 @@ public class RecipeProcessingSagaCompensationTests
 		sagaState.UpdateProgress("Processing", 50, stateData);
 
 		// Assert
-		sagaState.DomainEvents.Count.Should().BeGreaterThan(initialEventCount);
-		sagaState.StateData.Should().ContainKey("ErrorType");
-		sagaState.StateData["ErrorType"].Should().Be("TransientError");
+		sagaState.DomainEvents.Count.ShouldBeGreaterThan(initialEventCount);
+		sagaState.StateData.ShouldContainKey("ErrorType");
+		sagaState.StateData["ErrorType"].ShouldBe("TransientError");
 	}
 
 	[Fact(DisplayName = "Saga tracks retry attempts")]
@@ -175,10 +175,10 @@ public class RecipeProcessingSagaCompensationTests
 		sagaState.UpdateProgress("Processing", 50, stateData);
 
 		// Assert
-		sagaState.StateData.Should().ContainKey("FailedUrls");
+		sagaState.StateData.ShouldContainKey("FailedUrls");
 		var failedUrls = sagaState.StateData["FailedUrls"] as List<Dictionary<string, object>>;
-		failedUrls.Should().NotBeNull();
-		failedUrls.Should().HaveCount(1);
-		failedUrls![0]["RetryCount"].Should().Be(0);
+		failedUrls.ShouldNotBeNull();
+		failedUrls!.Count.ShouldBe(1);
+		failedUrls![0]["RetryCount"].ShouldBe(0);
 	}
 }

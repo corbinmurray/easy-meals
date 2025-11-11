@@ -3,7 +3,7 @@ using EasyMeals.RecipeEngine.Domain.Entities;
 using EasyMeals.RecipeEngine.Domain.Repositories;
 using EasyMeals.RecipeEngine.Infrastructure.DependencyInjection;
 using EasyMeals.RecipeEngine.Infrastructure.Normalization;
-using FluentAssertions;
+using Shouldly;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -82,8 +82,8 @@ public class IngredientNormalizationIntegrationTests : IAsyncLifetime
 		string? result2 = await _normalizer.NormalizeAsync(provider2, code);
 
 		// Assert
-		result1.Should().Be("broccoli, fresh");
-		result2.Should().Be("broccoli, frozen");
+		result1.ShouldBe("broccoli, fresh");
+		result2.ShouldBe("broccoli, frozen");
 	}
 
 	[Fact(DisplayName = "Integration: Cache reduces database queries for frequently used ingredients")]
@@ -103,9 +103,9 @@ public class IngredientNormalizationIntegrationTests : IAsyncLifetime
 		string? result3 = await _normalizer.NormalizeAsync(providerId, providerCode);
 
 		// Assert
-		result1.Should().Be(canonicalForm);
-		result2.Should().Be(canonicalForm);
-		result3.Should().Be(canonicalForm);
+		result1.ShouldBe(canonicalForm);
+		result2.ShouldBe(canonicalForm);
+		result3.ShouldBe(canonicalForm);
 
 		// Cache hit is verified through logs - only first call queries MongoDB
 		// Subsequent calls use cached value (verified in unit tests)
@@ -126,7 +126,7 @@ public class IngredientNormalizationIntegrationTests : IAsyncLifetime
 		string? result = await _normalizer!.NormalizeAsync(providerId, providerCode);
 
 		// Assert
-		result.Should().Be(expectedCanonical);
+		result.ShouldBe(expectedCanonical);
 	}
 
 	[Fact(DisplayName = "Integration: NormalizeAsync returns null for unmapped ingredient")]
@@ -140,7 +140,7 @@ public class IngredientNormalizationIntegrationTests : IAsyncLifetime
 		string? result = await _normalizer!.NormalizeAsync(providerId, providerCode);
 
 		// Assert
-		result.Should().BeNull();
+		result.ShouldBeNull();
 	}
 
 	[Fact(DisplayName = "Integration: Updating ingredient mapping reflects in subsequent normalizations")]
@@ -158,7 +158,7 @@ public class IngredientNormalizationIntegrationTests : IAsyncLifetime
 
 		// First normalization
 		string? result1 = await _normalizer!.NormalizeAsync(providerId, providerCode);
-		result1.Should().Be(originalCanonical);
+		result1.ShouldBe(originalCanonical);
 
 		// Update mapping
 		mapping.UpdateCanonicalForm(updatedCanonical);
@@ -177,7 +177,7 @@ public class IngredientNormalizationIntegrationTests : IAsyncLifetime
 		string? result2 = await newNormalizer.NormalizeAsync(providerId, providerCode);
 
 		// Assert
-		result2.Should().Be(updatedCanonical);
+		result2.ShouldBe(updatedCanonical);
 	}
 
 	[Fact(DisplayName = "Integration: NormalizeBatchAsync handles large batches efficiently")]
@@ -199,10 +199,10 @@ public class IngredientNormalizationIntegrationTests : IAsyncLifetime
 		IDictionary<string, string?> result = await _normalizer!.NormalizeBatchAsync(providerId, codes);
 
 		// Assert
-		result.Should().HaveCount(100);
-		result.Values.Should().NotContainNulls();
-		result["HF-INGREDIENT-001"].Should().Be("ingredient_1");
-		result["HF-INGREDIENT-100"].Should().Be("ingredient_100");
+		result!.Count.ShouldBe(100);
+		result.Values.ShouldNotContain((string?)null);
+		result["HF-INGREDIENT-001"].ShouldBe("ingredient_1");
+		result["HF-INGREDIENT-100"].ShouldBe("ingredient_100");
 	}
 
 	[Fact(DisplayName = "Integration: NormalizeBatchAsync efficiently queries multiple ingredients")]
@@ -221,10 +221,10 @@ public class IngredientNormalizationIntegrationTests : IAsyncLifetime
 		IDictionary<string, string?> result = await _normalizer!.NormalizeBatchAsync(providerId, codes);
 
 		// Assert
-		result.Should().HaveCount(4);
-		result["HF-GARLIC-001"].Should().Be("garlic");
-		result["HF-OLIVE-OIL-002"].Should().Be("olive oil");
-		result["HF-SALT-003"].Should().Be("salt");
-		result["UNKNOWN-999"].Should().BeNull();
+		result!.Count.ShouldBe(4);
+		result["HF-GARLIC-001"].ShouldBe("garlic");
+		result["HF-OLIVE-OIL-002"].ShouldBe("olive oil");
+		result["HF-SALT-003"].ShouldBe("salt");
+		result["UNKNOWN-999"].ShouldBeNull();
 	}
 }

@@ -1,6 +1,6 @@
 using EasyMeals.RecipeEngine.Application.Interfaces;
 using EasyMeals.RecipeEngine.Infrastructure.RateLimiting;
-using FluentAssertions;
+using Shouldly;
 
 namespace EasyMeals.RecipeEngine.Tests.Integration;
 
@@ -28,7 +28,7 @@ public class RateLimitingIntegrationTests
 		bool provider2Result = await rateLimiter.TryAcquireAsync(provider2, CancellationToken.None);
 
 		// Assert
-		provider2Result.Should().BeTrue("provider2 should have independent rate limit");
+		provider2Result.ShouldBeTrue(); // "provider2 should have independent rate limit";
 	}
 
 	[Fact(DisplayName = "Rate limiter enforces max requests per minute")]
@@ -48,7 +48,7 @@ public class RateLimitingIntegrationTests
 		}
 
 		// Assert - Should only allow max requests
-		successCount.Should().BeLessThanOrEqualTo(maxRequests);
+		successCount.ShouldBeLessThanOrEqualTo(maxRequests);
 	}
 
 	[Fact(DisplayName = "Rate limiter handles burst traffic")]
@@ -67,7 +67,10 @@ public class RateLimitingIntegrationTests
 		}
 
 		// Assert - First few should succeed (burst handling)
-		burstResults.Take(3).Should().AllSatisfy(r => r.Should().BeTrue());
+		foreach (var result in burstResults.Take(3))
+		{
+			result.ShouldBeTrue();
+		}
 	}
 
 	[Fact(DisplayName = "Rate limiter reset clears limits for key")]
@@ -90,7 +93,7 @@ public class RateLimitingIntegrationTests
 		bool afterReset = await rateLimiter.TryAcquireAsync(providerId, CancellationToken.None);
 
 		// Assert
-		afterReset.Should().BeTrue("reset should restore tokens");
+		afterReset.ShouldBeTrue(); // "reset should restore tokens";
 	}
 
 	[Fact(DisplayName = "Rate limiter status shows correct remaining requests")]
@@ -111,8 +114,8 @@ public class RateLimitingIntegrationTests
 		RateLimitStatus afterStatus = await rateLimiter.GetStatusAsync(providerId, CancellationToken.None);
 
 		// Assert
-		initialStatus.RemainingRequests.Should().BeGreaterThan(0);
-		afterStatus.RemainingRequests.Should().BeLessThan(initialStatus.RemainingRequests);
+		initialStatus.RemainingRequests.ShouldBeGreaterThan(0);
+		afterStatus.RemainingRequests.ShouldBeLessThan(initialStatus.RemainingRequests);
 	}
 
 	[Fact(DisplayName = "Rate limiter tokens refill over time")]
@@ -134,7 +137,7 @@ public class RateLimitingIntegrationTests
 		bool afterRefill = await rateLimiter.TryAcquireAsync(providerId, CancellationToken.None);
 
 		// Assert
-		initialAcquired.Should().BeTrue();
-		afterRefill.Should().BeTrue("tokens should refill over time");
+		initialAcquired.ShouldBeTrue();
+		afterRefill.ShouldBeTrue(); // "tokens should refill over time";
 	}
 }
