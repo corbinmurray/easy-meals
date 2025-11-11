@@ -1,3 +1,5 @@
+using System.Text.RegularExpressions;
+
 namespace EasyMeals.RecipeEngine.Domain.ValueObjects;
 
 /// <summary>
@@ -16,6 +18,18 @@ public class ProviderConfiguration
 	public int MaxRequestsPerMinute { get; }
 	public int RetryCount { get; }
 	public TimeSpan RequestTimeout { get; }
+	
+	/// <summary>
+	///     Optional regex pattern to identify recipe URLs for this provider.
+	///     If not provided, discovery service will use default patterns.
+	/// </summary>
+	public string? RecipeUrlPattern { get; }
+	
+	/// <summary>
+	///     Optional regex pattern to identify category/listing URLs for this provider.
+	///     If not provided, discovery service will use default patterns.
+	/// </summary>
+	public string? CategoryUrlPattern { get; }
 
 	public ProviderConfiguration(
 		string providerId,
@@ -27,7 +41,9 @@ public class ProviderConfiguration
 		double minDelaySeconds,
 		int maxRequestsPerMinute,
 		int retryCount,
-		int requestTimeoutSeconds)
+		int requestTimeoutSeconds,
+		string? recipeUrlPattern = null,
+		string? categoryUrlPattern = null)
 	{
 		if (string.IsNullOrWhiteSpace(providerId))
 			throw new ArgumentException("ProviderId is required", nameof(providerId));
@@ -59,6 +75,31 @@ public class ProviderConfiguration
 		if (requestTimeoutSeconds <= 0)
 			throw new ArgumentException("RequestTimeout must be positive", nameof(requestTimeoutSeconds));
 
+		// Validate regex patterns if provided
+		if (!string.IsNullOrWhiteSpace(recipeUrlPattern))
+		{
+			try
+			{
+				_ = new Regex(recipeUrlPattern, RegexOptions.Compiled | RegexOptions.IgnoreCase, TimeSpan.FromSeconds(1));
+			}
+			catch (Exception ex)
+			{
+				throw new ArgumentException($"RecipeUrlPattern is not a valid regex: {ex.Message}", nameof(recipeUrlPattern), ex);
+			}
+		}
+
+		if (!string.IsNullOrWhiteSpace(categoryUrlPattern))
+		{
+			try
+			{
+				_ = new Regex(categoryUrlPattern, RegexOptions.Compiled | RegexOptions.IgnoreCase, TimeSpan.FromSeconds(1));
+			}
+			catch (Exception ex)
+			{
+				throw new ArgumentException($"CategoryUrlPattern is not a valid regex: {ex.Message}", nameof(categoryUrlPattern), ex);
+			}
+		}
+
 		ProviderId = providerId;
 		Enabled = enabled;
 		DiscoveryStrategy = discoveryStrategy;
@@ -69,6 +110,8 @@ public class ProviderConfiguration
 		MaxRequestsPerMinute = maxRequestsPerMinute;
 		RetryCount = retryCount;
 		RequestTimeout = TimeSpan.FromSeconds(requestTimeoutSeconds);
+		RecipeUrlPattern = recipeUrlPattern;
+		CategoryUrlPattern = categoryUrlPattern;
 	}
 
 	public override bool Equals(object? obj) => obj is ProviderConfiguration other && ProviderId == other.ProviderId;

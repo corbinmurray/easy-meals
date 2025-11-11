@@ -1,3 +1,6 @@
+using System.Collections.Concurrent;
+using System.Text.RegularExpressions;
+using EasyMeals.RecipeEngine.Application.Interfaces;
 using EasyMeals.RecipeEngine.Domain.Interfaces;
 using EasyMeals.RecipeEngine.Domain.ValueObjects.Discovery;
 using HtmlAgilityPack;
@@ -13,13 +16,20 @@ public class StaticCrawlDiscoveryService : IDiscoveryService
 {
 	private readonly ILogger<StaticCrawlDiscoveryService> _logger;
 	private readonly HttpClient _httpClient;
+	private readonly IProviderConfigurationLoader _configLoader;
+	
+	// Cache compiled regex patterns for performance
+	private readonly ConcurrentDictionary<string, Regex?> _recipePatternCache = new();
+	private readonly ConcurrentDictionary<string, Regex?> _categoryPatternCache = new();
 
 	public StaticCrawlDiscoveryService(
 		ILogger<StaticCrawlDiscoveryService> logger,
-		HttpClient httpClient)
+		HttpClient httpClient,
+		IProviderConfigurationLoader configLoader)
 	{
 		_logger = logger ?? throw new ArgumentNullException(nameof(logger));
 		_httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
+		_configLoader = configLoader ?? throw new ArgumentNullException(nameof(configLoader));
 	}
 
 	/// <summary>
@@ -149,7 +159,7 @@ public class StaticCrawlDiscoveryService : IDiscoveryService
 					}
 				}
 				// Check if this is a category/listing page we should crawl
-				else if (IsCategoryUrl(absoluteUrl) && currentDepth < maxDepth)
+				else if (IsCategoryUrl(absoluteUrl, provider) && currentDepth < maxDepth)
 				{
 					categoryUrlsToCrawl.Add(absoluteUrl);
 				}
@@ -228,6 +238,31 @@ public class StaticCrawlDiscoveryService : IDiscoveryService
 	{
 		if (string.IsNullOrWhiteSpace(url)) return false;
 
+		// Try to get provider-specific regex pattern
+		Regex? recipeRegex = GetRecipePatternForProvider(provider);
+		
+		if (recipeRegex != null)
+		{
+			try
+			{
+				return recipeRegex.IsMatch(url);
+			}
+			catch (RegexMatchTimeoutException ex)
+			{
+				_logger.LogWarning(ex, "Regex timeout checking recipe URL pattern for provider {Provider}", provider);
+				// Fall through to default patterns
+			}
+		}
+
+		// Fall back to default patterns if no provider-specific pattern or pattern failed
+		return IsRecipeUrlDefaultPatterns(url);
+	}
+	
+	/// <summary>
+	///     Default recipe URL pattern matching (fallback when no provider-specific pattern)
+	/// </summary>
+	private bool IsRecipeUrlDefaultPatterns(string url)
+	{
 		// Common recipe URL patterns
 		var recipePatterns = new[]
 		{
@@ -266,10 +301,35 @@ public class StaticCrawlDiscoveryService : IDiscoveryService
 	/// <summary>
 	///     Checks if a URL is a category/listing page that should be crawled for recipes
 	/// </summary>
-	private bool IsCategoryUrl(string url)
+	private bool IsCategoryUrl(string url, string provider)
 	{
 		if (string.IsNullOrWhiteSpace(url)) return false;
 
+		// Try to get provider-specific regex pattern
+		Regex? categoryRegex = GetCategoryPatternForProvider(provider);
+		
+		if (categoryRegex != null)
+		{
+			try
+			{
+				return categoryRegex.IsMatch(url);
+			}
+			catch (RegexMatchTimeoutException ex)
+			{
+				_logger.LogWarning(ex, "Regex timeout checking category URL pattern for provider {Provider}", provider);
+				// Fall through to default patterns
+			}
+		}
+
+		// Fall back to default patterns if no provider-specific pattern or pattern failed
+		return IsCategoryUrlDefaultPatterns(url);
+	}
+	
+	/// <summary>
+	///     Default category URL pattern matching (fallback when no provider-specific pattern)
+	/// </summary>
+	private bool IsCategoryUrlDefaultPatterns(string url)
+	{
 		// Category/listing page patterns (pages we should crawl but not return as recipes)
 		var categoryPatterns = new[]
 		{
@@ -323,6 +383,70 @@ public class StaticCrawlDiscoveryService : IDiscoveryService
 			TimeSpan.Zero,
 			new Dictionary<int, int>(),
 			DateTime.UtcNow));
+
+	/// <summary>
+	///     Gets and caches the recipe URL pattern for a provider
+	/// </summary>
+	private Regex? GetRecipePatternForProvider(string provider)
+	{
+		return _recipePatternCache.GetOrAdd(provider, LoadRecipePattern);
+	}
+
+	/// <summary>
+	///     Gets and caches the category URL pattern for a provider
+	/// </summary>
+	private Regex? GetCategoryPatternForProvider(string provider)
+	{
+		return _categoryPatternCache.GetOrAdd(provider, LoadCategoryPattern);
+	}
+
+	/// <summary>
+	///     Loads and compiles recipe URL pattern from provider configuration
+	/// </summary>
+	private Regex? LoadRecipePattern(string provider)
+	{
+		try
+		{
+			var config = _configLoader.GetByProviderIdAsync(provider).GetAwaiter().GetResult();
+			
+			if (config?.RecipeUrlPattern == null || string.IsNullOrWhiteSpace(config.RecipeUrlPattern))
+				return null;
+
+			return new Regex(
+				config.RecipeUrlPattern,
+				RegexOptions.Compiled | RegexOptions.IgnoreCase,
+				TimeSpan.FromSeconds(1));
+		}
+		catch (Exception ex)
+		{
+			_logger.LogWarning(ex, "Failed to load recipe URL pattern for provider {Provider}", provider);
+			return null;
+		}
+	}
+
+	/// <summary>
+	///     Loads and compiles category URL pattern from provider configuration
+	/// </summary>
+	private Regex? LoadCategoryPattern(string provider)
+	{
+		try
+		{
+			var config = _configLoader.GetByProviderIdAsync(provider).GetAwaiter().GetResult();
+			
+			if (config?.CategoryUrlPattern == null || string.IsNullOrWhiteSpace(config.CategoryUrlPattern))
+				return null;
+
+			return new Regex(
+				config.CategoryUrlPattern,
+				RegexOptions.Compiled | RegexOptions.IgnoreCase,
+				TimeSpan.FromSeconds(1));
+		}
+		catch (Exception ex)
+		{
+			_logger.LogWarning(ex, "Failed to load category URL pattern for provider {Provider}", provider);
+			return null;
+		}
+	}
 
 	/// <summary>
 	///     Calculates confidence score based on URL patterns

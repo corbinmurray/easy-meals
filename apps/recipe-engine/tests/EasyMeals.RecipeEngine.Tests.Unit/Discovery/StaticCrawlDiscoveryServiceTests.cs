@@ -1,4 +1,5 @@
 using System.Net;
+using EasyMeals.RecipeEngine.Application.Interfaces;
 using EasyMeals.RecipeEngine.Domain.ValueObjects.Discovery;
 using EasyMeals.RecipeEngine.Infrastructure.Discovery;
 using Microsoft.Extensions.Logging;
@@ -16,12 +17,19 @@ public class StaticCrawlDiscoveryServiceTests
 	private readonly HttpClient _httpClient;
 	private readonly Mock<HttpMessageHandler> _mockHttpMessageHandler;
 	private readonly Mock<ILogger<StaticCrawlDiscoveryService>> _mockLogger;
+	private readonly Mock<IProviderConfigurationLoader> _mockConfigLoader;
 
 	public StaticCrawlDiscoveryServiceTests()
 	{
 		_mockLogger = new Mock<ILogger<StaticCrawlDiscoveryService>>();
 		_mockHttpMessageHandler = new Mock<HttpMessageHandler>();
 		_httpClient = new HttpClient(_mockHttpMessageHandler.Object);
+		_mockConfigLoader = new Mock<IProviderConfigurationLoader>();
+		
+		// Setup default behavior - return null config (no custom patterns)
+		_mockConfigLoader
+			.Setup(x => x.GetByProviderIdAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+			.ReturnsAsync((Domain.ValueObjects.ProviderConfiguration?)null);
 	}
 
 	private void SetupHttpResponse(string url, string content)
@@ -48,7 +56,7 @@ public class StaticCrawlDiscoveryServiceTests
 
 		SetupHttpResponse(baseUrl, htmlContent);
 
-		var service = new StaticCrawlDiscoveryService(_mockLogger.Object, _httpClient);
+		var service = new StaticCrawlDiscoveryService(_mockLogger.Object, _httpClient, _mockConfigLoader.Object);
 
 		// Act
 		IEnumerable<DiscoveredUrl> result = await service.DiscoverRecipeUrlsAsync(
@@ -79,7 +87,7 @@ public class StaticCrawlDiscoveryServiceTests
 				Content = new StringContent("Not Found")
 			});
 
-		var service = new StaticCrawlDiscoveryService(_mockLogger.Object, _httpClient);
+		var service = new StaticCrawlDiscoveryService(_mockLogger.Object, _httpClient, _mockConfigLoader.Object);
 
 		// Act & Assert
 		await Assert.ThrowsAnyAsync<Exception>(async () =>
@@ -113,7 +121,7 @@ public class StaticCrawlDiscoveryServiceTests
 
 		SetupHttpResponse(baseUrl, htmlContent);
 
-		var service = new StaticCrawlDiscoveryService(_mockLogger.Object, _httpClient);
+		var service = new StaticCrawlDiscoveryService(_mockLogger.Object, _httpClient, _mockConfigLoader.Object);
 
 		// Act - limit to 10 URLs
 		IEnumerable<DiscoveredUrl> result = await service.DiscoverRecipeUrlsAsync(
@@ -141,7 +149,7 @@ public class StaticCrawlDiscoveryServiceTests
 
 		SetupHttpResponse(baseUrl, htmlContent);
 
-		var service = new StaticCrawlDiscoveryService(_mockLogger.Object, _httpClient);
+		var service = new StaticCrawlDiscoveryService(_mockLogger.Object, _httpClient, _mockConfigLoader.Object);
 
 		// Act
 		IEnumerable<DiscoveredUrl> result = await service.DiscoverRecipeUrlsAsync(
@@ -175,7 +183,7 @@ public class StaticCrawlDiscoveryServiceTests
 
 		SetupHttpResponse(baseUrl, htmlContent);
 
-		var service = new StaticCrawlDiscoveryService(_mockLogger.Object, _httpClient);
+		var service = new StaticCrawlDiscoveryService(_mockLogger.Object, _httpClient, _mockConfigLoader.Object);
 
 		// Act
 		IEnumerable<DiscoveredUrl> result = await service.DiscoverRecipeUrlsAsync(
@@ -195,7 +203,7 @@ public class StaticCrawlDiscoveryServiceTests
 	public void IsRecipeUrl_NonRecipeUrl_ReturnsFalse()
 	{
 		// Arrange
-		var service = new StaticCrawlDiscoveryService(_mockLogger.Object, _httpClient);
+		var service = new StaticCrawlDiscoveryService(_mockLogger.Object, _httpClient, _mockConfigLoader.Object);
 
 		// Act & Assert
 		Assert.False(service.IsRecipeUrl("https://example.com/about", "test_provider"));
@@ -207,7 +215,7 @@ public class StaticCrawlDiscoveryServiceTests
 	public void IsRecipeUrl_ValidRecipeUrl_ReturnsTrue()
 	{
 		// Arrange
-		var service = new StaticCrawlDiscoveryService(_mockLogger.Object, _httpClient);
+		var service = new StaticCrawlDiscoveryService(_mockLogger.Object, _httpClient, _mockConfigLoader.Object);
 
 		// Act & Assert
 		Assert.True(service.IsRecipeUrl("https://example.com/recipe/pasta", "test_provider"));

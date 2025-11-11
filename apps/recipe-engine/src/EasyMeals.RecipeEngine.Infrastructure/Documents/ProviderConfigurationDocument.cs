@@ -51,6 +51,12 @@ public class ProviderConfigurationDocument : BaseDocument
 	[BsonRequired]
 	public int RequestTimeoutSeconds { get; set; }
 
+	[BsonElement("recipeUrlPattern")]
+	public string? RecipeUrlPattern { get; set; }
+
+	[BsonElement("categoryUrlPattern")]
+	public string? CategoryUrlPattern { get; set; }
+
 	[BsonElement("createdBy")] public string CreatedBy { get; set; } = string.Empty;
 
 	[BsonElement("updatedBy")] public string? UpdatedBy { get; set; }

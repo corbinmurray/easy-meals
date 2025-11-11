@@ -114,7 +114,9 @@ public class ProviderConfigurationLoader : IProviderConfigurationLoader
 			document.MinDelaySeconds,
 			document.MaxRequestsPerMinute,
 			document.RetryCount,
-			document.RequestTimeoutSeconds
+			document.RequestTimeoutSeconds,
+			document.RecipeUrlPattern,
+			document.CategoryUrlPattern
 		);
 	}
 

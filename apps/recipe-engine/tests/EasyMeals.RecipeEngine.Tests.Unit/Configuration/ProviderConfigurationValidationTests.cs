@@ -323,4 +323,133 @@ public class ProviderConfigurationValidationTests
 		config1.Equals(config2).ShouldBeTrue();
 		config1.GetHashCode().ShouldBe(config2.GetHashCode());
 	}
+
+	[Fact]
+	public void Constructor_AcceptsValidRegexPatterns()
+	{
+		// Arrange & Act
+		var config = new ProviderConfiguration(
+			"provider_001",
+			true,
+			DiscoveryStrategy.Static,
+			"https://example.com/recipes",
+			10,
+			10,
+			2.0,
+			10,
+			3,
+			30,
+			recipeUrlPattern: @"\/recipe\/[a-z0-9\-]+\-[a-f0-9]{24}$",
+			categoryUrlPattern: @"\/recipes\/(category|tag)\/[a-z\-]+"
+		);
+
+		// Assert
+		config.ShouldNotBeNull();
+		config.RecipeUrlPattern.ShouldBe(@"\/recipe\/[a-z0-9\-]+\-[a-f0-9]{24}$");
+		config.CategoryUrlPattern.ShouldBe(@"\/recipes\/(category|tag)\/[a-z\-]+");
+	}
+
+	[Fact]
+	public void Constructor_AcceptsNullRegexPatterns()
+	{
+		// Arrange & Act
+		var config = new ProviderConfiguration(
+			"provider_001",
+			true,
+			DiscoveryStrategy.Static,
+			"https://example.com/recipes",
+			10,
+			10,
+			2.0,
+			10,
+			3,
+			30,
+			recipeUrlPattern: null,
+			categoryUrlPattern: null
+		);
+
+		// Assert
+		config.ShouldNotBeNull();
+		config.RecipeUrlPattern.ShouldBeNull();
+		config.CategoryUrlPattern.ShouldBeNull();
+	}
+
+	[Fact]
+	public void Constructor_AcceptsEmptyStringRegexPatterns()
+	{
+		// Arrange & Act
+		var config = new ProviderConfiguration(
+			"provider_001",
+			true,
+			DiscoveryStrategy.Static,
+			"https://example.com/recipes",
+			10,
+			10,
+			2.0,
+			10,
+			3,
+			30,
+			recipeUrlPattern: "",
+			categoryUrlPattern: "   "
+		);
+
+		// Assert
+		config.ShouldNotBeNull();
+		config.RecipeUrlPattern.ShouldBe("");
+		config.CategoryUrlPattern.ShouldBe("   ");
+	}
+
+	[Theory]
+	[InlineData("[invalid")]
+	[InlineData("(?<invalid")]
+	[InlineData("(unclosed")]
+	public void Constructor_ThrowsException_WhenRecipeUrlPatternIsInvalidRegex(string invalidPattern)
+	{
+		// Act & Assert
+		Action act = () => new ProviderConfiguration(
+			"provider_001",
+			true,
+			DiscoveryStrategy.Static,
+			"https://example.com/recipes",
+			10,
+			10,
+			2.0,
+			10,
+			3,
+			30,
+			recipeUrlPattern: invalidPattern,
+			categoryUrlPattern: null
+		);
+
+		var ex = Should.Throw<ArgumentException>(act);
+		ex.ParamName.ShouldBe("recipeUrlPattern");
+		ex.Message.ShouldContain("not a valid regex");
+	}
+
+	[Theory]
+	[InlineData("[invalid")]
+	[InlineData("(?<invalid")]
+	[InlineData("(unclosed")]
+	public void Constructor_ThrowsException_WhenCategoryUrlPatternIsInvalidRegex(string invalidPattern)
+	{
+		// Act & Assert
+		Action act = () => new ProviderConfiguration(
+			"provider_001",
+			true,
+			DiscoveryStrategy.Static,
+			"https://example.com/recipes",
+			10,
+			10,
+			2.0,
+			10,
+			3,
+			30,
+			recipeUrlPattern: null,
+			categoryUrlPattern: invalidPattern
+		);
+
+		var ex = Should.Throw<ArgumentException>(act);
+		ex.ParamName.ShouldBe("categoryUrlPattern");
+		ex.Message.ShouldContain("not a valid regex");
+	}
 }
