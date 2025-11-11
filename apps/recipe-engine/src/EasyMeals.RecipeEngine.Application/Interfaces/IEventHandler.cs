@@ -3,7 +3,7 @@
 namespace EasyMeals.RecipeEngine.Application.Interfaces;
 
 public interface IEventHandler<in TEvent>
-	where TEvent : IDomainEvent
+    where TEvent : IDomainEvent
 {
-	Task HandleAsync(TEvent @event, CancellationToken cancellationToken = default);
+    Task HandleAsync(TEvent @event, CancellationToken cancellationToken = default);
 }

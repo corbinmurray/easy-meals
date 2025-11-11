@@ -10,17 +10,17 @@ namespace EasyMeals.RecipeEngine.Infrastructure.Documents;
 [BsonCollection("ingredient_mappings")]
 public class IngredientMappingDocument : BaseDocument
 {
-	[BsonElement("providerId")]
-	[BsonRequired]
-	public string ProviderId { get; set; } = string.Empty;
+    [BsonElement("providerId")]
+    [BsonRequired]
+    public string ProviderId { get; set; } = string.Empty;
 
-	[BsonElement("providerCode")]
-	[BsonRequired]
-	public string ProviderCode { get; set; } = string.Empty;
+    [BsonElement("providerCode")]
+    [BsonRequired]
+    public string ProviderCode { get; set; } = string.Empty;
 
-	[BsonElement("canonicalForm")]
-	[BsonRequired]
-	public string CanonicalForm { get; set; } = string.Empty;
+    [BsonElement("canonicalForm")]
+    [BsonRequired]
+    public string CanonicalForm { get; set; } = string.Empty;
 
-	[BsonElement("notes")] public string? Notes { get; set; }
+    [BsonElement("notes")] public string? Notes { get; set; }
 }

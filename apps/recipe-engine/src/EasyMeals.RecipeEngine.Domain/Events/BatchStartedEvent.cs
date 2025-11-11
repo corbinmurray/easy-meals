@@ -4,6 +4,6 @@ namespace EasyMeals.RecipeEngine.Domain.Events;
 ///     Domain event raised when a recipe batch is started.
 /// </summary>
 public record BatchStartedEvent(
-	Guid BatchId,
-	string ProviderId,
-	DateTime StartedAt) : BaseDomainEvent;
+    Guid BatchId,
+    string ProviderId,
+    DateTime StartedAt) : BaseDomainEvent;

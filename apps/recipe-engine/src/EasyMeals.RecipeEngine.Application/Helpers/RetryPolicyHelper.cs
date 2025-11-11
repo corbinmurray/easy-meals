@@ -20,29 +20,29 @@ public static class RetryPolicyHelper
     /// <param name="operationName">Name of the operation being retried (for logging)</param>
     /// <returns>A configured async retry policy</returns>
     public static AsyncRetryPolicy<T> CreateRetryPolicy<T>(
-		int maxRetryAttempts = 3,
-		int baseDelayMs = 1000,
-		ILogger? logger = null,
-		string operationName = "operation")
-	{
-		return Policy<T>
-			.Handle<Exception>(ex => ErrorClassifier.IsTransient(ex))
-			.WaitAndRetryAsync(
-				maxRetryAttempts,
-				attempt => CalculateExponentialBackoffWithJitter(attempt, baseDelayMs),
-				(outcome, timespan, retryCount, context) =>
-				{
-					Exception? exception = outcome.Exception;
-					logger?.LogWarning(
-						exception,
-						"Retry {RetryCount}/{MaxRetries} for {Operation} after {Delay}ms. Error: {ErrorMessage}",
-						retryCount,
-						maxRetryAttempts,
-						operationName,
-						timespan.TotalMilliseconds,
-						exception?.Message);
-				});
-	}
+        int maxRetryAttempts = 3,
+        int baseDelayMs = 1000,
+        ILogger? logger = null,
+        string operationName = "operation")
+    {
+        return Policy<T>
+            .Handle<Exception>(ex => ErrorClassifier.IsTransient(ex))
+            .WaitAndRetryAsync(
+                maxRetryAttempts,
+                attempt => CalculateExponentialBackoffWithJitter(attempt, baseDelayMs),
+                (outcome, timespan, retryCount, context) =>
+                {
+                    Exception? exception = outcome.Exception;
+                    logger?.LogWarning(
+                        exception,
+                        "Retry {RetryCount}/{MaxRetries} for {Operation} after {Delay}ms. Error: {ErrorMessage}",
+                        retryCount,
+                        maxRetryAttempts,
+                        operationName,
+                        timespan.TotalMilliseconds,
+                        exception?.Message);
+                });
+    }
 
     /// <summary>
     ///     Creates an async retry policy for void operations (no return value).
@@ -53,28 +53,28 @@ public static class RetryPolicyHelper
     /// <param name="operationName">Name of the operation being retried (for logging)</param>
     /// <returns>A configured async retry policy for void operations</returns>
     public static AsyncRetryPolicy CreateRetryPolicyForVoid(
-		int maxRetryAttempts = 3,
-		int baseDelayMs = 1000,
-		ILogger? logger = null,
-		string operationName = "operation")
-	{
-		return Policy
-			.Handle<Exception>(ex => ErrorClassifier.IsTransient(ex))
-			.WaitAndRetryAsync(
-				maxRetryAttempts,
-				attempt => CalculateExponentialBackoffWithJitter(attempt, baseDelayMs),
-				(exception, timespan, retryCount, context) =>
-				{
-					logger?.LogWarning(
-						exception,
-						"Retry {RetryCount}/{MaxRetries} for {Operation} after {Delay}ms. Error: {ErrorMessage}",
-						retryCount,
-						maxRetryAttempts,
-						operationName,
-						timespan.TotalMilliseconds,
-						exception.Message);
-				});
-	}
+        int maxRetryAttempts = 3,
+        int baseDelayMs = 1000,
+        ILogger? logger = null,
+        string operationName = "operation")
+    {
+        return Policy
+            .Handle<Exception>(ex => ErrorClassifier.IsTransient(ex))
+            .WaitAndRetryAsync(
+                maxRetryAttempts,
+                attempt => CalculateExponentialBackoffWithJitter(attempt, baseDelayMs),
+                (exception, timespan, retryCount, context) =>
+                {
+                    logger?.LogWarning(
+                        exception,
+                        "Retry {RetryCount}/{MaxRetries} for {Operation} after {Delay}ms. Error: {ErrorMessage}",
+                        retryCount,
+                        maxRetryAttempts,
+                        operationName,
+                        timespan.TotalMilliseconds,
+                        exception.Message);
+                });
+    }
 
     /// <summary>
     ///     Calculates exponential backoff delay with jitter to prevent thundering herd.
@@ -84,16 +84,16 @@ public static class RetryPolicyHelper
     /// <param name="baseDelayMs">Base delay in milliseconds</param>
     /// <returns>Calculated delay with jitter</returns>
     private static TimeSpan CalculateExponentialBackoffWithJitter(int attempt, int baseDelayMs)
-	{
-		// Exponential backoff: baseDelay * 2^(attempt-1)
-		double exponentialDelay = baseDelayMs * Math.Pow(2, attempt - 1);
+    {
+        // Exponential backoff: baseDelay * 2^(attempt-1)
+        double exponentialDelay = baseDelayMs * Math.Pow(2, attempt - 1);
 
-		// Add jitter (up to 50% of delay) to prevent thundering herd
-		double jitter = Random.Shared.NextDouble() * 0.5;
-		double totalDelayMs = exponentialDelay * (1 + jitter);
+        // Add jitter (up to 50% of delay) to prevent thundering herd
+        double jitter = Random.Shared.NextDouble() * 0.5;
+        double totalDelayMs = exponentialDelay * (1 + jitter);
 
-		return TimeSpan.FromMilliseconds(totalDelayMs);
-	}
+        return TimeSpan.FromMilliseconds(totalDelayMs);
+    }
 
     /// <summary>
     ///     Executes an async operation with retry policy.
@@ -106,15 +106,15 @@ public static class RetryPolicyHelper
     /// <param name="operationName">Name of the operation being retried (for logging)</param>
     /// <returns>The result of the operation</returns>
     public static async Task<T> ExecuteWithRetryAsync<T>(
-		Func<Task<T>> operation,
-		int maxRetryAttempts = 3,
-		int baseDelayMs = 1000,
-		ILogger? logger = null,
-		string operationName = "operation")
-	{
-		AsyncRetryPolicy<T> policy = CreateRetryPolicy<T>(maxRetryAttempts, baseDelayMs, logger, operationName);
-		return await policy.ExecuteAsync(operation);
-	}
+        Func<Task<T>> operation,
+        int maxRetryAttempts = 3,
+        int baseDelayMs = 1000,
+        ILogger? logger = null,
+        string operationName = "operation")
+    {
+        AsyncRetryPolicy<T> policy = CreateRetryPolicy<T>(maxRetryAttempts, baseDelayMs, logger, operationName);
+        return await policy.ExecuteAsync(operation);
+    }
 
     /// <summary>
     ///     Executes an async void operation with retry policy.
@@ -125,13 +125,13 @@ public static class RetryPolicyHelper
     /// <param name="logger">Logger for recording retry attempts</param>
     /// <param name="operationName">Name of the operation being retried (for logging)</param>
     public static async Task ExecuteWithRetryAsync(
-		Func<Task> operation,
-		int maxRetryAttempts = 3,
-		int baseDelayMs = 1000,
-		ILogger? logger = null,
-		string operationName = "operation")
-	{
-		AsyncRetryPolicy policy = CreateRetryPolicyForVoid(maxRetryAttempts, baseDelayMs, logger, operationName);
-		await policy.ExecuteAsync(operation);
-	}
+        Func<Task> operation,
+        int maxRetryAttempts = 3,
+        int baseDelayMs = 1000,
+        ILogger? logger = null,
+        string operationName = "operation")
+    {
+        AsyncRetryPolicy policy = CreateRetryPolicyForVoid(maxRetryAttempts, baseDelayMs, logger, operationName);
+        await policy.ExecuteAsync(operation);
+    }
 }

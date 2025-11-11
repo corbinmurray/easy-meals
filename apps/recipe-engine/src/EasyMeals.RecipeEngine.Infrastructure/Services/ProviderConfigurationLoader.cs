@@ -11,129 +11,129 @@ namespace EasyMeals.RecipeEngine.Infrastructure.Services;
 /// </summary>
 public class ProviderConfigurationLoader : IProviderConfigurationLoader
 {
-	private readonly IMongoRepository<ProviderConfigurationDocument> _repository;
-	private readonly ConcurrentDictionary<string, CacheEntry> _cache;
-	private readonly TimeSpan _cacheTtl;
+    private readonly IMongoRepository<ProviderConfigurationDocument> _repository;
+    private readonly ConcurrentDictionary<string, CacheEntry> _cache;
+    private readonly TimeSpan _cacheTtl;
 
-	public ProviderConfigurationLoader(IMongoRepository<ProviderConfigurationDocument> repository)
-	{
-		_repository = repository ?? throw new ArgumentNullException(nameof(repository));
-		_cache = new ConcurrentDictionary<string, CacheEntry>();
-		_cacheTtl = TimeSpan.FromHours(1); // 1 hour TTL as per T087
-	}
+    public ProviderConfigurationLoader(IMongoRepository<ProviderConfigurationDocument> repository)
+    {
+        _repository = repository ?? throw new ArgumentNullException(nameof(repository));
+        _cache = new ConcurrentDictionary<string, CacheEntry>();
+        _cacheTtl = TimeSpan.FromHours(1); // 1 hour TTL as per T087
+    }
 
-	public async Task<ProviderConfiguration?> GetByProviderIdAsync(
-		string providerId,
-		CancellationToken cancellationToken = default)
-	{
-		// Check cache first
-		if (_cache.TryGetValue(providerId, out CacheEntry? entry) && !entry.IsExpired) return entry.Configuration;
+    public async Task<ProviderConfiguration?> GetByProviderIdAsync(
+        string providerId,
+        CancellationToken cancellationToken = default)
+    {
+        // Check cache first
+        if (_cache.TryGetValue(providerId, out CacheEntry? entry) && !entry.IsExpired) return entry.Configuration;
 
-		// Load from MongoDB if not cached or expired
-		ProviderConfigurationDocument? document = await _repository.GetFirstOrDefaultAsync(
-			d => d.ProviderId == providerId && d.Enabled,
-			cancellationToken);
+        // Load from MongoDB if not cached or expired
+        ProviderConfigurationDocument? document = await _repository.GetFirstOrDefaultAsync(
+            d => d.ProviderId == providerId && d.Enabled,
+            cancellationToken);
 
-		if (document == null)
-		{
-			// Cache negative result (not found) to avoid repeated DB queries
-			_cache[providerId] = new CacheEntry(null, _cacheTtl);
-			return null;
-		}
+        if (document == null)
+        {
+            // Cache negative result (not found) to avoid repeated DB queries
+            _cache[providerId] = new CacheEntry(null, _cacheTtl);
+            return null;
+        }
 
-		ProviderConfiguration config = ToDomain(document);
+        ProviderConfiguration config = ToDomain(document);
 
-		// Cache the result
-		_cache[providerId] = new CacheEntry(config, _cacheTtl);
+        // Cache the result
+        _cache[providerId] = new CacheEntry(config, _cacheTtl);
 
-		return config;
-	}
+        return config;
+    }
 
-	public async Task<IEnumerable<ProviderConfiguration>> GetAllEnabledAsync(
-		CancellationToken cancellationToken = default)
-	{
-		// Note: For GetAllEnabledAsync, we don't cache the full collection
-		// because it's typically called once at startup via LoadConfigurationsAsync
-		// Individual provider configs are cached via GetByProviderIdAsync
-		IEnumerable<ProviderConfigurationDocument> documents = await _repository.GetAllAsync(d => d.Enabled, cancellationToken);
+    public async Task<IEnumerable<ProviderConfiguration>> GetAllEnabledAsync(
+        CancellationToken cancellationToken = default)
+    {
+        // Note: For GetAllEnabledAsync, we don't cache the full collection
+        // because it's typically called once at startup via LoadConfigurationsAsync
+        // Individual provider configs are cached via GetByProviderIdAsync
+        IEnumerable<ProviderConfigurationDocument> documents = await _repository.GetAllAsync(d => d.Enabled, cancellationToken);
 
-		return documents.Select(ToDomain).ToList();
-	}
+        return documents.Select(ToDomain).ToList();
+    }
 
-	public async Task LoadConfigurationsAsync(CancellationToken cancellationToken = default)
-	{
-		// Load all configurations to validate they parse correctly
-		IEnumerable<ProviderConfiguration> configs = await GetAllEnabledAsync(cancellationToken);
-		List<ProviderConfiguration> configList = configs.ToList();
+    public async Task LoadConfigurationsAsync(CancellationToken cancellationToken = default)
+    {
+        // Load all configurations to validate they parse correctly
+        IEnumerable<ProviderConfiguration> configs = await GetAllEnabledAsync(cancellationToken);
+        List<ProviderConfiguration> configList = configs.ToList();
 
-		if (configList.Count == 0)
-			throw new InvalidOperationException(
-				"No enabled provider configurations found in MongoDB. " +
-				"Please seed the provider_configurations collection.");
+        if (configList.Count == 0)
+            throw new InvalidOperationException(
+                "No enabled provider configurations found in MongoDB. " +
+                "Please seed the provider_configurations collection.");
 
-		// Populate cache with all configurations for faster subsequent access
-		foreach (ProviderConfiguration config in configList)
-		{
-			_cache[config.ProviderId] = new CacheEntry(config, _cacheTtl);
-		}
+        // Populate cache with all configurations for faster subsequent access
+        foreach (ProviderConfiguration config in configList)
+        {
+            _cache[config.ProviderId] = new CacheEntry(config, _cacheTtl);
+        }
 
-		// Log successful load (in production, use ILogger)
-		Console.WriteLine($"Loaded {configList.Count} provider configuration(s) from MongoDB and cached them");
-	}
+        // Log successful load (in production, use ILogger)
+        Console.WriteLine($"Loaded {configList.Count} provider configuration(s) from MongoDB and cached them");
+    }
 
-	/// <summary>
-	///     Invalidates the cache for a specific provider, forcing reload on next access.
-	/// </summary>
-	/// <param name="providerId">Provider ID to invalidate</param>
-	public void InvalidateCache(string providerId)
-	{
-		_cache.TryRemove(providerId, out _);
-	}
+    /// <summary>
+    ///     Invalidates the cache for a specific provider, forcing reload on next access.
+    /// </summary>
+    /// <param name="providerId">Provider ID to invalidate</param>
+    public void InvalidateCache(string providerId)
+    {
+        _cache.TryRemove(providerId, out _);
+    }
 
-	/// <summary>
-	///     Clears the entire cache, forcing reload for all providers.
-	/// </summary>
-	public void ClearCache()
-	{
-		_cache.Clear();
-	}
+    /// <summary>
+    ///     Clears the entire cache, forcing reload for all providers.
+    /// </summary>
+    public void ClearCache()
+    {
+        _cache.Clear();
+    }
 
-	private static ProviderConfiguration ToDomain(ProviderConfigurationDocument document)
-	{
-		// Parse the discovery strategy from string to enum
-		if (!Enum.TryParse(document.DiscoveryStrategy, true, out DiscoveryStrategy strategy))
-			throw new InvalidOperationException($"Invalid DiscoveryStrategy value: {document.DiscoveryStrategy}");
+    private static ProviderConfiguration ToDomain(ProviderConfigurationDocument document)
+    {
+        // Parse the discovery strategy from string to enum
+        if (!Enum.TryParse(document.DiscoveryStrategy, true, out DiscoveryStrategy strategy))
+            throw new InvalidOperationException($"Invalid DiscoveryStrategy value: {document.DiscoveryStrategy}");
 
-		return new ProviderConfiguration(
-			document.ProviderId,
-			document.Enabled,
-			strategy,
-			document.RecipeRootUrl,
-			document.BatchSize,
-			document.TimeWindowMinutes,
-			document.MinDelaySeconds,
-			document.MaxRequestsPerMinute,
-			document.RetryCount,
-			document.RequestTimeoutSeconds,
-			document.RecipeUrlPattern,
-			document.CategoryUrlPattern
-		);
-	}
+        return new ProviderConfiguration(
+            document.ProviderId,
+            document.Enabled,
+            strategy,
+            document.RecipeRootUrl,
+            document.BatchSize,
+            document.TimeWindowMinutes,
+            document.MinDelaySeconds,
+            document.MaxRequestsPerMinute,
+            document.RetryCount,
+            document.RequestTimeoutSeconds,
+            document.RecipeUrlPattern,
+            document.CategoryUrlPattern
+        );
+    }
 
-	/// <summary>
-	///     Cache entry with expiration support.
-	/// </summary>
-	private class CacheEntry
-	{
-		public ProviderConfiguration? Configuration { get; }
-		public DateTime ExpiresAt { get; }
+    /// <summary>
+    ///     Cache entry with expiration support.
+    /// </summary>
+    private class CacheEntry
+    {
+        public ProviderConfiguration? Configuration { get; }
+        public DateTime ExpiresAt { get; }
 
-		public CacheEntry(ProviderConfiguration? configuration, TimeSpan ttl)
-		{
-			Configuration = configuration;
-			ExpiresAt = DateTime.UtcNow.Add(ttl);
-		}
+        public CacheEntry(ProviderConfiguration? configuration, TimeSpan ttl)
+        {
+            Configuration = configuration;
+            ExpiresAt = DateTime.UtcNow.Add(ttl);
+        }
 
-		public bool IsExpired => DateTime.UtcNow >= ExpiresAt;
-	}
+        public bool IsExpired => DateTime.UtcNow >= ExpiresAt;
+    }
 }

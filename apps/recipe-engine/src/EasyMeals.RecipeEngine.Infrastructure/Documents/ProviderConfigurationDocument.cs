@@ -11,53 +11,53 @@ namespace EasyMeals.RecipeEngine.Infrastructure.Documents;
 [BsonCollection("provider_configurations")]
 public class ProviderConfigurationDocument : BaseDocument
 {
-	[BsonElement("providerId")]
-	[BsonRequired]
-	public string ProviderId { get; set; } = string.Empty;
+    [BsonElement("providerId")]
+    [BsonRequired]
+    public string ProviderId { get; set; } = string.Empty;
 
-	[BsonElement("enabled")]
-	[BsonRequired]
-	public bool Enabled { get; set; }
+    [BsonElement("enabled")]
+    [BsonRequired]
+    public bool Enabled { get; set; }
 
-	[BsonElement("discoveryStrategy")]
-	[BsonRequired]
-	public string DiscoveryStrategy { get; set; } = string.Empty;
+    [BsonElement("discoveryStrategy")]
+    [BsonRequired]
+    public string DiscoveryStrategy { get; set; } = string.Empty;
 
-	[BsonElement("recipeRootUrl")]
-	[BsonRequired]
-	public string RecipeRootUrl { get; set; } = string.Empty;
+    [BsonElement("recipeRootUrl")]
+    [BsonRequired]
+    public string RecipeRootUrl { get; set; } = string.Empty;
 
-	[BsonElement("batchSize")]
-	[BsonRequired]
-	public int BatchSize { get; set; }
+    [BsonElement("batchSize")]
+    [BsonRequired]
+    public int BatchSize { get; set; }
 
-	[BsonElement("timeWindowMinutes")]
-	[BsonRequired]
-	public int TimeWindowMinutes { get; set; }
+    [BsonElement("timeWindowMinutes")]
+    [BsonRequired]
+    public int TimeWindowMinutes { get; set; }
 
-	[BsonElement("minDelaySeconds")]
-	[BsonRequired]
-	public double MinDelaySeconds { get; set; }
+    [BsonElement("minDelaySeconds")]
+    [BsonRequired]
+    public double MinDelaySeconds { get; set; }
 
-	[BsonElement("maxRequestsPerMinute")]
-	[BsonRequired]
-	public int MaxRequestsPerMinute { get; set; }
+    [BsonElement("maxRequestsPerMinute")]
+    [BsonRequired]
+    public int MaxRequestsPerMinute { get; set; }
 
-	[BsonElement("retryCount")]
-	[BsonRequired]
-	public int RetryCount { get; set; }
+    [BsonElement("retryCount")]
+    [BsonRequired]
+    public int RetryCount { get; set; }
 
-	[BsonElement("requestTimeoutSeconds")]
-	[BsonRequired]
-	public int RequestTimeoutSeconds { get; set; }
+    [BsonElement("requestTimeoutSeconds")]
+    [BsonRequired]
+    public int RequestTimeoutSeconds { get; set; }
 
-	[BsonElement("recipeUrlPattern")]
-	public string? RecipeUrlPattern { get; set; }
+    [BsonElement("recipeUrlPattern")]
+    public string? RecipeUrlPattern { get; set; }
 
-	[BsonElement("categoryUrlPattern")]
-	public string? CategoryUrlPattern { get; set; }
+    [BsonElement("categoryUrlPattern")]
+    public string? CategoryUrlPattern { get; set; }
 
-	[BsonElement("createdBy")] public string CreatedBy { get; set; } = string.Empty;
+    [BsonElement("createdBy")] public string CreatedBy { get; set; } = string.Empty;
 
-	[BsonElement("updatedBy")] public string? UpdatedBy { get; set; }
+    [BsonElement("updatedBy")] public string? UpdatedBy { get; set; }
 }

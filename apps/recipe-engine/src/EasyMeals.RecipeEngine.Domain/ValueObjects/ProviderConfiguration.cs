@@ -8,113 +8,113 @@ namespace EasyMeals.RecipeEngine.Domain.ValueObjects;
 /// </summary>
 public class ProviderConfiguration
 {
-	public string ProviderId { get; }
-	public bool Enabled { get; }
-	public DiscoveryStrategy DiscoveryStrategy { get; }
-	public string RecipeRootUrl { get; }
-	public int BatchSize { get; }
-	public TimeSpan TimeWindow { get; }
-	public TimeSpan MinDelay { get; }
-	public int MaxRequestsPerMinute { get; }
-	public int RetryCount { get; }
-	public TimeSpan RequestTimeout { get; }
-	
-	/// <summary>
-	///     Optional regex pattern to identify recipe URLs for this provider.
-	///     If not provided, discovery service will use default patterns.
-	/// </summary>
-	public string? RecipeUrlPattern { get; }
-	
-	/// <summary>
-	///     Optional regex pattern to identify category/listing URLs for this provider.
-	///     If not provided, discovery service will use default patterns.
-	/// </summary>
-	public string? CategoryUrlPattern { get; }
+    public string ProviderId { get; }
+    public bool Enabled { get; }
+    public DiscoveryStrategy DiscoveryStrategy { get; }
+    public string RecipeRootUrl { get; }
+    public int BatchSize { get; }
+    public TimeSpan TimeWindow { get; }
+    public TimeSpan MinDelay { get; }
+    public int MaxRequestsPerMinute { get; }
+    public int RetryCount { get; }
+    public TimeSpan RequestTimeout { get; }
 
-	public ProviderConfiguration(
-		string providerId,
-		bool enabled,
-		DiscoveryStrategy discoveryStrategy,
-		string recipeRootUrl,
-		int batchSize,
-		int timeWindowMinutes,
-		double minDelaySeconds,
-		int maxRequestsPerMinute,
-		int retryCount,
-		int requestTimeoutSeconds,
-		string? recipeUrlPattern = null,
-		string? categoryUrlPattern = null)
-	{
-		if (string.IsNullOrWhiteSpace(providerId))
-			throw new ArgumentException("ProviderId is required", nameof(providerId));
+    /// <summary>
+    ///     Optional regex pattern to identify recipe URLs for this provider.
+    ///     If not provided, discovery service will use default patterns.
+    /// </summary>
+    public string? RecipeUrlPattern { get; }
 
-		if (string.IsNullOrWhiteSpace(recipeRootUrl))
-			throw new ArgumentException("RecipeRootUrl is required", nameof(recipeRootUrl));
+    /// <summary>
+    ///     Optional regex pattern to identify category/listing URLs for this provider.
+    ///     If not provided, discovery service will use default patterns.
+    /// </summary>
+    public string? CategoryUrlPattern { get; }
 
-		if (!Uri.IsWellFormedUriString(recipeRootUrl, UriKind.Absolute))
-			throw new ArgumentException("RecipeRootUrl must be a valid absolute URL", nameof(recipeRootUrl));
+    public ProviderConfiguration(
+        string providerId,
+        bool enabled,
+        DiscoveryStrategy discoveryStrategy,
+        string recipeRootUrl,
+        int batchSize,
+        int timeWindowMinutes,
+        double minDelaySeconds,
+        int maxRequestsPerMinute,
+        int retryCount,
+        int requestTimeoutSeconds,
+        string? recipeUrlPattern = null,
+        string? categoryUrlPattern = null)
+    {
+        if (string.IsNullOrWhiteSpace(providerId))
+            throw new ArgumentException("ProviderId is required", nameof(providerId));
 
-		if (!recipeRootUrl.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
-			throw new ArgumentException("RecipeRootUrl must use HTTPS", nameof(recipeRootUrl));
+        if (string.IsNullOrWhiteSpace(recipeRootUrl))
+            throw new ArgumentException("RecipeRootUrl is required", nameof(recipeRootUrl));
 
-		if (batchSize <= 0)
-			throw new ArgumentException("BatchSize must be positive", nameof(batchSize));
+        if (!Uri.IsWellFormedUriString(recipeRootUrl, UriKind.Absolute))
+            throw new ArgumentException("RecipeRootUrl must be a valid absolute URL", nameof(recipeRootUrl));
 
-		if (timeWindowMinutes <= 0)
-			throw new ArgumentException("TimeWindow must be positive", nameof(timeWindowMinutes));
+        if (!recipeRootUrl.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+            throw new ArgumentException("RecipeRootUrl must use HTTPS", nameof(recipeRootUrl));
 
-		if (minDelaySeconds < 0)
-			throw new ArgumentException("MinDelay cannot be negative", nameof(minDelaySeconds));
+        if (batchSize <= 0)
+            throw new ArgumentException("BatchSize must be positive", nameof(batchSize));
 
-		if (maxRequestsPerMinute <= 0)
-			throw new ArgumentException("MaxRequestsPerMinute must be positive", nameof(maxRequestsPerMinute));
+        if (timeWindowMinutes <= 0)
+            throw new ArgumentException("TimeWindow must be positive", nameof(timeWindowMinutes));
 
-		if (retryCount < 0)
-			throw new ArgumentException("RetryCount cannot be negative", nameof(retryCount));
+        if (minDelaySeconds < 0)
+            throw new ArgumentException("MinDelay cannot be negative", nameof(minDelaySeconds));
 
-		if (requestTimeoutSeconds <= 0)
-			throw new ArgumentException("RequestTimeout must be positive", nameof(requestTimeoutSeconds));
+        if (maxRequestsPerMinute <= 0)
+            throw new ArgumentException("MaxRequestsPerMinute must be positive", nameof(maxRequestsPerMinute));
 
-		// Validate regex patterns if provided
-		if (!string.IsNullOrWhiteSpace(recipeUrlPattern))
-		{
-			try
-			{
-				_ = new Regex(recipeUrlPattern, RegexOptions.Compiled | RegexOptions.IgnoreCase, TimeSpan.FromSeconds(1));
-			}
-			catch (Exception ex)
-			{
-				throw new ArgumentException($"RecipeUrlPattern is not a valid regex: {ex.Message}", nameof(recipeUrlPattern), ex);
-			}
-		}
+        if (retryCount < 0)
+            throw new ArgumentException("RetryCount cannot be negative", nameof(retryCount));
 
-		if (!string.IsNullOrWhiteSpace(categoryUrlPattern))
-		{
-			try
-			{
-				_ = new Regex(categoryUrlPattern, RegexOptions.Compiled | RegexOptions.IgnoreCase, TimeSpan.FromSeconds(1));
-			}
-			catch (Exception ex)
-			{
-				throw new ArgumentException($"CategoryUrlPattern is not a valid regex: {ex.Message}", nameof(categoryUrlPattern), ex);
-			}
-		}
+        if (requestTimeoutSeconds <= 0)
+            throw new ArgumentException("RequestTimeout must be positive", nameof(requestTimeoutSeconds));
 
-		ProviderId = providerId;
-		Enabled = enabled;
-		DiscoveryStrategy = discoveryStrategy;
-		RecipeRootUrl = recipeRootUrl;
-		BatchSize = batchSize;
-		TimeWindow = TimeSpan.FromMinutes(timeWindowMinutes);
-		MinDelay = TimeSpan.FromSeconds(minDelaySeconds);
-		MaxRequestsPerMinute = maxRequestsPerMinute;
-		RetryCount = retryCount;
-		RequestTimeout = TimeSpan.FromSeconds(requestTimeoutSeconds);
-		RecipeUrlPattern = recipeUrlPattern;
-		CategoryUrlPattern = categoryUrlPattern;
-	}
+        // Validate regex patterns if provided
+        if (!string.IsNullOrWhiteSpace(recipeUrlPattern))
+        {
+            try
+            {
+                _ = new Regex(recipeUrlPattern, RegexOptions.Compiled | RegexOptions.IgnoreCase, TimeSpan.FromSeconds(1));
+            }
+            catch (Exception ex)
+            {
+                throw new ArgumentException($"RecipeUrlPattern is not a valid regex: {ex.Message}", nameof(recipeUrlPattern), ex);
+            }
+        }
 
-	public override bool Equals(object? obj) => obj is ProviderConfiguration other && ProviderId == other.ProviderId;
+        if (!string.IsNullOrWhiteSpace(categoryUrlPattern))
+        {
+            try
+            {
+                _ = new Regex(categoryUrlPattern, RegexOptions.Compiled | RegexOptions.IgnoreCase, TimeSpan.FromSeconds(1));
+            }
+            catch (Exception ex)
+            {
+                throw new ArgumentException($"CategoryUrlPattern is not a valid regex: {ex.Message}", nameof(categoryUrlPattern), ex);
+            }
+        }
 
-	public override int GetHashCode() => ProviderId.GetHashCode();
+        ProviderId = providerId;
+        Enabled = enabled;
+        DiscoveryStrategy = discoveryStrategy;
+        RecipeRootUrl = recipeRootUrl;
+        BatchSize = batchSize;
+        TimeWindow = TimeSpan.FromMinutes(timeWindowMinutes);
+        MinDelay = TimeSpan.FromSeconds(minDelaySeconds);
+        MaxRequestsPerMinute = maxRequestsPerMinute;
+        RetryCount = retryCount;
+        RequestTimeout = TimeSpan.FromSeconds(requestTimeoutSeconds);
+        RecipeUrlPattern = recipeUrlPattern;
+        CategoryUrlPattern = categoryUrlPattern;
+    }
+
+    public override bool Equals(object? obj) => obj is ProviderConfiguration other && ProviderId == other.ProviderId;
+
+    public override int GetHashCode() => ProviderId.GetHashCode();
 }

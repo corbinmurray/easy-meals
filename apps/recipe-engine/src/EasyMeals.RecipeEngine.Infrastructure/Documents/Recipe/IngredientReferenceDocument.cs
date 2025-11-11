@@ -8,17 +8,17 @@ namespace EasyMeals.RecipeEngine.Infrastructure.Documents.Recipe;
 /// </summary>
 public class IngredientReferenceDocument
 {
-	[BsonElement("providerCode")]
-	[BsonRequired]
-	public string ProviderCode { get; set; } = string.Empty;
+    [BsonElement("providerCode")]
+    [BsonRequired]
+    public string ProviderCode { get; set; } = string.Empty;
 
-	[BsonElement("canonicalForm")] public string? CanonicalForm { get; set; }
+    [BsonElement("canonicalForm")] public string? CanonicalForm { get; set; }
 
-	[BsonElement("quantity")]
-	[BsonRequired]
-	public string Quantity { get; set; } = string.Empty;
+    [BsonElement("quantity")]
+    [BsonRequired]
+    public string Quantity { get; set; } = string.Empty;
 
-	[BsonElement("displayOrder")]
-	[BsonRequired]
-	public int DisplayOrder { get; set; }
+    [BsonElement("displayOrder")]
+    [BsonRequired]
+    public int DisplayOrder { get; set; }
 }
