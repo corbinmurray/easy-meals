@@ -73,8 +73,8 @@ try
 
 		// Start processing with default configuration
 		// In production, these would come from configuration or command-line arguments
-		var providerId = "provider_001";
-		var batchSize = 100;
+		const string providerId = "provider_001";
+		const int batchSize = 100;
 		TimeSpan timeWindow = TimeSpan.FromHours(1);
 
 		Log.Information("Starting recipe processing for {ProviderId} with batch size {BatchSize} and time window {TimeWindow}",

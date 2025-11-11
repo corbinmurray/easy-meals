@@ -10,8 +10,8 @@ services:
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_HTTP_PORTS: 8080
       # Required environment variables using Coolify's syntax
-      MongoDB__ConnectionString: ${MONGODB_CONNECTION_STRING:?}
-      MongoDB__DatabaseName: ${MONGODB_DATABASE_NAME:?}
+      MongoDB__ConnectionString: ${MONGODB_CONNECTION_STRING}
+      MongoDB__DatabaseName: ${MONGODB_DATABASE_NAME}
     
     restart: unless-stopped
     labels:
@@ -53,8 +53,8 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       # Required environment variables using Coolify's syntax
-      MongoDB__ConnectionString: ${MONGODB_CONNECTION_STRING:?}
-      MongoDB__DatabaseName: ${MONGODB_DATABASE_NAME:?}
+      MongoDB__ConnectionString: ${MONGODB_CONNECTION_STRING}
+      MongoDB__DatabaseName: ${MONGODB_DATABASE_NAME}
     
     # Important: Do NOT restart automatically
     # This service runs on a schedule via Coolify's scheduled tasks feature
