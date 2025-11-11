@@ -27,4 +27,7 @@ Global
 		Debug|Any CPU = Debug|Any CPU
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
+	GlobalSection(RiderSharedRunConfigurations) = postSolution
+		File = ..\recipe-engine\.run\docker-compose (RecipeEngine).run.xml
+	EndGlobalSection
 EndGlobal

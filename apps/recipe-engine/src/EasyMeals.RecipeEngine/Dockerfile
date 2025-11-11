@@ -1,6 +1,7 @@
 ﻿# T133: Multi-stage build with Playwright support for dynamic discovery
-# Stage 1: Base runtime with Playwright browsers pre-installed
-FROM mcr.microsoft.com/playwright/dotnet:v1.40.0-focal AS base
+# Stage 1: Base runtime with Playwright browsers pre-installed (version pinned for compatibility)
+ARG PLAYWRIGHT_IMAGE_TAG=v1.55.0-noble
+FROM mcr.microsoft.com/playwright/dotnet:${PLAYWRIGHT_IMAGE_TAG} AS base
 WORKDIR /app
 EXPOSE 8080
 
@@ -47,11 +48,23 @@ COPY --from=publish /app/publish .
 # Set environment variables for production
 ENV ASPNETCORE_ENVIRONMENT=Production \
     DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=false \
+    DOTNET_RUNNING_IN_CONTAINER=true \
+    PLAYWRIGHT_BROWSERS_PATH=/ms-playwright \
+    DOTNET_ROOT=/usr/share/dotnet \
     TZ=UTC
 
+# Install the .NET 8 runtime (base image currently ships with only .NET 6)
+RUN curl -sSL https://packages.microsoft.com/config/ubuntu/24.04/packages-microsoft-prod.deb -o packages-microsoft-prod.deb \
+    && dpkg -i packages-microsoft-prod.deb \
+    && rm packages-microsoft-prod.deb \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends aspnetcore-runtime-8.0 \
+    && rm -rf /var/lib/apt/lists/*
+
 # Create non-root user for security
-RUN groupadd -r recipeengine && useradd -r -g recipeengine recipeengine
-RUN chown -R recipeengine:recipeengine /app
+RUN groupadd --system recipeengine \
+    && useradd --system --gid recipeengine --create-home recipeengine \
+    && chown -R recipeengine:recipeengine /app /ms-playwright
 USER recipeengine
 
 # Health check
