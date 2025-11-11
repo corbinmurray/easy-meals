@@ -7,6 +7,7 @@ using EasyMeals.RecipeEngine.Domain.Repositories;
 using EasyMeals.RecipeEngine.Domain.ValueObjects;
 using EasyMeals.RecipeEngine.Domain.ValueObjects.Discovery;
 using Microsoft.Extensions.Logging;
+using EasyMeals.RecipeEngine.Infrastructure.Discovery;
 
 namespace EasyMeals.RecipeEngine.Application.Sagas;
 
@@ -26,7 +27,7 @@ public class RecipeProcessingSaga(
 	ILogger<RecipeProcessingSaga> logger,
 	ISagaStateRepository sagaStateRepository,
 	IProviderConfigurationLoader configurationLoader,
-	IDiscoveryService discoveryService,
+	IDiscoveryServiceFactory discoveryServiceFactory,
 	IRecipeFingerprinter recipeFingerprinter,
 	IIngredientNormalizer ingredientNormalizer,
 	IRateLimiter rateLimiter,
@@ -70,12 +71,12 @@ public class RecipeProcessingSaga(
 		await sagaStateRepository.AddAsync(sagaState, cancellationToken);
 
 		using (logger.BeginScope(new Dictionary<string, object>
-		       {
-			       ["CorrelationId"] = correlationId,
-			       ["SagaId"] = sagaState.Id,
-			       ["ProviderId"] = providerId,
-			       ["BatchSize"] = batchSize
-		       }))
+		{
+			["CorrelationId"] = correlationId,
+			["SagaId"] = sagaState.Id,
+			["ProviderId"] = providerId,
+			["BatchSize"] = batchSize
+		}))
 		{
 			logger.LogInformation(
 				"Starting Recipe Processing Saga {SagaId} for provider {ProviderId} with batch size {BatchSize}",
@@ -167,12 +168,12 @@ public class RecipeProcessingSaga(
 		TimeSpan timeWindow = TimeSpan.Parse(timeWindowStr);
 
 		using (logger.BeginScope(new Dictionary<string, object>
-		       {
-			       ["CorrelationId"] = sagaState.CorrelationId,
-			       ["SagaId"] = sagaState.Id,
-			       ["ProviderId"] = providerId,
-			       ["CurrentPhase"] = sagaState.CurrentPhase
-		       }))
+		{
+			["CorrelationId"] = sagaState.CorrelationId,
+			["SagaId"] = sagaState.Id,
+			["ProviderId"] = providerId,
+			["CurrentPhase"] = sagaState.CurrentPhase
+		}))
 		{
 			logger.LogInformation("Resuming Saga {SagaId} from phase {CurrentPhase}", sagaState.Id, sagaState.CurrentPhase);
 
@@ -243,12 +244,12 @@ public class RecipeProcessingSaga(
 		string providerId = sagaState.StateData["ProviderId"] as string ?? throw new InvalidOperationException("ProviderId not found");
 
 		using (logger.BeginScope(new Dictionary<string, object>
-		       {
-			       ["SagaId"] = sagaState.Id,
-			       ["CorrelationId"] = sagaState.CorrelationId,
-			       ["ProviderId"] = providerId,
-			       ["Phase"] = PhaseDiscovering
-		       }))
+		{
+			["SagaId"] = sagaState.Id,
+			["CorrelationId"] = sagaState.CorrelationId,
+			["ProviderId"] = providerId,
+			["Phase"] = PhaseDiscovering
+		}))
 		{
 			logger.LogInformation("Executing Discovery phase for saga {SagaId}", sagaState.Id);
 
@@ -259,6 +260,10 @@ public class RecipeProcessingSaga(
 			try
 			{
 				// Discover recipe URLs with retry for transient errors
+				// Resolve discovery service by provider strategy at runtime via factory
+				// Safety: ensure strategy maps to a supported implementation
+				IDiscoveryService discoveryService = discoveryServiceFactory.CreateDiscoveryService(config.DiscoveryStrategy);
+
 				IEnumerable<DiscoveredUrl> discoveredUrlsResult = await RetryPolicyHelper.ExecuteWithRetryAsync(
 					async () => await discoveryService.DiscoverRecipeUrlsAsync(
 						config.RecipeRootUrl,
@@ -365,12 +370,12 @@ public class RecipeProcessingSaga(
 		string providerId = sagaState.StateData["ProviderId"] as string ?? "";
 
 		using (logger.BeginScope(new Dictionary<string, object>
-		       {
-			       ["SagaId"] = sagaState.Id,
-			       ["CorrelationId"] = sagaState.CorrelationId,
-			       ["ProviderId"] = providerId,
-			       ["Phase"] = PhaseProcessing
-		       }))
+		{
+			["SagaId"] = sagaState.Id,
+			["CorrelationId"] = sagaState.CorrelationId,
+			["ProviderId"] = providerId,
+			["Phase"] = PhaseProcessing
+		}))
 		{
 			logger.LogInformation("Executing Processing phase for saga {SagaId}", sagaState.Id);
 
@@ -451,13 +456,13 @@ public class RecipeProcessingSaga(
 
 					// Log with structured context
 					using (logger.BeginScope(new Dictionary<string, object>
-					       {
-						       ["Url"] = url,
-						       ["ErrorType"] = errorType,
-						       ["IsTransient"] = isTransient,
-						       ["IsPermanent"] = isPermanent,
-						       ["RetryCount"] = retryCount
-					       }))
+					{
+						["Url"] = url,
+						["ErrorType"] = errorType,
+						["IsTransient"] = isTransient,
+						["IsPermanent"] = isPermanent,
+						["RetryCount"] = retryCount
+					}))
 					{
 						if (isPermanent)
 						{
