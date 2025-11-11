@@ -7,8 +7,9 @@ db = db.getSiblingDB('easymeals');
 db.provider_configurations.deleteMany({ providerId: "hellofresh" });
 
 // Insert Hello Fresh provider configuration
+// Note: _id must be a string (not ObjectId) because BaseDocument uses BsonRepresentation(BsonType.String)
 db.provider_configurations.insertOne({
-    _id: ObjectId(),
+    _id: new ObjectId().toString(),
     providerId: "hellofresh",
     enabled: true,
     discoveryStrategy: "Static", // Static HTML parsing for Hello Fresh
@@ -22,7 +23,8 @@ db.provider_configurations.insertOne({
     createdBy: "seed-script",
     updatedBy: null,
     createdAt: new Date(),
-    updatedAt: new Date()
+    updatedAt: new Date(),
+    version: 1
 });
 
 print("Hello Fresh provider configuration inserted successfully");

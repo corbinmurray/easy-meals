@@ -7,7 +7,6 @@ using EasyMeals.RecipeEngine.Domain.Repositories;
 using EasyMeals.RecipeEngine.Domain.ValueObjects;
 using EasyMeals.RecipeEngine.Domain.ValueObjects.Discovery;
 using Microsoft.Extensions.Logging;
-using EasyMeals.RecipeEngine.Application.Interfaces;
 
 namespace EasyMeals.RecipeEngine.Application.Sagas;
 
@@ -581,18 +580,89 @@ public class RecipeProcessingSaga(
 
 	private async Task ExecutePersistingPhaseAsync(SagaState sagaState, CancellationToken cancellationToken)
 	{
-		logger.LogInformation("Executing Persisting phase for saga {SagaId}", sagaState.Id);
+		string providerId = sagaState.StateData["ProviderId"] as string ?? "";
+		
+		using (logger.BeginScope(new Dictionary<string, object>
+		{
+			["SagaId"] = sagaState.Id,
+			["CorrelationId"] = sagaState.CorrelationId,
+			["ProviderId"] = providerId,
+			["Phase"] = PhasePersisting
+		}))
+		{
+			logger.LogInformation("Executing Persisting phase for saga {SagaId}", sagaState.Id);
 
-		// TODO: In full implementation, we would:
-		// 1. Batch insert Recipe entities
-		// 2. Batch insert RecipeFingerprint entities
-		// 3. Update RecipeBatch with final counts
-		// 4. Emit BatchCompletedEvent
+			// Extract batch data from saga state
+			object batchSizeObj = sagaState.StateData["BatchSize"];
+			int batchSize = batchSizeObj switch
+			{
+				int i => i,
+				long l => (int)l,
+				_ => 100
+			};
 
-		sagaState.UpdateProgress(PhasePersisting, 100);
-		await sagaStateRepository.UpdateAsync(sagaState, cancellationToken);
+			string timeWindowStr = sagaState.StateData["TimeWindow"] as string ?? "01:00:00";
+			TimeSpan timeWindow = TimeSpan.Parse(timeWindowStr);
 
-		logger.LogInformation("Persisting phase complete for saga {SagaId}", sagaState.Id);
+			List<string> processedUrls = sagaState.StateData["ProcessedUrls"] as List<string> ?? new List<string>();
+			List<string> discoveredUrls = sagaState.StateData["DiscoveredUrls"] as List<string> ?? new List<string>();
+			List<string> fingerprintedUrls = sagaState.StateData["FingerprintedUrls"] as List<string> ?? new List<string>();
+			List<Dictionary<string, object>> failedUrlsList =
+				sagaState.StateData["FailedUrls"] as List<Dictionary<string, object>> ?? new List<Dictionary<string, object>>();
+
+			// Create RecipeBatch entity
+			var batch = RecipeBatch.CreateBatch(providerId, batchSize, timeWindow);
+
+			// Mark recipes as processed, skipped (duplicates), or failed
+			foreach (string url in processedUrls)
+			{
+				batch.MarkRecipeProcessed(url);
+			}
+
+			int skippedCount = discoveredUrls.Count - fingerprintedUrls.Count;
+			for (int i = 0; i < skippedCount; i++)
+			{
+				batch.MarkRecipeSkipped(discoveredUrls[i]);
+			}
+
+			foreach (var failedUrlEntry in failedUrlsList)
+			{
+				string url = failedUrlEntry["Url"] as string ?? "";
+				if (!string.IsNullOrEmpty(url))
+				{
+					batch.MarkRecipeFailed(url);
+				}
+			}
+
+			// Complete the batch
+			batch.CompleteBatch();
+
+			// Persist to MongoDB
+			await batchRepository.SaveAsync(batch, cancellationToken);
+
+			logger.LogInformation(
+				"Persisted RecipeBatch {BatchId} for provider {ProviderId}. " +
+				"Processed: {ProcessedCount}, Skipped: {SkippedCount}, Failed: {FailedCount}",
+				batch.Id,
+				providerId,
+				batch.ProcessedCount,
+				batch.SkippedCount,
+				batch.FailedCount);
+
+			// Emit BatchCompletedEvent
+			var completedEvent = new BatchCompletedEvent(
+				batch.Id,
+				batch.ProcessedCount,
+				batch.SkippedCount,
+				batch.FailedCount,
+				DateTime.UtcNow);
+			eventBus.Publish(completedEvent);
+
+			sagaState.UpdateProgress(PhasePersisting, 100);
+			await sagaStateRepository.UpdateAsync(sagaState, cancellationToken);
+
+			logger.LogInformation("Persisting phase complete for saga {SagaId}", sagaState.Id);
+		}
 	}
 
 	/// <summary>
