@@ -1,33 +1,17 @@
 using EasyMeals.RecipeEngine.Domain.Interfaces;
 using EasyMeals.RecipeEngine.Domain.ValueObjects;
+using EasyMeals.RecipeEngine.Application.Interfaces;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace EasyMeals.RecipeEngine.Infrastructure.Discovery;
 
 /// <summary>
-///     T112: Factory for creating discovery service instances based on DiscoveryStrategy
-///     Enables runtime selection of discovery implementation
+///     Default implementation of the application-layer IDiscoveryServiceFactory.
+///     Resolves discovery services from DI container based on strategy.
 /// </summary>
-public interface IDiscoveryServiceFactory
+public class DiscoveryServiceFactory(IServiceProvider serviceProvider) : IDiscoveryServiceFactory
 {
-	/// <summary>
-	///     Creates a discovery service instance for the specified strategy
-	/// </summary>
-	/// <param name="strategy">The discovery strategy to use</param>
-	/// <returns>Discovery service implementation</returns>
-	IDiscoveryService CreateDiscoveryService(DiscoveryStrategy strategy);
-}
-
-/// <summary>
-///     Default implementation of IDiscoveryServiceFactory
-///     Resolves discovery services from DI container based on strategy
-/// </summary>
-public class DiscoveryServiceFactory : IDiscoveryServiceFactory
-{
-	private readonly IServiceProvider _serviceProvider;
-
-	public DiscoveryServiceFactory(IServiceProvider serviceProvider) =>
-		_serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
+	private readonly IServiceProvider _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
 
 	/// <summary>
 	///     Creates a discovery service instance for the specified strategy

@@ -1,16 +1,13 @@
+using EasyMeals.RecipeEngine.Application.Interfaces;
 using EasyMeals.RecipeEngine.Domain.Interfaces;
 using EasyMeals.RecipeEngine.Domain.ValueObjects;
-using EasyMeals.RecipeEngine.Infrastructure.Discovery;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace EasyMeals.RecipeEngine.Infrastructure.HealthChecks;
 
-public class DiscoveryServiceHealthCheck : IHealthCheck
+public class DiscoveryServiceHealthCheck(IDiscoveryServiceFactory discoveryServiceFactory) : IHealthCheck
 {
-	private readonly IDiscoveryServiceFactory _discoveryServiceFactory;
-
-	public DiscoveryServiceHealthCheck(IDiscoveryServiceFactory discoveryServiceFactory) => _discoveryServiceFactory =
-		discoveryServiceFactory ?? throw new ArgumentNullException(nameof(discoveryServiceFactory));
+	private readonly IDiscoveryServiceFactory _discoveryServiceFactory = discoveryServiceFactory ?? throw new ArgumentNullException(nameof(discoveryServiceFactory));
 
 	public Task<HealthCheckResult> CheckHealthAsync(
 		HealthCheckContext context,

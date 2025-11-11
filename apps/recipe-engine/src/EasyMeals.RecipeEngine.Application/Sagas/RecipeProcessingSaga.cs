@@ -7,7 +7,7 @@ using EasyMeals.RecipeEngine.Domain.Repositories;
 using EasyMeals.RecipeEngine.Domain.ValueObjects;
 using EasyMeals.RecipeEngine.Domain.ValueObjects.Discovery;
 using Microsoft.Extensions.Logging;
-using EasyMeals.RecipeEngine.Infrastructure.Discovery;
+using EasyMeals.RecipeEngine.Application.Interfaces;
 
 namespace EasyMeals.RecipeEngine.Application.Sagas;
 
