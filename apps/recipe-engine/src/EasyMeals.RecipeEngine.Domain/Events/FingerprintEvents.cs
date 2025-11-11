@@ -11,11 +11,11 @@ namespace EasyMeals.RecipeEngine.Domain.Events;
 /// <param name="Quality">Quality of the scraped content</param>
 /// <param name="ContentHash">Hash of the scraped content</param>
 public sealed record FingerprintCreatedEvent(
-	Guid FingerprintId,
-	string Url,
-	string SourceProvider,
-	ScrapingQuality Quality,
-	string ContentHash) : BaseDomainEvent;
+    Guid FingerprintId,
+    string Url,
+    string SourceProvider,
+    ScrapingQuality Quality,
+    string ContentHash) : BaseDomainEvent;
 
 /// <summary>
 ///     Event raised when scraping fails
@@ -25,10 +25,10 @@ public sealed record FingerprintCreatedEvent(
 /// <param name="SourceProvider">Source provider name</param>
 /// <param name="ErrorMessage">Error message describing the failure</param>
 public sealed record ScrapingFailedEvent(
-	Guid FingerprintId,
-	string Url,
-	string SourceProvider,
-	string ErrorMessage) : BaseDomainEvent;
+    Guid FingerprintId,
+    string Url,
+    string SourceProvider,
+    string ErrorMessage) : BaseDomainEvent;
 
 /// <summary>
 ///     Event raised when content change is detected
@@ -39,11 +39,11 @@ public sealed record ScrapingFailedEvent(
 /// <param name="NewContentHash">New content hash</param>
 /// <param name="SourceProvider">Source provider name</param>
 public sealed record ContentChangedEvent(
-	Guid FingerprintId,
-	string Url,
-	string OldContentHash,
-	string NewContentHash,
-	string SourceProvider) : BaseDomainEvent;
+    Guid FingerprintId,
+    string Url,
+    string OldContentHash,
+    string NewContentHash,
+    string SourceProvider) : BaseDomainEvent;
 
 /// <summary>
 ///     Event raised when fingerprint is marked as processed
@@ -52,9 +52,9 @@ public sealed record ContentChangedEvent(
 /// <param name="Url">URL that was processed</param>
 /// <param name="RecipeId">ID of the resulting recipe (if successful)</param>
 public sealed record FingerprintProcessedEvent(
-	Guid FingerprintId,
-	string Url,
-	Guid? RecipeId) : BaseDomainEvent;
+    Guid FingerprintId,
+    string Url,
+    Guid? RecipeId) : BaseDomainEvent;
 
 /// <summary>
 ///     Event raised when fingerprint processing is retried
@@ -64,10 +64,10 @@ public sealed record FingerprintProcessedEvent(
 /// <param name="RetryAttempt">Current retry attempt number</param>
 /// <param name="Reason">Reason for retry</param>
 public sealed record FingerprintRetryEvent(
-	Guid FingerprintId,
-	string Url,
-	int RetryAttempt,
-	string Reason) : BaseDomainEvent;
+    Guid FingerprintId,
+    string Url,
+    int RetryAttempt,
+    string Reason) : BaseDomainEvent;
 
 /// <summary>
 ///     Event raised when fingerprint quality is updated/assessed
@@ -78,8 +78,8 @@ public sealed record FingerprintRetryEvent(
 /// <param name="NewQuality">New quality assessment</param>
 /// <param name="Reason">Reason for quality change</param>
 public sealed record QualityAssessedEvent(
-	Guid FingerprintId,
-	string Url,
-	ScrapingQuality OldQuality,
-	ScrapingQuality NewQuality,
-	string Reason) : BaseDomainEvent;
+    Guid FingerprintId,
+    string Url,
+    ScrapingQuality OldQuality,
+    ScrapingQuality NewQuality,
+    string Reason) : BaseDomainEvent;

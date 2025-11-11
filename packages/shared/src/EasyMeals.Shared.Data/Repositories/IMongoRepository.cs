@@ -8,6 +8,6 @@ namespace EasyMeals.Shared.Data.Repositories;
 /// </summary>
 /// <typeparam name="TDocument">The document type managed by this repository</typeparam>
 public interface IMongoRepository<TDocument> : IReadOnlyMongoRepository<TDocument>, IWriteRepository<TDocument>
-	where TDocument : BaseDocument
+    where TDocument : BaseDocument
 {
 }

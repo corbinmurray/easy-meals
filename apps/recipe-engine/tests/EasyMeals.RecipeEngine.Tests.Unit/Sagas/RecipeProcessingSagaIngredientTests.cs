@@ -16,227 +16,227 @@ namespace EasyMeals.RecipeEngine.Tests.Unit.Sagas;
 /// </summary>
 public class RecipeProcessingSagaIngredientTests
 {
-	private readonly Mock<IEventBus> _mockEventBus;
-	private readonly Mock<IIngredientNormalizer> _mockIngredientNormalizer;
-	private readonly Mock<ILogger<RecipeProcessingSaga>> _mockLogger;
-	private readonly Mock<ISagaStateRepository> _mockSagaStateRepository;
-	private readonly RecipeProcessingSaga _sut;
+    private readonly Mock<IEventBus> _mockEventBus;
+    private readonly Mock<IIngredientNormalizer> _mockIngredientNormalizer;
+    private readonly Mock<ILogger<RecipeProcessingSaga>> _mockLogger;
+    private readonly Mock<ISagaStateRepository> _mockSagaStateRepository;
+    private readonly RecipeProcessingSaga _sut;
 
-	public RecipeProcessingSagaIngredientTests()
-	{
-		_mockLogger = new Mock<ILogger<RecipeProcessingSaga>>();
-		_mockSagaStateRepository = new Mock<ISagaStateRepository>();
-		_mockIngredientNormalizer = new Mock<IIngredientNormalizer>();
-		_mockEventBus = new Mock<IEventBus>();
+    public RecipeProcessingSagaIngredientTests()
+    {
+        _mockLogger = new Mock<ILogger<RecipeProcessingSaga>>();
+        _mockSagaStateRepository = new Mock<ISagaStateRepository>();
+        _mockIngredientNormalizer = new Mock<IIngredientNormalizer>();
+        _mockEventBus = new Mock<IEventBus>();
 
-		_sut = new RecipeProcessingSaga(
-			_mockLogger.Object,
-			_mockSagaStateRepository.Object,
-			Mock.Of<IProviderConfigurationLoader>(),
-			Mock.Of<IDiscoveryServiceFactory>(),
-			Mock.Of<IRecipeFingerprinter>(),
-			_mockIngredientNormalizer.Object,
-			Mock.Of<IRateLimiter>(),
-			Mock.Of<IRecipeBatchRepository>(),
-			_mockEventBus.Object);
-	}
+        _sut = new RecipeProcessingSaga(
+            _mockLogger.Object,
+            _mockSagaStateRepository.Object,
+            Mock.Of<IProviderConfigurationLoader>(),
+            Mock.Of<IDiscoveryServiceFactory>(),
+            Mock.Of<IRecipeFingerprinter>(),
+            _mockIngredientNormalizer.Object,
+            Mock.Of<IRateLimiter>(),
+            Mock.Of<IRecipeBatchRepository>(),
+            _mockEventBus.Object);
+    }
 
-	[Fact(DisplayName = "ProcessIngredientsAsync with all mapped ingredients creates IngredientReferences with canonical forms")]
-	public async Task ProcessIngredientsAsync_AllMappedIngredients_CreatesIngredientReferencesWithCanonicalForms()
-	{
-		// Arrange
-		const string providerId = "provider_001";
-		const string recipeUrl = "https://example.com/recipe/123";
-		var rawCodes = new[] { "HF-BROCCOLI-001", "HF-GARLIC-002", "HF-OLIVE-OIL-003" };
+    [Fact(DisplayName = "ProcessIngredientsAsync with all mapped ingredients creates IngredientReferences with canonical forms")]
+    public async Task ProcessIngredientsAsync_AllMappedIngredients_CreatesIngredientReferencesWithCanonicalForms()
+    {
+        // Arrange
+        const string providerId = "provider_001";
+        const string recipeUrl = "https://example.com/recipe/123";
+        var rawCodes = new[] { "HF-BROCCOLI-001", "HF-GARLIC-002", "HF-OLIVE-OIL-003" };
 
-		var normalizedMap = new Dictionary<string, string?>
-		{
-			["HF-BROCCOLI-001"] = "broccoli",
-			["HF-GARLIC-002"] = "garlic",
-			["HF-OLIVE-OIL-003"] = "olive oil"
-		};
+        var normalizedMap = new Dictionary<string, string?>
+        {
+            ["HF-BROCCOLI-001"] = "broccoli",
+            ["HF-GARLIC-002"] = "garlic",
+            ["HF-OLIVE-OIL-003"] = "olive oil"
+        };
 
-		_mockIngredientNormalizer
-			.Setup(n => n.NormalizeBatchAsync(providerId, rawCodes, It.IsAny<CancellationToken>()))
-			.ReturnsAsync(normalizedMap);
+        _mockIngredientNormalizer
+            .Setup(n => n.NormalizeBatchAsync(providerId, rawCodes, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(normalizedMap);
 
-		// Act
-		IReadOnlyList<IngredientReference> result = await _sut.ProcessIngredientsAsync(providerId, recipeUrl, rawCodes);
+        // Act
+        IReadOnlyList<IngredientReference> result = await _sut.ProcessIngredientsAsync(providerId, recipeUrl, rawCodes);
 
-		// Assert
-		result!.Count.ShouldBe(3);
-		result[0].ProviderCode.ShouldBe("HF-BROCCOLI-001");
-		result[0].CanonicalForm.ShouldBe("broccoli");
-		result[0].DisplayOrder.ShouldBe(1);
+        // Assert
+        result!.Count.ShouldBe(3);
+        result[0].ProviderCode.ShouldBe("HF-BROCCOLI-001");
+        result[0].CanonicalForm.ShouldBe("broccoli");
+        result[0].DisplayOrder.ShouldBe(1);
 
-		result[1].ProviderCode.ShouldBe("HF-GARLIC-002");
-		result[1].CanonicalForm.ShouldBe("garlic");
-		result[1].DisplayOrder.ShouldBe(2);
+        result[1].ProviderCode.ShouldBe("HF-GARLIC-002");
+        result[1].CanonicalForm.ShouldBe("garlic");
+        result[1].DisplayOrder.ShouldBe(2);
 
-		result[2].ProviderCode.ShouldBe("HF-OLIVE-OIL-003");
-		result[2].CanonicalForm.ShouldBe("olive oil");
-		result[2].DisplayOrder.ShouldBe(3);
+        result[2].ProviderCode.ShouldBe("HF-OLIVE-OIL-003");
+        result[2].CanonicalForm.ShouldBe("olive oil");
+        result[2].DisplayOrder.ShouldBe(3);
 
-		// Verify no events were published for mapped ingredients
-		_mockEventBus.Verify(
-			eb => eb.Publish(It.IsAny<IngredientMappingMissingEvent>()),
-			Times.Never);
-	}
+        // Verify no events were published for mapped ingredients
+        _mockEventBus.Verify(
+            eb => eb.Publish(It.IsAny<IngredientMappingMissingEvent>()),
+            Times.Never);
+    }
 
-	[Fact(DisplayName = "ProcessIngredientsAsync calls NormalizeBatchAsync with correct parameters")]
-	public async Task ProcessIngredientsAsync_CallsNormalizeBatchAsync_WithCorrectParameters()
-	{
-		// Arrange
-		const string providerId = "provider_001";
-		const string recipeUrl = "https://example.com/recipe/123";
-		var rawCodes = new[] { "CODE-1", "CODE-2" };
+    [Fact(DisplayName = "ProcessIngredientsAsync calls NormalizeBatchAsync with correct parameters")]
+    public async Task ProcessIngredientsAsync_CallsNormalizeBatchAsync_WithCorrectParameters()
+    {
+        // Arrange
+        const string providerId = "provider_001";
+        const string recipeUrl = "https://example.com/recipe/123";
+        var rawCodes = new[] { "CODE-1", "CODE-2" };
 
-		_mockIngredientNormalizer
-			.Setup(n => n.NormalizeBatchAsync(providerId, rawCodes, It.IsAny<CancellationToken>()))
-			.ReturnsAsync(new Dictionary<string, string?>
-			{
-				["CODE-1"] = "canonical_1",
-				["CODE-2"] = "canonical_2"
-			});
+        _mockIngredientNormalizer
+            .Setup(n => n.NormalizeBatchAsync(providerId, rawCodes, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, string?>
+            {
+                ["CODE-1"] = "canonical_1",
+                ["CODE-2"] = "canonical_2"
+            });
 
-		// Act
-		await _sut.ProcessIngredientsAsync(providerId, recipeUrl, rawCodes);
+        // Act
+        await _sut.ProcessIngredientsAsync(providerId, recipeUrl, rawCodes);
 
-		// Assert
-		_mockIngredientNormalizer.Verify(
-			n => n.NormalizeBatchAsync(
-				providerId,
-				rawCodes,
-				It.IsAny<CancellationToken>()),
-			Times.Once);
-	}
+        // Assert
+        _mockIngredientNormalizer.Verify(
+            n => n.NormalizeBatchAsync(
+                providerId,
+                rawCodes,
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
 
-	[Fact(DisplayName = "ProcessIngredientsAsync with empty ingredient list returns empty result")]
-	public async Task ProcessIngredientsAsync_EmptyIngredientList_ReturnsEmptyResult()
-	{
-		// Arrange
-		const string providerId = "provider_001";
-		const string recipeUrl = "https://example.com/recipe/123";
-		string[] rawCodes = Array.Empty<string>();
+    [Fact(DisplayName = "ProcessIngredientsAsync with empty ingredient list returns empty result")]
+    public async Task ProcessIngredientsAsync_EmptyIngredientList_ReturnsEmptyResult()
+    {
+        // Arrange
+        const string providerId = "provider_001";
+        const string recipeUrl = "https://example.com/recipe/123";
+        string[] rawCodes = Array.Empty<string>();
 
-		_mockIngredientNormalizer
-			.Setup(n => n.NormalizeBatchAsync(providerId, rawCodes, It.IsAny<CancellationToken>()))
-			.ReturnsAsync(new Dictionary<string, string?>());
+        _mockIngredientNormalizer
+            .Setup(n => n.NormalizeBatchAsync(providerId, rawCodes, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, string?>());
 
-		// Act
-		IReadOnlyList<IngredientReference> result = await _sut.ProcessIngredientsAsync(providerId, recipeUrl, rawCodes);
+        // Act
+        IReadOnlyList<IngredientReference> result = await _sut.ProcessIngredientsAsync(providerId, recipeUrl, rawCodes);
 
-		// Assert
-		result.ShouldBeEmpty();
-		_mockEventBus.Verify(
-			eb => eb.Publish(It.IsAny<IngredientMappingMissingEvent>()),
-			Times.Never);
-	}
+        // Assert
+        result.ShouldBeEmpty();
+        _mockEventBus.Verify(
+            eb => eb.Publish(It.IsAny<IngredientMappingMissingEvent>()),
+            Times.Never);
+    }
 
-	[Fact(DisplayName = "ProcessIngredientsAsync with mixed mapped/unmapped ingredients continues processing")]
-	public async Task ProcessIngredientsAsync_MixedMappedUnmappedIngredients_ContinuesProcessing()
-	{
-		// Arrange
-		const string providerId = "provider_001";
-		const string recipeUrl = "https://example.com/recipe/123";
-		var rawCodes = new[] { "HF-BROCCOLI-001", "UNKNOWN-1", "HF-GARLIC-002", "UNKNOWN-2" };
+    [Fact(DisplayName = "ProcessIngredientsAsync with mixed mapped/unmapped ingredients continues processing")]
+    public async Task ProcessIngredientsAsync_MixedMappedUnmappedIngredients_ContinuesProcessing()
+    {
+        // Arrange
+        const string providerId = "provider_001";
+        const string recipeUrl = "https://example.com/recipe/123";
+        var rawCodes = new[] { "HF-BROCCOLI-001", "UNKNOWN-1", "HF-GARLIC-002", "UNKNOWN-2" };
 
-		var normalizedMap = new Dictionary<string, string?>
-		{
-			["HF-BROCCOLI-001"] = "broccoli",
-			["UNKNOWN-1"] = null,
-			["HF-GARLIC-002"] = "garlic",
-			["UNKNOWN-2"] = null
-		};
+        var normalizedMap = new Dictionary<string, string?>
+        {
+            ["HF-BROCCOLI-001"] = "broccoli",
+            ["UNKNOWN-1"] = null,
+            ["HF-GARLIC-002"] = "garlic",
+            ["UNKNOWN-2"] = null
+        };
 
-		_mockIngredientNormalizer
-			.Setup(n => n.NormalizeBatchAsync(providerId, rawCodes, It.IsAny<CancellationToken>()))
-			.ReturnsAsync(normalizedMap);
+        _mockIngredientNormalizer
+            .Setup(n => n.NormalizeBatchAsync(providerId, rawCodes, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(normalizedMap);
 
-		// Act
-		IReadOnlyList<IngredientReference> result = await _sut.ProcessIngredientsAsync(providerId, recipeUrl, rawCodes);
+        // Act
+        IReadOnlyList<IngredientReference> result = await _sut.ProcessIngredientsAsync(providerId, recipeUrl, rawCodes);
 
-		// Assert - All 4 ingredients processed despite 2 being unmapped
-		result!.Count.ShouldBe(4);
-		result[0].CanonicalForm.ShouldBe("broccoli");
-		result[1].CanonicalForm.ShouldBeNull();
-		result[2].CanonicalForm.ShouldBe("garlic");
-		result[3].CanonicalForm.ShouldBeNull();
+        // Assert - All 4 ingredients processed despite 2 being unmapped
+        result!.Count.ShouldBe(4);
+        result[0].CanonicalForm.ShouldBe("broccoli");
+        result[1].CanonicalForm.ShouldBeNull();
+        result[2].CanonicalForm.ShouldBe("garlic");
+        result[3].CanonicalForm.ShouldBeNull();
 
-		// Verify events published for both unmapped ingredients
-		_mockEventBus.Verify(
-			eb => eb.Publish(It.Is<IngredientMappingMissingEvent>(e => e.ProviderCode == "UNKNOWN-1")),
-			Times.Once);
-		_mockEventBus.Verify(
-			eb => eb.Publish(It.Is<IngredientMappingMissingEvent>(e => e.ProviderCode == "UNKNOWN-2")),
-			Times.Once);
-	}
+        // Verify events published for both unmapped ingredients
+        _mockEventBus.Verify(
+            eb => eb.Publish(It.Is<IngredientMappingMissingEvent>(e => e.ProviderCode == "UNKNOWN-1")),
+            Times.Once);
+        _mockEventBus.Verify(
+            eb => eb.Publish(It.Is<IngredientMappingMissingEvent>(e => e.ProviderCode == "UNKNOWN-2")),
+            Times.Once);
+    }
 
-	[Fact(DisplayName = "ProcessIngredientsAsync maintains display order for ingredients")]
-	public async Task ProcessIngredientsAsync_MultipleIngredients_MaintainsDisplayOrder()
-	{
-		// Arrange
-		const string providerId = "provider_001";
-		const string recipeUrl = "https://example.com/recipe/123";
-		var rawCodes = new[] { "CODE-1", "CODE-2", "CODE-3", "CODE-4", "CODE-5" };
+    [Fact(DisplayName = "ProcessIngredientsAsync maintains display order for ingredients")]
+    public async Task ProcessIngredientsAsync_MultipleIngredients_MaintainsDisplayOrder()
+    {
+        // Arrange
+        const string providerId = "provider_001";
+        const string recipeUrl = "https://example.com/recipe/123";
+        var rawCodes = new[] { "CODE-1", "CODE-2", "CODE-3", "CODE-4", "CODE-5" };
 
-		var normalizedMap = new Dictionary<string, string?>
-		{
-			["CODE-1"] = "ingredient_1",
-			["CODE-2"] = "ingredient_2",
-			["CODE-3"] = "ingredient_3",
-			["CODE-4"] = "ingredient_4",
-			["CODE-5"] = "ingredient_5"
-		};
+        var normalizedMap = new Dictionary<string, string?>
+        {
+            ["CODE-1"] = "ingredient_1",
+            ["CODE-2"] = "ingredient_2",
+            ["CODE-3"] = "ingredient_3",
+            ["CODE-4"] = "ingredient_4",
+            ["CODE-5"] = "ingredient_5"
+        };
 
-		_mockIngredientNormalizer
-			.Setup(n => n.NormalizeBatchAsync(providerId, rawCodes, It.IsAny<CancellationToken>()))
-			.ReturnsAsync(normalizedMap);
+        _mockIngredientNormalizer
+            .Setup(n => n.NormalizeBatchAsync(providerId, rawCodes, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(normalizedMap);
 
-		// Act
-		IReadOnlyList<IngredientReference> result = await _sut.ProcessIngredientsAsync(providerId, recipeUrl, rawCodes);
+        // Act
+        IReadOnlyList<IngredientReference> result = await _sut.ProcessIngredientsAsync(providerId, recipeUrl, rawCodes);
 
-		// Assert
-		result!.Count.ShouldBe(5);
-		for (var i = 0; i < 5; i++)
-		{
-			result[i].DisplayOrder.ShouldBe(i + 1);
-			result[i].ProviderCode.ShouldBe($"CODE-{i + 1}");
-		}
-	}
+        // Assert
+        result!.Count.ShouldBe(5);
+        for (var i = 0; i < 5; i++)
+        {
+            result[i].DisplayOrder.ShouldBe(i + 1);
+            result[i].ProviderCode.ShouldBe($"CODE-{i + 1}");
+        }
+    }
 
-	[Fact(DisplayName = "ProcessIngredientsAsync with unmapped ingredients publishes IngredientMappingMissingEvent")]
-	public async Task ProcessIngredientsAsync_UnmappedIngredients_PublishesIngredientMappingMissingEvent()
-	{
-		// Arrange
-		const string providerId = "provider_001";
-		const string recipeUrl = "https://example.com/recipe/123";
-		var rawCodes = new[] { "HF-BROCCOLI-001", "UNKNOWN-999" };
+    [Fact(DisplayName = "ProcessIngredientsAsync with unmapped ingredients publishes IngredientMappingMissingEvent")]
+    public async Task ProcessIngredientsAsync_UnmappedIngredients_PublishesIngredientMappingMissingEvent()
+    {
+        // Arrange
+        const string providerId = "provider_001";
+        const string recipeUrl = "https://example.com/recipe/123";
+        var rawCodes = new[] { "HF-BROCCOLI-001", "UNKNOWN-999" };
 
-		var normalizedMap = new Dictionary<string, string?>
-		{
-			["HF-BROCCOLI-001"] = "broccoli",
-			["UNKNOWN-999"] = null // Unmapped
-		};
+        var normalizedMap = new Dictionary<string, string?>
+        {
+            ["HF-BROCCOLI-001"] = "broccoli",
+            ["UNKNOWN-999"] = null // Unmapped
+        };
 
-		_mockIngredientNormalizer
-			.Setup(n => n.NormalizeBatchAsync(providerId, rawCodes, It.IsAny<CancellationToken>()))
-			.ReturnsAsync(normalizedMap);
+        _mockIngredientNormalizer
+            .Setup(n => n.NormalizeBatchAsync(providerId, rawCodes, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(normalizedMap);
 
-		// Act
-		IReadOnlyList<IngredientReference> result = await _sut.ProcessIngredientsAsync(providerId, recipeUrl, rawCodes);
+        // Act
+        IReadOnlyList<IngredientReference> result = await _sut.ProcessIngredientsAsync(providerId, recipeUrl, rawCodes);
 
-		// Assert
-		result!.Count.ShouldBe(2);
-		result[0].CanonicalForm.ShouldBe("broccoli");
-		result[1].CanonicalForm.ShouldBeNull(); // Unmapped stored as null
+        // Assert
+        result!.Count.ShouldBe(2);
+        result[0].CanonicalForm.ShouldBe("broccoli");
+        result[1].CanonicalForm.ShouldBeNull(); // Unmapped stored as null
 
-		// Verify event was published for unmapped ingredient
-		_mockEventBus.Verify(
-			eb => eb.Publish(It.Is<IngredientMappingMissingEvent>(e =>
-				e.ProviderId == providerId &&
-				e.ProviderCode == "UNKNOWN-999" &&
-				e.RecipeUrl == recipeUrl)),
-			Times.Once);
-	}
+        // Verify event was published for unmapped ingredient
+        _mockEventBus.Verify(
+            eb => eb.Publish(It.Is<IngredientMappingMissingEvent>(e =>
+                e.ProviderId == providerId &&
+                e.ProviderCode == "UNKNOWN-999" &&
+                e.RecipeUrl == recipeUrl)),
+            Times.Once);
+    }
 }

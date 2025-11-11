@@ -15,243 +15,243 @@ namespace EasyMeals.RecipeEngine.Tests.Unit.Normalization;
 /// </summary>
 public class IngredientNormalizationServiceTests
 {
-	private readonly Mock<IEventBus> _mockEventBus;
-	private readonly Mock<ILogger<IngredientNormalizationService>> _mockLogger;
-	private readonly Mock<IIngredientMappingRepository> _mockRepository;
-	private readonly IIngredientNormalizer _sut;
+    private readonly Mock<IEventBus> _mockEventBus;
+    private readonly Mock<ILogger<IngredientNormalizationService>> _mockLogger;
+    private readonly Mock<IIngredientMappingRepository> _mockRepository;
+    private readonly IIngredientNormalizer _sut;
 
-	public IngredientNormalizationServiceTests()
-	{
-		_mockRepository = new Mock<IIngredientMappingRepository>();
-		_mockLogger = new Mock<ILogger<IngredientNormalizationService>>();
-		_mockEventBus = new Mock<IEventBus>();
-		_sut = new IngredientNormalizationService(_mockRepository.Object, _mockLogger.Object, _mockEventBus.Object);
-	}
+    public IngredientNormalizationServiceTests()
+    {
+        _mockRepository = new Mock<IIngredientMappingRepository>();
+        _mockLogger = new Mock<ILogger<IngredientNormalizationService>>();
+        _mockEventBus = new Mock<IEventBus>();
+        _sut = new IngredientNormalizationService(_mockRepository.Object, _mockLogger.Object, _mockEventBus.Object);
+    }
 
-	[Fact(DisplayName = "NormalizeAsync with mapped code returns canonical form")]
-	public async Task NormalizeAsync_MappedCode_ReturnsCanonicalForm()
-	{
-		// Arrange
-		const string providerId = "provider_001";
-		const string providerCode = "HF-BROCCOLI-FROZEN-012";
-		const string expectedCanonical = "broccoli, frozen";
+    [Fact(DisplayName = "NormalizeAsync with mapped code returns canonical form")]
+    public async Task NormalizeAsync_MappedCode_ReturnsCanonicalForm()
+    {
+        // Arrange
+        const string providerId = "provider_001";
+        const string providerCode = "HF-BROCCOLI-FROZEN-012";
+        const string expectedCanonical = "broccoli, frozen";
 
-		var mapping = IngredientMapping.Create(providerId, providerCode, expectedCanonical);
-		_mockRepository
-			.Setup(r => r.GetByCodeAsync(providerId, providerCode, It.IsAny<CancellationToken>()))
-			.ReturnsAsync(mapping);
+        var mapping = IngredientMapping.Create(providerId, providerCode, expectedCanonical);
+        _mockRepository
+            .Setup(r => r.GetByCodeAsync(providerId, providerCode, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(mapping);
 
-		// Act
-		string? result = await _sut.NormalizeAsync(providerId, providerCode);
+        // Act
+        string? result = await _sut.NormalizeAsync(providerId, providerCode);
 
-		// Assert
-		result.ShouldBe(expectedCanonical);
-		_mockRepository.Verify(
-			r => r.GetByCodeAsync(providerId, providerCode, It.IsAny<CancellationToken>()),
-			Times.Once);
-	}
+        // Assert
+        result.ShouldBe(expectedCanonical);
+        _mockRepository.Verify(
+            r => r.GetByCodeAsync(providerId, providerCode, It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
 
-	[Fact(DisplayName = "NormalizeAsync with null provider code throws ArgumentException")]
-	public async Task NormalizeAsync_NullProviderCode_ThrowsArgumentException()
-	{
-		// Arrange
-		const string providerId = "provider_001";
-		string? providerCode = null;
+    [Fact(DisplayName = "NormalizeAsync with null provider code throws ArgumentException")]
+    public async Task NormalizeAsync_NullProviderCode_ThrowsArgumentException()
+    {
+        // Arrange
+        const string providerId = "provider_001";
+        string? providerCode = null;
 
-		// Act
-		Func<Task> act = async () => await _sut.NormalizeAsync(providerId, providerCode!);
+        // Act
+        Func<Task> act = async () => await _sut.NormalizeAsync(providerId, providerCode!);
 
-		// Assert
-		var exception = await Should.ThrowAsync<ArgumentException>(act);
-		exception.ParamName.ShouldBe("providerCode");
-	}
+        // Assert
+        var exception = await Should.ThrowAsync<ArgumentException>(act);
+        exception.ParamName.ShouldBe("providerCode");
+    }
 
-	[Fact(DisplayName = "NormalizeAsync with null provider ID throws ArgumentException")]
-	public async Task NormalizeAsync_NullProviderId_ThrowsArgumentException()
-	{
-		// Arrange
-		string? providerId = null;
-		const string providerCode = "SOME-CODE";
+    [Fact(DisplayName = "NormalizeAsync with null provider ID throws ArgumentException")]
+    public async Task NormalizeAsync_NullProviderId_ThrowsArgumentException()
+    {
+        // Arrange
+        string? providerId = null;
+        const string providerCode = "SOME-CODE";
 
-		// Act
-		Func<Task> act = async () => await _sut.NormalizeAsync(providerId!, providerCode);
+        // Act
+        Func<Task> act = async () => await _sut.NormalizeAsync(providerId!, providerCode);
 
-		// Assert
-		var exception = await Should.ThrowAsync<ArgumentException>(act);
-		exception.ParamName.ShouldBe("providerId");
-	}
+        // Assert
+        var exception = await Should.ThrowAsync<ArgumentException>(act);
+        exception.ParamName.ShouldBe("providerId");
+    }
 
-	[Fact(DisplayName = "NormalizeAsync uses cache for repeated lookups")]
-	public async Task NormalizeAsync_RepeatedLookup_UsesCache()
-	{
-		// Arrange
-		const string providerId = "provider_001";
-		const string providerCode = "HF-GARLIC-012";
-		const string canonicalForm = "garlic";
+    [Fact(DisplayName = "NormalizeAsync uses cache for repeated lookups")]
+    public async Task NormalizeAsync_RepeatedLookup_UsesCache()
+    {
+        // Arrange
+        const string providerId = "provider_001";
+        const string providerCode = "HF-GARLIC-012";
+        const string canonicalForm = "garlic";
 
-		var mapping = IngredientMapping.Create(providerId, providerCode, canonicalForm);
-		_mockRepository
-			.Setup(r => r.GetByCodeAsync(providerId, providerCode, It.IsAny<CancellationToken>()))
-			.ReturnsAsync(mapping);
+        var mapping = IngredientMapping.Create(providerId, providerCode, canonicalForm);
+        _mockRepository
+            .Setup(r => r.GetByCodeAsync(providerId, providerCode, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(mapping);
 
-		// Act - Call twice
-		string? result1 = await _sut.NormalizeAsync(providerId, providerCode);
-		string? result2 = await _sut.NormalizeAsync(providerId, providerCode);
+        // Act - Call twice
+        string? result1 = await _sut.NormalizeAsync(providerId, providerCode);
+        string? result2 = await _sut.NormalizeAsync(providerId, providerCode);
 
-		// Assert
-		result1.ShouldBe(canonicalForm);
-		result2.ShouldBe(canonicalForm);
+        // Assert
+        result1.ShouldBe(canonicalForm);
+        result2.ShouldBe(canonicalForm);
 
-		_mockRepository.Verify(
-			r => r.GetByCodeAsync(providerId, providerCode, It.IsAny<CancellationToken>()),
-			Times.Once);
-	}
+        _mockRepository.Verify(
+            r => r.GetByCodeAsync(providerId, providerCode, It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
 
-	[Fact(DisplayName = "NormalizeAsync with unmapped code returns null and logs warning")]
-	public async Task NormalizeAsync_UnmappedCode_ReturnsNullAndLogsWarning()
-	{
-		// Arrange
-		const string providerId = "provider_001";
-		const string providerCode = "UNKNOWN-INGREDIENT-999";
+    [Fact(DisplayName = "NormalizeAsync with unmapped code returns null and logs warning")]
+    public async Task NormalizeAsync_UnmappedCode_ReturnsNullAndLogsWarning()
+    {
+        // Arrange
+        const string providerId = "provider_001";
+        const string providerCode = "UNKNOWN-INGREDIENT-999";
 
-		_mockRepository
-			.Setup(r => r.GetByCodeAsync(providerId, providerCode, It.IsAny<CancellationToken>()))
-			.ReturnsAsync((IngredientMapping?)null);
+        _mockRepository
+            .Setup(r => r.GetByCodeAsync(providerId, providerCode, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IngredientMapping?)null);
 
-		// Act
-		string? result = await _sut.NormalizeAsync(providerId, providerCode);
+        // Act
+        string? result = await _sut.NormalizeAsync(providerId, providerCode);
 
-		// Assert
-		result.ShouldBeNull();
-		_mockRepository.Verify(
-			r => r.GetByCodeAsync(providerId, providerCode, It.IsAny<CancellationToken>()),
-			Times.Once);
+        // Assert
+        result.ShouldBeNull();
+        _mockRepository.Verify(
+            r => r.GetByCodeAsync(providerId, providerCode, It.IsAny<CancellationToken>()),
+            Times.Once);
 
-		_mockLogger.Verify(
-			l => l.Log(
-				LogLevel.Warning,
-				It.IsAny<EventId>(),
-				It.IsAny<It.IsAnyType>(),
-				It.IsAny<Exception>(),
-				It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
-			Times.Once);
-	}
+        _mockLogger.Verify(
+            l => l.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
 
-	[Fact(DisplayName = "NormalizeAsync publishes IngredientMappingMissingEvent for unmapped ingredient")]
-	public async Task NormalizeAsync_UnmappedIngredient_PublishesEvent()
-	{
-		// Arrange
-		const string providerId = "provider_001";
-		const string providerCode = "UNKNOWN-INGREDIENT";
+    [Fact(DisplayName = "NormalizeAsync publishes IngredientMappingMissingEvent for unmapped ingredient")]
+    public async Task NormalizeAsync_UnmappedIngredient_PublishesEvent()
+    {
+        // Arrange
+        const string providerId = "provider_001";
+        const string providerCode = "UNKNOWN-INGREDIENT";
 
-		_mockRepository
-			.Setup(r => r.GetByCodeAsync(providerId, providerCode, It.IsAny<CancellationToken>()))
-			.ReturnsAsync((IngredientMapping?)null);
+        _mockRepository
+            .Setup(r => r.GetByCodeAsync(providerId, providerCode, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IngredientMapping?)null);
 
-		// Act
-		await _sut.NormalizeAsync(providerId, providerCode);
+        // Act
+        await _sut.NormalizeAsync(providerId, providerCode);
 
-		// Assert - Event is published synchronously
-		_mockEventBus.Verify(
-			eb => eb.Publish(It.Is<IngredientMappingMissingEvent>(e =>
-				e.ProviderId == providerId &&
-				e.ProviderCode == providerCode)),
-			Times.Once);
-	}
+        // Assert - Event is published synchronously
+        _mockEventBus.Verify(
+            eb => eb.Publish(It.Is<IngredientMappingMissingEvent>(e =>
+                e.ProviderId == providerId &&
+                e.ProviderCode == providerCode)),
+            Times.Once);
+    }
 
-	[Fact(DisplayName = "NormalizeBatchAsync with duplicate codes processes only once")]
-	public async Task NormalizeBatchAsync_DuplicateCodes_ProcessesOnlyOnce()
-	{
-		// Arrange
-		const string providerId = "provider_001";
-		var providerCodes = new[] { "HF-BROCCOLI-012", "HF-BROCCOLI-012", "HF-BROCCOLI-012" };
+    [Fact(DisplayName = "NormalizeBatchAsync with duplicate codes processes only once")]
+    public async Task NormalizeBatchAsync_DuplicateCodes_ProcessesOnlyOnce()
+    {
+        // Arrange
+        const string providerId = "provider_001";
+        var providerCodes = new[] { "HF-BROCCOLI-012", "HF-BROCCOLI-012", "HF-BROCCOLI-012" };
 
-		var mapping = IngredientMapping.Create(providerId, "HF-BROCCOLI-012", "broccoli");
-		_mockRepository
-			.Setup(r => r.GetByCodeAsync(providerId, "HF-BROCCOLI-012", It.IsAny<CancellationToken>()))
-			.ReturnsAsync(mapping);
+        var mapping = IngredientMapping.Create(providerId, "HF-BROCCOLI-012", "broccoli");
+        _mockRepository
+            .Setup(r => r.GetByCodeAsync(providerId, "HF-BROCCOLI-012", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(mapping);
 
-		// Act
-		IDictionary<string, string?> result = await _sut.NormalizeBatchAsync(providerId, providerCodes);
+        // Act
+        IDictionary<string, string?> result = await _sut.NormalizeBatchAsync(providerId, providerCodes);
 
-		// Assert
-		result!.Count.ShouldBe(1);
-		result["HF-BROCCOLI-012"].ShouldBe("broccoli");
+        // Assert
+        result!.Count.ShouldBe(1);
+        result["HF-BROCCOLI-012"].ShouldBe("broccoli");
 
-		_mockRepository.Verify(
-			r => r.GetByCodeAsync(providerId, "HF-BROCCOLI-012", It.IsAny<CancellationToken>()),
-			Times.Once);
-	}
+        _mockRepository.Verify(
+            r => r.GetByCodeAsync(providerId, "HF-BROCCOLI-012", It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
 
-	[Fact(DisplayName = "NormalizeBatchAsync with empty codes returns empty dictionary")]
-	public async Task NormalizeBatchAsync_EmptyCodes_ReturnsEmptyDictionary()
-	{
-		// Arrange
-		const string providerId = "provider_001";
-		string[] providerCodes = Array.Empty<string>();
+    [Fact(DisplayName = "NormalizeBatchAsync with empty codes returns empty dictionary")]
+    public async Task NormalizeBatchAsync_EmptyCodes_ReturnsEmptyDictionary()
+    {
+        // Arrange
+        const string providerId = "provider_001";
+        string[] providerCodes = Array.Empty<string>();
 
-		// Act
-		IDictionary<string, string?> result = await _sut.NormalizeBatchAsync(providerId, providerCodes);
+        // Act
+        IDictionary<string, string?> result = await _sut.NormalizeBatchAsync(providerId, providerCodes);
 
-		// Assert
-		result.ShouldBeEmpty();
-		_mockRepository.Verify(
-			r => r.GetByCodeAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
-			Times.Never);
-	}
+        // Assert
+        result.ShouldBeEmpty();
+        _mockRepository.Verify(
+            r => r.GetByCodeAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
 
-	[Fact(DisplayName = "NormalizeBatchAsync with multiple codes returns dictionary with mapped and unmapped")]
-	public async Task NormalizeBatchAsync_MultipleCodes_ReturnsDictionaryWithMappedAndUnmapped()
-	{
-		// Arrange
-		const string providerId = "provider_001";
-		var providerCodes = new[] { "HF-BROCCOLI-012", "HF-GARLIC-015", "UNKNOWN-999" };
+    [Fact(DisplayName = "NormalizeBatchAsync with multiple codes returns dictionary with mapped and unmapped")]
+    public async Task NormalizeBatchAsync_MultipleCodes_ReturnsDictionaryWithMappedAndUnmapped()
+    {
+        // Arrange
+        const string providerId = "provider_001";
+        var providerCodes = new[] { "HF-BROCCOLI-012", "HF-GARLIC-015", "UNKNOWN-999" };
 
-		var broccoliMapping = IngredientMapping.Create(providerId, "HF-BROCCOLI-012", "broccoli");
-		var garlicMapping = IngredientMapping.Create(providerId, "HF-GARLIC-015", "garlic");
+        var broccoliMapping = IngredientMapping.Create(providerId, "HF-BROCCOLI-012", "broccoli");
+        var garlicMapping = IngredientMapping.Create(providerId, "HF-GARLIC-015", "garlic");
 
-		_mockRepository
-			.Setup(r => r.GetByCodeAsync(providerId, "HF-BROCCOLI-012", It.IsAny<CancellationToken>()))
-			.ReturnsAsync(broccoliMapping);
-		_mockRepository
-			.Setup(r => r.GetByCodeAsync(providerId, "HF-GARLIC-015", It.IsAny<CancellationToken>()))
-			.ReturnsAsync(garlicMapping);
-		_mockRepository
-			.Setup(r => r.GetByCodeAsync(providerId, "UNKNOWN-999", It.IsAny<CancellationToken>()))
-			.ReturnsAsync((IngredientMapping?)null);
+        _mockRepository
+            .Setup(r => r.GetByCodeAsync(providerId, "HF-BROCCOLI-012", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(broccoliMapping);
+        _mockRepository
+            .Setup(r => r.GetByCodeAsync(providerId, "HF-GARLIC-015", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(garlicMapping);
+        _mockRepository
+            .Setup(r => r.GetByCodeAsync(providerId, "UNKNOWN-999", It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IngredientMapping?)null);
 
-		// Act
-		IDictionary<string, string?> result = await _sut.NormalizeBatchAsync(providerId, providerCodes);
+        // Act
+        IDictionary<string, string?> result = await _sut.NormalizeBatchAsync(providerId, providerCodes);
 
-		// Assert
-		result!.Count.ShouldBe(3);
-		result["HF-BROCCOLI-012"].ShouldBe("broccoli");
-		result["HF-GARLIC-015"].ShouldBe("garlic");
-		result["UNKNOWN-999"].ShouldBeNull();
-	}
+        // Assert
+        result!.Count.ShouldBe(3);
+        result["HF-BROCCOLI-012"].ShouldBe("broccoli");
+        result["HF-GARLIC-015"].ShouldBe("garlic");
+        result["UNKNOWN-999"].ShouldBeNull();
+    }
 
-	[Fact(DisplayName = "NormalizeBatchAsync logs unmapped ingredients")]
-	public async Task NormalizeBatchAsync_UnmappedIngredients_LogsWarnings()
-	{
-		// Arrange
-		const string providerId = "provider_001";
-		var providerCodes = new[] { "UNKNOWN-1", "UNKNOWN-2" };
+    [Fact(DisplayName = "NormalizeBatchAsync logs unmapped ingredients")]
+    public async Task NormalizeBatchAsync_UnmappedIngredients_LogsWarnings()
+    {
+        // Arrange
+        const string providerId = "provider_001";
+        var providerCodes = new[] { "UNKNOWN-1", "UNKNOWN-2" };
 
-		_mockRepository
-			.Setup(r => r.GetByCodeAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
-			.ReturnsAsync((IngredientMapping?)null);
+        _mockRepository
+            .Setup(r => r.GetByCodeAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IngredientMapping?)null);
 
-		// Act
-		await _sut.NormalizeBatchAsync(providerId, providerCodes);
+        // Act
+        await _sut.NormalizeBatchAsync(providerId, providerCodes);
 
-		// Assert - Verify at least 2 warnings were logged for unmapped codes
-		_mockLogger.Verify(
-			l => l.Log(
-				LogLevel.Warning,
-				It.IsAny<EventId>(),
-				It.IsAny<It.IsAnyType>(),
-				It.IsAny<Exception>(),
-				It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
-			Times.AtLeast(2));
-	}
+        // Assert - Verify at least 2 warnings were logged for unmapped codes
+        _mockLogger.Verify(
+            l => l.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.AtLeast(2));
+    }
 }
