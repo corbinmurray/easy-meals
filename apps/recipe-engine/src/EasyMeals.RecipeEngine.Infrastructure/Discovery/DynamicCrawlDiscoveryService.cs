@@ -37,6 +37,7 @@ public class DynamicCrawlDiscoveryService : IDiscoveryService
 			provider, baseUrl, maxDepth, maxUrls);
 
 		var discoveredUrls = new List<DiscoveredUrl>();
+		var visitedUrls = new HashSet<string>();
 
 		IBrowser? browser = null;
 		try
@@ -55,65 +56,17 @@ public class DynamicCrawlDiscoveryService : IDiscoveryService
 				ViewportSize = new ViewportSize { Width = 1920, Height = 1080 }
 			});
 
-			IPage page = await context.NewPageAsync();
-
-			// Navigate to base URL
-			await page.GotoAsync(baseUrl, new PageGotoOptions
-			{
-				WaitUntil = WaitUntilState.NetworkIdle,
-				Timeout = 30000
-			});
-
-			// Wait for content to render (configurable selector)
-			try
-			{
-				await page.WaitForSelectorAsync("a[href]", new PageWaitForSelectorOptions
-				{
-					Timeout = 5000
-				});
-			}
-			catch (TimeoutException)
-			{
-				_logger.LogWarning("No links found on page {Url} after 5 seconds", baseUrl);
-			}
-
-			// Extract recipe URLs
-			IReadOnlyList<IElementHandle> linkElements = await page.Locator("a[href]").ElementHandlesAsync();
-
-			foreach (IElementHandle linkElement in linkElements)
-			{
-				if (discoveredUrls.Count >= maxUrls) break;
-
-				string? href = await linkElement.GetAttributeAsync("href");
-				if (string.IsNullOrWhiteSpace(href)) continue;
-
-				// Convert relative URLs to absolute
-				if (!Uri.TryCreate(new Uri(baseUrl), href, out Uri? absoluteUri)) continue;
-
-				var absoluteUrl = absoluteUri.ToString();
-
-				// Check if this is a recipe URL
-				if (IsRecipeUrl(absoluteUrl, provider))
-				{
-					decimal confidence = CalculateConfidence(absoluteUrl);
-
-					var discoveredUrl = DiscoveredUrl.CreateDiscovered(
-						absoluteUrl,
-						provider,
-						baseUrl,
-						0, // Depth 0 for now (can be enhanced for recursive discovery)
-						confidence);
-
-					// Avoid duplicates
-					if (!discoveredUrls.Any(u => u.Url == absoluteUrl))
-					{
-						discoveredUrls.Add(discoveredUrl);
-						_logger.LogDebug(
-							"Discovered recipe URL: {Url} (confidence: {Confidence:P0})",
-							absoluteUrl, confidence);
-					}
-				}
-			}
+			// Recursively discover URLs starting from base URL
+			await DiscoverRecursiveAsync(
+				context,
+				baseUrl,
+				provider,
+				0,
+				maxDepth,
+				maxUrls,
+				discoveredUrls,
+				visitedUrls,
+				cancellationToken);
 
 			await context.CloseAsync();
 
@@ -148,6 +101,139 @@ public class DynamicCrawlDiscoveryService : IDiscoveryService
 		finally
 		{
 			if (browser != null) await browser.CloseAsync();
+		}
+	}
+
+	/// <summary>
+	///     Recursive discovery of recipe URLs from JavaScript-rendered pages
+	/// </summary>
+	private async Task DiscoverRecursiveAsync(
+		IBrowserContext context,
+		string currentUrl,
+		string provider,
+		int currentDepth,
+		int maxDepth,
+		int maxUrls,
+		List<DiscoveredUrl> discoveredUrls,
+		HashSet<string> visitedUrls,
+		CancellationToken cancellationToken)
+	{
+		// Check limits
+		if (currentDepth > maxDepth || discoveredUrls.Count >= maxUrls) return;
+
+		// Avoid revisiting URLs
+		if (!visitedUrls.Add(currentUrl)) return;
+
+		IPage? page = null;
+		try
+		{
+			page = await context.NewPageAsync();
+
+			// Navigate to URL
+			await page.GotoAsync(currentUrl, new PageGotoOptions
+			{
+				WaitUntil = WaitUntilState.NetworkIdle,
+				Timeout = 30000
+			});
+
+			// Wait for content to render
+			try
+			{
+				await page.WaitForSelectorAsync("a[href]", new PageWaitForSelectorOptions
+				{
+					Timeout = 5000
+				});
+			}
+			catch (TimeoutException)
+			{
+				_logger.LogDebug("No links found on page {Url} after 5 seconds", currentUrl);
+				return;
+			}
+
+			// Extract all links
+			IReadOnlyList<IElementHandle> linkElements = await page.Locator("a[href]").ElementHandlesAsync();
+
+			// Track category pages to crawl recursively
+			var categoryUrlsToCrawl = new List<string>();
+
+			foreach (IElementHandle linkElement in linkElements)
+			{
+				if (discoveredUrls.Count >= maxUrls) break;
+
+				string? href = await linkElement.GetAttributeAsync("href");
+				if (string.IsNullOrWhiteSpace(href)) continue;
+
+				// Convert relative URLs to absolute
+				if (!Uri.TryCreate(new Uri(currentUrl), href, out Uri? absoluteUri)) continue;
+
+				var absoluteUrl = absoluteUri.ToString();
+
+				// Check if this is a recipe URL
+				if (IsRecipeUrl(absoluteUrl, provider))
+				{
+					decimal confidence = CalculateConfidence(absoluteUrl);
+
+					var discoveredUrl = DiscoveredUrl.CreateDiscovered(
+						absoluteUrl,
+						provider,
+						currentUrl,
+						currentDepth,
+						confidence);
+
+					// Avoid duplicates
+					if (!discoveredUrls.Any(u => u.Url == absoluteUrl))
+					{
+						discoveredUrls.Add(discoveredUrl);
+						_logger.LogDebug(
+							"Discovered recipe URL: {Url} (depth: {Depth}, confidence: {Confidence:P0})",
+							absoluteUrl, currentDepth, confidence);
+					}
+				}
+				// Check if this is a category/listing page we should crawl
+				else if (IsCategoryUrl(absoluteUrl) && currentDepth < maxDepth)
+				{
+					categoryUrlsToCrawl.Add(absoluteUrl);
+				}
+			}
+
+			// Recursively crawl category pages to find more recipes
+			foreach (string categoryUrl in categoryUrlsToCrawl)
+			{
+				if (discoveredUrls.Count >= maxUrls) break;
+
+				await DiscoverRecursiveAsync(
+					context,
+					categoryUrl,
+					provider,
+					currentDepth + 1,
+					maxDepth,
+					maxUrls,
+					discoveredUrls,
+					visitedUrls,
+					cancellationToken);
+			}
+		}
+		catch (PlaywrightException ex)
+		{
+			_logger.LogWarning(ex,
+				"Playwright error fetching URL {Url} at depth {Depth}",
+				currentUrl, currentDepth);
+
+			// Re-throw for the base URL (depth 0) to fail fast
+			if (currentDepth == 0) throw;
+		}
+		catch (TimeoutException ex)
+		{
+			_logger.LogWarning(ex,
+				"Timeout fetching URL {Url} at depth {Depth}",
+				currentUrl, currentDepth);
+
+			// Re-throw for the base URL (depth 0) to fail fast
+			if (currentDepth == 0) throw;
+		}
+		finally
+		{
+			if (page != null) await page.CloseAsync();
 		}
 	}
 
@@ -202,7 +288,7 @@ public class DynamicCrawlDiscoveryService : IDiscoveryService
 			"/dish/"
 		};
 
-		// Exclude common non-recipe patterns
+		// Exclude common non-recipe patterns (pages we don't want as results)
 		var excludePatterns = new[]
 		{
 			"/about",
@@ -214,10 +300,7 @@ public class DynamicCrawlDiscoveryService : IDiscoveryService
 			"/cart",
 			"/checkout",
 			"/account",
-			"/search",
-			"/category",
-			"/tag",
-			"/author"
+			"/search"
 		};
 
 		string lowerUrl = url.ToLowerInvariant();
@@ -227,6 +310,50 @@ public class DynamicCrawlDiscoveryService : IDiscoveryService
 
 		// Check if URL matches recipe patterns
 		return recipePatterns.Any(pattern => lowerUrl.Contains(pattern));
+	}
+
+	/// <summary>
+	///     Checks if a URL is a category/listing page that should be crawled for recipes
+	/// </summary>
+	private bool IsCategoryUrl(string url)
+	{
+		if (string.IsNullOrWhiteSpace(url)) return false;
+
+		// Category/listing page patterns (pages we should crawl but not return as recipes)
+		var categoryPatterns = new[]
+		{
+			"/category",
+			"/categories",
+			"/tag",
+			"/tags",
+			"/collection",
+			"/cuisine",
+			"/meal-type",
+			"/recipes" // Main listings page
+		};
+
+		// Exclude patterns that shouldn't be crawled
+		var excludePatterns = new[]
+		{
+			"/about",
+			"/contact",
+			"/privacy",
+			"/terms",
+			"/login",
+			"/signup",
+			"/cart",
+			"/checkout",
+			"/account",
+			"/search"
+		};
+
+		string lowerUrl = url.ToLowerInvariant();
+
+		// Don't crawl excluded pages
+		if (excludePatterns.Any(pattern => lowerUrl.Contains(pattern))) return false;
+
+		// Check if URL matches category patterns
+		return categoryPatterns.Any(pattern => lowerUrl.Contains(pattern));
 	}
 
 	/// <summary>
