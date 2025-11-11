@@ -5,11 +5,64 @@ namespace EasyMeals.RecipeEngine.Tests.Unit.Configuration;
 
 public class ProviderConfigurationValidationTests
 {
+	private static ProviderConfiguration CreateValidConfiguration() =>
+		new(
+			"provider_001",
+			true,
+			DiscoveryStrategy.Dynamic,
+			"https://example.com/recipes",
+			10,
+			10,
+			2.0,
+			10,
+			3,
+			30);
+
+	[Fact]
+	public void Constructor_AllowsZeroMinDelay()
+	{
+		// Arrange & Act
+		var config = new ProviderConfiguration(
+			"provider_001",
+			true,
+			DiscoveryStrategy.Dynamic,
+			"https://example.com/recipes",
+			10,
+			10,
+			0.0, // Zero is allowed
+			10,
+			3,
+			30);
+
+		// Assert
+		config.MinDelay.Should().Be(TimeSpan.Zero);
+	}
+
+	[Fact]
+	public void Constructor_AllowsZeroRetryCount()
+	{
+		// Arrange & Act
+		var config = new ProviderConfiguration(
+			"provider_001",
+			true,
+			DiscoveryStrategy.Dynamic,
+			"https://example.com/recipes",
+			10,
+			10,
+			2.0,
+			10,
+			0, // Zero retries is allowed
+			30);
+
+		// Assert
+		config.RetryCount.Should().Be(0);
+	}
+
 	[Fact]
 	public void Constructor_CreatesValidConfiguration_WithValidInputs()
 	{
 		// Arrange & Act
-		var config = CreateValidConfiguration();
+		ProviderConfiguration config = CreateValidConfiguration();
 
 		// Assert
 		config.Should().NotBeNull();
@@ -18,6 +71,74 @@ public class ProviderConfigurationValidationTests
 		config.RecipeRootUrl.Should().Be("https://example.com/recipes");
 		config.BatchSize.Should().Be(10);
 		config.TimeWindow.Should().Be(TimeSpan.FromMinutes(10));
+	}
+
+	[Theory]
+	[InlineData(0)]
+	[InlineData(-1)]
+	[InlineData(-100)]
+	public void Constructor_ThrowsException_WhenBatchSizeIsNotPositive(int invalidBatchSize)
+	{
+		// Act & Assert
+		Action act = () => new ProviderConfiguration(
+			"provider_001",
+			true,
+			DiscoveryStrategy.Dynamic,
+			"https://example.com/recipes",
+			invalidBatchSize,
+			10,
+			2.0,
+			10,
+			3,
+			30);
+
+		act.Should().Throw<ArgumentException>()
+			.WithMessage("*BatchSize must be positive*");
+	}
+
+	[Theory]
+	[InlineData(0)]
+	[InlineData(-1)]
+	[InlineData(-100)]
+	public void Constructor_ThrowsException_WhenMaxRequestsPerMinuteIsNotPositive(int invalidMaxRequests)
+	{
+		// Act & Assert
+		Action act = () => new ProviderConfiguration(
+			"provider_001",
+			true,
+			DiscoveryStrategy.Dynamic,
+			"https://example.com/recipes",
+			10,
+			10,
+			2.0,
+			invalidMaxRequests,
+			3,
+			30);
+
+		act.Should().Throw<ArgumentException>()
+			.WithMessage("*MaxRequestsPerMinute must be positive*");
+	}
+
+	[Theory]
+	[InlineData(-1)]
+	[InlineData(-100)]
+	public void Constructor_ThrowsException_WhenMinDelayIsNegative(double invalidMinDelay)
+	{
+		// Act & Assert
+		Action act = () => new ProviderConfiguration(
+			"provider_001",
+			true,
+			DiscoveryStrategy.Dynamic,
+			"https://example.com/recipes",
+			10,
+			10,
+			invalidMinDelay,
+			10,
+			3,
+			30);
+
+		act.Should().Throw<ArgumentException>()
+			.WithMessage("*MinDelay cannot be negative*");
 	}
 
 	[Theory]
@@ -67,29 +188,6 @@ public class ProviderConfigurationValidationTests
 	}
 
 	[Theory]
-	[InlineData("not-a-url")]
-	[InlineData("example.com")]
-	[InlineData("relative/path")]
-	public void Constructor_ThrowsException_WhenRecipeRootUrlIsNotValidAbsoluteUrl(string invalidUrl)
-	{
-		// Act & Assert
-		Action act = () => new ProviderConfiguration(
-			"provider_001",
-			true,
-			DiscoveryStrategy.Dynamic,
-			invalidUrl,
-			10,
-			10,
-			2.0,
-			10,
-			3,
-			30);
-
-		act.Should().Throw<ArgumentException>()
-			.WithMessage("*RecipeRootUrl must be a valid absolute URL*");
-	}
-
-	[Theory]
 	[InlineData("http://example.com/recipes")]
 	[InlineData("ftp://example.com/recipes")]
 	public void Constructor_ThrowsException_WhenRecipeRootUrlIsNotHttps(string nonHttpsUrl)
@@ -112,18 +210,18 @@ public class ProviderConfigurationValidationTests
 	}
 
 	[Theory]
-	[InlineData(0)]
-	[InlineData(-1)]
-	[InlineData(-100)]
-	public void Constructor_ThrowsException_WhenBatchSizeIsNotPositive(int invalidBatchSize)
+	[InlineData("not-a-url")]
+	[InlineData("example.com")]
+	[InlineData("relative/path")]
+	public void Constructor_ThrowsException_WhenRecipeRootUrlIsNotValidAbsoluteUrl(string invalidUrl)
 	{
 		// Act & Assert
 		Action act = () => new ProviderConfiguration(
 			"provider_001",
 			true,
 			DiscoveryStrategy.Dynamic,
-			"https://example.com/recipes",
-			invalidBatchSize,
+			invalidUrl,
+			10,
 			10,
 			2.0,
 			10,
@@ -131,137 +229,7 @@ public class ProviderConfigurationValidationTests
 			30);
 
 		act.Should().Throw<ArgumentException>()
-			.WithMessage("*BatchSize must be positive*");
-	}
-
-	[Theory]
-	[InlineData(0)]
-	[InlineData(-1)]
-	[InlineData(-100)]
-	public void Constructor_ThrowsException_WhenTimeWindowIsNotPositive(int invalidTimeWindow)
-	{
-		// Act & Assert
-		Action act = () => new ProviderConfiguration(
-			"provider_001",
-			true,
-			DiscoveryStrategy.Dynamic,
-			"https://example.com/recipes",
-			10,
-			invalidTimeWindow,
-			2.0,
-			10,
-			3,
-			30);
-
-		act.Should().Throw<ArgumentException>()
-			.WithMessage("*TimeWindow must be positive*");
-	}
-
-	[Theory]
-	[InlineData(-1)]
-	[InlineData(-100)]
-	public void Constructor_ThrowsException_WhenMinDelayIsNegative(double invalidMinDelay)
-	{
-		// Act & Assert
-		Action act = () => new ProviderConfiguration(
-			"provider_001",
-			true,
-			DiscoveryStrategy.Dynamic,
-			"https://example.com/recipes",
-			10,
-			10,
-			invalidMinDelay,
-			10,
-			3,
-			30);
-
-		act.Should().Throw<ArgumentException>()
-			.WithMessage("*MinDelay cannot be negative*");
-	}
-
-	[Fact]
-	public void Constructor_AllowsZeroMinDelay()
-	{
-		// Arrange & Act
-		var config = new ProviderConfiguration(
-			"provider_001",
-			true,
-			DiscoveryStrategy.Dynamic,
-			"https://example.com/recipes",
-			10,
-			10,
-			0.0,  // Zero is allowed
-			10,
-			3,
-			30);
-
-		// Assert
-		config.MinDelay.Should().Be(TimeSpan.Zero);
-	}
-
-	[Theory]
-	[InlineData(0)]
-	[InlineData(-1)]
-	[InlineData(-100)]
-	public void Constructor_ThrowsException_WhenMaxRequestsPerMinuteIsNotPositive(int invalidMaxRequests)
-	{
-		// Act & Assert
-		Action act = () => new ProviderConfiguration(
-			"provider_001",
-			true,
-			DiscoveryStrategy.Dynamic,
-			"https://example.com/recipes",
-			10,
-			10,
-			2.0,
-			invalidMaxRequests,
-			3,
-			30);
-
-		act.Should().Throw<ArgumentException>()
-			.WithMessage("*MaxRequestsPerMinute must be positive*");
-	}
-
-	[Theory]
-	[InlineData(-1)]
-	[InlineData(-100)]
-	public void Constructor_ThrowsException_WhenRetryCountIsNegative(int invalidRetryCount)
-	{
-		// Act & Assert
-		Action act = () => new ProviderConfiguration(
-			"provider_001",
-			true,
-			DiscoveryStrategy.Dynamic,
-			"https://example.com/recipes",
-			10,
-			10,
-			2.0,
-			10,
-			invalidRetryCount,
-			30);
-
-		act.Should().Throw<ArgumentException>()
-			.WithMessage("*RetryCount cannot be negative*");
-	}
-
-	[Fact]
-	public void Constructor_AllowsZeroRetryCount()
-	{
-		// Arrange & Act
-		var config = new ProviderConfiguration(
-			"provider_001",
-			true,
-			DiscoveryStrategy.Dynamic,
-			"https://example.com/recipes",
-			10,
-			10,
-			2.0,
-			10,
-			0,  // Zero retries is allowed
-			30);
-
-		// Assert
-		config.RetryCount.Should().Be(0);
+			.WithMessage("*RecipeRootUrl must be a valid absolute URL*");
 	}
 
 	[Theory]
@@ -287,25 +255,58 @@ public class ProviderConfigurationValidationTests
 			.WithMessage("*RequestTimeout must be positive*");
 	}
 
-	[Fact]
-	public void Equals_ReturnTrue_WhenProviderIdsMatch()
+	[Theory]
+	[InlineData(-1)]
+	[InlineData(-100)]
+	public void Constructor_ThrowsException_WhenRetryCountIsNegative(int invalidRetryCount)
 	{
-		// Arrange
-		var config1 = CreateValidConfiguration();
-		var config2 = CreateValidConfiguration();
-
 		// Act & Assert
-		config1.Equals(config2).Should().BeTrue();
-		config1.GetHashCode().Should().Be(config2.GetHashCode());
+		Action act = () => new ProviderConfiguration(
+			"provider_001",
+			true,
+			DiscoveryStrategy.Dynamic,
+			"https://example.com/recipes",
+			10,
+			10,
+			2.0,
+			10,
+			invalidRetryCount,
+			30);
+
+		act.Should().Throw<ArgumentException>()
+			.WithMessage("*RetryCount cannot be negative*");
+	}
+
+	[Theory]
+	[InlineData(0)]
+	[InlineData(-1)]
+	[InlineData(-100)]
+	public void Constructor_ThrowsException_WhenTimeWindowIsNotPositive(int invalidTimeWindow)
+	{
+		// Act & Assert
+		Action act = () => new ProviderConfiguration(
+			"provider_001",
+			true,
+			DiscoveryStrategy.Dynamic,
+			"https://example.com/recipes",
+			10,
+			invalidTimeWindow,
+			2.0,
+			10,
+			3,
+			30);
+
+		act.Should().Throw<ArgumentException>()
+			.WithMessage("*TimeWindow must be positive*");
 	}
 
 	[Fact]
 	public void Equals_ReturnFalse_WhenProviderIdsDiffer()
 	{
 		// Arrange
-		var config1 = CreateValidConfiguration();
+		ProviderConfiguration config1 = CreateValidConfiguration();
 		var config2 = new ProviderConfiguration(
-			"provider_002",  // Different provider ID
+			"provider_002", // Different provider ID
 			true,
 			DiscoveryStrategy.Dynamic,
 			"https://example.com/recipes",
@@ -321,18 +322,15 @@ public class ProviderConfigurationValidationTests
 		config1.GetHashCode().Should().NotBe(config2.GetHashCode());
 	}
 
-	private static ProviderConfiguration CreateValidConfiguration()
+	[Fact]
+	public void Equals_ReturnTrue_WhenProviderIdsMatch()
 	{
-		return new ProviderConfiguration(
-			"provider_001",
-			true,
-			DiscoveryStrategy.Dynamic,
-			"https://example.com/recipes",
-			10,
-			10,
-			2.0,
-			10,
-			3,
-			30);
+		// Arrange
+		ProviderConfiguration config1 = CreateValidConfiguration();
+		ProviderConfiguration config2 = CreateValidConfiguration();
+
+		// Act & Assert
+		config1.Equals(config2).Should().BeTrue();
+		config1.GetHashCode().Should().Be(config2.GetHashCode());
 	}
 }

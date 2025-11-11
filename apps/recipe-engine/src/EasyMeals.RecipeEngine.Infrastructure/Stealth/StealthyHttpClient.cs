@@ -1,12 +1,13 @@
 using EasyMeals.RecipeEngine.Application.Interfaces;
 using EasyMeals.RecipeEngine.Domain.Interfaces;
+using EasyMeals.RecipeEngine.Domain.ValueObjects;
 using Microsoft.Extensions.Logging;
 
 namespace EasyMeals.RecipeEngine.Infrastructure.Stealth;
 
 /// <summary>
-/// T103, T104: HTTP client implementation with stealth measures for IP ban avoidance.
-/// Implements rotating user agents, randomized delays, and respectful headers.
+///     T103, T104: HTTP client implementation with stealth measures for IP ban avoidance.
+///     Implements rotating user agents, randomized delays, and respectful headers.
 /// </summary>
 public class StealthyHttpClient : IStealthyHttpClient
 {
@@ -34,24 +35,21 @@ public class StealthyHttpClient : IStealthyHttpClient
 	}
 
 	/// <summary>
-	/// T103: Sends a GET request with stealth measures applied.
+	///     T103: Sends a GET request with stealth measures applied.
 	/// </summary>
 	public async Task<HttpResponseMessage> GetAsync(string url, string providerId, CancellationToken cancellationToken = default)
 	{
 		// Load provider configuration for rate limiting settings
-		var config = await _configLoader.GetByProviderIdAsync(providerId, cancellationToken);
-		if (config == null)
-		{
-			throw new InvalidOperationException($"Provider configuration not found for {providerId}");
-		}
+		ProviderConfiguration? config = await _configLoader.GetByProviderIdAsync(providerId, cancellationToken);
+		if (config == null) throw new InvalidOperationException($"Provider configuration not found for {providerId}");
 
 		// T100: Calculate randomized delay before request
-		var randomizedDelay = _delayService.CalculateDelay(config.MinDelay);
+		TimeSpan randomizedDelay = _delayService.CalculateDelay(config.MinDelay);
 
 		// T104: Log delay variance for monitoring (debug level only)
 		if (_logger.IsEnabled(LogLevel.Debug))
 		{
-			var variance = (randomizedDelay.TotalSeconds / config.MinDelay.TotalSeconds - 1.0) * 100;
+			double variance = (randomizedDelay.TotalSeconds / config.MinDelay.TotalSeconds - 1.0) * 100;
 			_logger.LogDebug(
 				"Applying randomized delay: {Delay:F2}s (base: {MinDelay:F2}s, variance: {Variance:+0.0;-0.0}%)",
 				randomizedDelay.TotalSeconds,
@@ -63,24 +61,21 @@ public class StealthyHttpClient : IStealthyHttpClient
 		await Task.Delay(randomizedDelay, cancellationToken);
 
 		// Wait for rate limit token
-		var acquired = await _rateLimiter.TryAcquireAsync(providerId, cancellationToken);
+		bool acquired = await _rateLimiter.TryAcquireAsync(providerId, cancellationToken);
 		if (!acquired)
 		{
 			_logger.LogWarning("Rate limit reached for provider {ProviderId}, waiting before retry", providerId);
 			await Task.Delay(TimeSpan.FromSeconds(1), cancellationToken);
 			acquired = await _rateLimiter.TryAcquireAsync(providerId, cancellationToken);
-			
-			if (!acquired)
-			{
-				throw new InvalidOperationException($"Rate limit exceeded for provider {providerId}");
-			}
+
+			if (!acquired) throw new InvalidOperationException($"Rate limit exceeded for provider {providerId}");
 		}
 
 		// Create HTTP client with configured policies
-		var client = _httpClientFactory.CreateClient("RecipeEngineHttpClient");
+		HttpClient client = _httpClientFactory.CreateClient("RecipeEngineHttpClient");
 
 		// T103: Get rotating user agent
-		var userAgent = _userAgentService.GetNextUserAgent();
+		string userAgent = _userAgentService.GetNextUserAgent();
 
 		// T104: Log user agent used (debug level only)
 		_logger.LogDebug("Using user agent: {UserAgent}", userAgent);
@@ -94,19 +89,19 @@ public class StealthyHttpClient : IStealthyHttpClient
 		// Accept-Encoding: gzip, deflate, br
 
 		// Send request
-		var startTime = DateTime.UtcNow;
-		var response = await client.SendAsync(request, cancellationToken);
-		var duration = DateTime.UtcNow - startTime;
+		DateTime startTime = DateTime.UtcNow;
+		HttpResponseMessage response = await client.SendAsync(request, cancellationToken);
+		TimeSpan duration = DateTime.UtcNow - startTime;
 
 		// T104: Log request details for monitoring
 		using (_logger.BeginScope(new Dictionary<string, object>
-		{
-			["Url"] = url,
-			["ProviderId"] = providerId,
-			["StatusCode"] = (int)response.StatusCode,
-			["Duration"] = duration.TotalMilliseconds,
-			["DelayApplied"] = randomizedDelay.TotalMilliseconds
-		}))
+		       {
+			       ["Url"] = url,
+			       ["ProviderId"] = providerId,
+			       ["StatusCode"] = (int)response.StatusCode,
+			       ["Duration"] = duration.TotalMilliseconds,
+			       ["DelayApplied"] = randomizedDelay.TotalMilliseconds
+		       }))
 		{
 			_logger.LogInformation(
 				"HTTP GET {Url} completed with {StatusCode} in {Duration:F2}ms (delay: {Delay:F2}s)",
@@ -120,11 +115,11 @@ public class StealthyHttpClient : IStealthyHttpClient
 	}
 
 	/// <summary>
-	/// Sends a GET request and returns the response as a string.
+	///     Sends a GET request and returns the response as a string.
 	/// </summary>
 	public async Task<string> GetStringAsync(string url, string providerId, CancellationToken cancellationToken = default)
 	{
-		using var response = await GetAsync(url, providerId, cancellationToken);
+		using HttpResponseMessage response = await GetAsync(url, providerId, cancellationToken);
 		response.EnsureSuccessStatusCode();
 		return await response.Content.ReadAsStringAsync(cancellationToken);
 	}

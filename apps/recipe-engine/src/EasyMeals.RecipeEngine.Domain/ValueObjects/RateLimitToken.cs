@@ -25,11 +25,11 @@ public class RateLimitToken
 		LastRefillAt = DateTime.UtcNow;
 	}
 
-    /// <summary>
-    ///     Consume one token from the bucket.
-    /// </summary>
-    /// <exception cref="InvalidOperationException">Thrown when no tokens are available.</exception>
-    public void ConsumeToken()
+	/// <summary>
+	///     Consume one token from the bucket.
+	/// </summary>
+	/// <exception cref="InvalidOperationException">Thrown when no tokens are available.</exception>
+	public void ConsumeToken()
 	{
 		if (AvailableTokens <= 0)
 			throw new InvalidOperationException("No tokens available. Rate limit exceeded.");
@@ -37,10 +37,10 @@ public class RateLimitToken
 		AvailableTokens--;
 	}
 
-    /// <summary>
-    ///     Refill tokens based on elapsed time since last refill.
-    /// </summary>
-    public void RefillTokens()
+	/// <summary>
+	///     Refill tokens based on elapsed time since last refill.
+	/// </summary>
+	public void RefillTokens()
 	{
 		DateTime now = DateTime.UtcNow;
 		TimeSpan elapsed = now - LastRefillAt;
@@ -53,10 +53,10 @@ public class RateLimitToken
 		}
 	}
 
-    /// <summary>
-    ///     Check if at least one token is available without consuming it.
-    /// </summary>
-    public bool HasAvailableToken()
+	/// <summary>
+	///     Check if at least one token is available without consuming it.
+	/// </summary>
+	public bool HasAvailableToken()
 	{
 		RefillTokens();
 		return AvailableTokens > 0;

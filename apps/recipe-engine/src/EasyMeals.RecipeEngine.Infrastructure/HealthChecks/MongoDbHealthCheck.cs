@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using MongoDB.Bson;
 using MongoDB.Driver;
 
 namespace EasyMeals.RecipeEngine.Infrastructure.HealthChecks;
@@ -7,10 +8,7 @@ public class MongoDbHealthCheck : IHealthCheck
 {
 	private readonly IMongoDatabase _database;
 
-	public MongoDbHealthCheck(IMongoDatabase database)
-	{
-		_database = database ?? throw new ArgumentNullException(nameof(database));
-	}
+	public MongoDbHealthCheck(IMongoDatabase database) => _database = database ?? throw new ArgumentNullException(nameof(database));
 
 	public async Task<HealthCheckResult> CheckHealthAsync(
 		HealthCheckContext context,
@@ -20,7 +18,7 @@ public class MongoDbHealthCheck : IHealthCheck
 		{
 			// Ping the database to verify connectivity
 			await _database.RunCommandAsync(
-				(Command<MongoDB.Bson.BsonDocument>)"{ping:1}",
+				(Command<BsonDocument>)"{ping:1}",
 				cancellationToken: cancellationToken);
 
 			return HealthCheckResult.Healthy("MongoDB is responsive");
@@ -29,7 +27,7 @@ public class MongoDbHealthCheck : IHealthCheck
 		{
 			return HealthCheckResult.Unhealthy(
 				"MongoDB is not responsive",
-				exception: ex);
+				ex);
 		}
 	}
 }

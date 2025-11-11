@@ -20,40 +20,40 @@ public sealed record TimeRange
 	/// <summary>End of the time range</summary>
 	public DateTime EndTime { get; init; }
 
-    /// <summary>
-    ///     Duration of the time range
-    /// </summary>
-    public TimeSpan Duration => EndTime - StartTime;
+	/// <summary>
+	///     Duration of the time range
+	/// </summary>
+	public TimeSpan Duration => EndTime - StartTime;
 
-    /// <summary>
-    ///     Creates a time range for the last N hours
-    /// </summary>
-    public static TimeRange LastHours(int hours)
+	/// <summary>
+	///     Creates a time range for the last N hours
+	/// </summary>
+	public static TimeRange LastHours(int hours)
 	{
 		DateTime end = DateTime.UtcNow;
 		DateTime start = end.AddHours(-hours);
 		return new TimeRange(start, end);
 	}
 
-    /// <summary>
-    ///     Creates a time range for the last N days
-    /// </summary>
-    public static TimeRange LastDays(int days)
+	/// <summary>
+	///     Creates a time range for the last N days
+	/// </summary>
+	public static TimeRange LastDays(int days)
 	{
 		DateTime end = DateTime.UtcNow;
 		DateTime start = end.AddDays(-days);
 		return new TimeRange(start, end);
 	}
 
-    /// <summary>
-    ///     Creates a time range for today
-    /// </summary>
-    public static TimeRange Today => new(DateTime.Today, DateTime.Today.AddDays(1));
+	/// <summary>
+	///     Creates a time range for today
+	/// </summary>
+	public static TimeRange Today => new(DateTime.Today, DateTime.Today.AddDays(1));
 
-    /// <summary>
-    ///     Creates a time range for this week
-    /// </summary>
-    public static TimeRange ThisWeek
+	/// <summary>
+	///     Creates a time range for this week
+	/// </summary>
+	public static TimeRange ThisWeek
 	{
 		get
 		{

@@ -6,8 +6,8 @@ using Microsoft.Playwright;
 namespace EasyMeals.RecipeEngine.Infrastructure.Discovery;
 
 /// <summary>
-/// T110: Dynamic crawl discovery service using Playwright for JavaScript-rendered pages
-/// Implements discovery strategy for sites that require browser rendering
+///     T110: Dynamic crawl discovery service using Playwright for JavaScript-rendered pages
+///     Implements discovery strategy for sites that require browser rendering
 /// </summary>
 public class DynamicCrawlDiscoveryService : IDiscoveryService
 {
@@ -23,7 +23,7 @@ public class DynamicCrawlDiscoveryService : IDiscoveryService
 	}
 
 	/// <summary>
-	/// Discovers recipe URLs from a provider's base URL using dynamic rendering
+	///     Discovers recipe URLs from a provider's base URL using dynamic rendering
 	/// </summary>
 	public async Task<IEnumerable<DiscoveredUrl>> DiscoverRecipeUrlsAsync(
 		string baseUrl,
@@ -49,13 +49,13 @@ public class DynamicCrawlDiscoveryService : IDiscoveryService
 				Timeout = 30000 // 30 seconds timeout
 			});
 
-			var context = await browser.NewContextAsync(new BrowserNewContextOptions
+			IBrowserContext context = await browser.NewContextAsync(new BrowserNewContextOptions
 			{
 				UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
 				ViewportSize = new ViewportSize { Width = 1920, Height = 1080 }
 			});
 
-			var page = await context.NewPageAsync();
+			IPage page = await context.NewPageAsync();
 
 			// Navigate to base URL
 			await page.GotoAsync(baseUrl, new PageGotoOptions
@@ -78,33 +78,24 @@ public class DynamicCrawlDiscoveryService : IDiscoveryService
 			}
 
 			// Extract recipe URLs
-			var linkElements = await page.Locator("a[href]").ElementHandlesAsync();
+			IReadOnlyList<IElementHandle> linkElements = await page.Locator("a[href]").ElementHandlesAsync();
 
-			foreach (var linkElement in linkElements)
+			foreach (IElementHandle linkElement in linkElements)
 			{
-				if (discoveredUrls.Count >= maxUrls)
-				{
-					break;
-				}
+				if (discoveredUrls.Count >= maxUrls) break;
 
-				var href = await linkElement.GetAttributeAsync("href");
-				if (string.IsNullOrWhiteSpace(href))
-				{
-					continue;
-				}
+				string? href = await linkElement.GetAttributeAsync("href");
+				if (string.IsNullOrWhiteSpace(href)) continue;
 
 				// Convert relative URLs to absolute
-				if (!Uri.TryCreate(new Uri(baseUrl), href, out var absoluteUri))
-				{
-					continue;
-				}
+				if (!Uri.TryCreate(new Uri(baseUrl), href, out Uri? absoluteUri)) continue;
 
 				var absoluteUrl = absoluteUri.ToString();
 
 				// Check if this is a recipe URL
 				if (IsRecipeUrl(absoluteUrl, provider))
 				{
-					var confidence = CalculateConfidence(absoluteUrl);
+					decimal confidence = CalculateConfidence(absoluteUrl);
 
 					var discoveredUrl = DiscoveredUrl.CreateDiscovered(
 						absoluteUrl,
@@ -156,15 +147,12 @@ public class DynamicCrawlDiscoveryService : IDiscoveryService
 		}
 		finally
 		{
-			if (browser != null)
-			{
-				await browser.CloseAsync();
-			}
+			if (browser != null) await browser.CloseAsync();
 		}
 	}
 
 	/// <summary>
-	/// Discovers recipe URLs from multiple seed URLs
+	///     Discovers recipe URLs from multiple seed URLs
 	/// </summary>
 	public async Task<IEnumerable<DiscoveredUrl>> DiscoverFromSeedUrlsAsync(
 		IEnumerable<string> seedUrls,
@@ -174,14 +162,11 @@ public class DynamicCrawlDiscoveryService : IDiscoveryService
 	{
 		var allDiscoveredUrls = new List<DiscoveredUrl>();
 
-		foreach (var seedUrl in seedUrls)
+		foreach (string seedUrl in seedUrls)
 		{
-			if (cancellationToken.IsCancellationRequested)
-			{
-				break;
-			}
+			if (cancellationToken.IsCancellationRequested) break;
 
-			var urls = await DiscoverRecipeUrlsAsync(
+			IEnumerable<DiscoveredUrl> urls = await DiscoverRecipeUrlsAsync(
 				seedUrl,
 				provider,
 				discoveryOptions.MaxDepth,
@@ -190,30 +175,21 @@ public class DynamicCrawlDiscoveryService : IDiscoveryService
 
 			allDiscoveredUrls.AddRange(urls);
 
-			if (allDiscoveredUrls.Count >= discoveryOptions.MaxUrls)
-			{
-				break;
-			}
+			if (allDiscoveredUrls.Count >= discoveryOptions.MaxUrls) break;
 
 			// Add delay between requests to be respectful
-			if (discoveryOptions.DelayBetweenRequests > TimeSpan.Zero)
-			{
-				await Task.Delay(discoveryOptions.DelayBetweenRequests, cancellationToken);
-			}
+			if (discoveryOptions.DelayBetweenRequests > TimeSpan.Zero) await Task.Delay(discoveryOptions.DelayBetweenRequests, cancellationToken);
 		}
 
 		return allDiscoveredUrls;
 	}
 
 	/// <summary>
-	/// Checks if a URL is likely to be a recipe page based on provider patterns
+	///     Checks if a URL is likely to be a recipe page based on provider patterns
 	/// </summary>
 	public bool IsRecipeUrl(string url, string provider)
 	{
-		if (string.IsNullOrWhiteSpace(url))
-		{
-			return false;
-		}
+		if (string.IsNullOrWhiteSpace(url)) return false;
 
 		// Common recipe URL patterns
 		var recipePatterns = new[]
@@ -244,55 +220,44 @@ public class DynamicCrawlDiscoveryService : IDiscoveryService
 			"/author"
 		};
 
-		var lowerUrl = url.ToLowerInvariant();
+		string lowerUrl = url.ToLowerInvariant();
 
 		// Check if URL matches exclude patterns
-		if (excludePatterns.Any(pattern => lowerUrl.Contains(pattern)))
-		{
-			return false;
-		}
+		if (excludePatterns.Any(pattern => lowerUrl.Contains(pattern))) return false;
 
 		// Check if URL matches recipe patterns
 		return recipePatterns.Any(pattern => lowerUrl.Contains(pattern));
 	}
 
 	/// <summary>
-	/// Gets discovery statistics for monitoring and optimization
+	///     Gets discovery statistics for monitoring and optimization
 	/// </summary>
 	public Task<DiscoveryStatistics> GetDiscoveryStatisticsAsync(
 		string provider,
-		TimeRange timeRange)
-	{
+		TimeRange timeRange) =>
 		// For dynamic discovery, we don't track detailed statistics
 		// This would typically be implemented with a separate metrics service
-		return Task.FromResult(new DiscoveryStatistics(
-			TotalUrlsDiscovered: 0,
-			RecipeUrlsFound: 0,
-			FailedRequests: 0,
-			AverageConfidence: 0m,
-			AverageDiscoveryTime: TimeSpan.Zero,
-			UrlsByDepth: new Dictionary<int, int>(),
-			GeneratedAt: DateTime.UtcNow));
-	}
+		Task.FromResult(new DiscoveryStatistics(
+			0,
+			0,
+			0,
+			0m,
+			TimeSpan.Zero,
+			new Dictionary<int, int>(),
+			DateTime.UtcNow));
 
 	/// <summary>
-	/// Calculates confidence score based on URL patterns
+	///     Calculates confidence score based on URL patterns
 	/// </summary>
 	private decimal CalculateConfidence(string url)
 	{
-		var lowerUrl = url.ToLowerInvariant();
+		string lowerUrl = url.ToLowerInvariant();
 
 		// High confidence patterns (0.9)
-		if (lowerUrl.Contains("/recipe/") || lowerUrl.Contains("/recipes/"))
-		{
-			return 0.9m;
-		}
+		if (lowerUrl.Contains("/recipe/") || lowerUrl.Contains("/recipes/")) return 0.9m;
 
 		// Medium confidence patterns (0.7)
-		if (lowerUrl.Contains("/food/") || lowerUrl.Contains("/cooking/"))
-		{
-			return 0.7m;
-		}
+		if (lowerUrl.Contains("/food/") || lowerUrl.Contains("/cooking/")) return 0.7m;
 
 		// Low confidence patterns (0.5)
 		return 0.5m;

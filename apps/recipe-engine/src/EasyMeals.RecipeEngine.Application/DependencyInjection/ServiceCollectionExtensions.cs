@@ -15,10 +15,10 @@ public static class ServiceCollectionExtensions
 	{
 		// Register saga
 		services.AddScoped<IRecipeProcessingSaga, RecipeProcessingSaga>();
-		
+
 		// Register application services
 		services.AddScoped<RecipeProcessingApplicationService>();
-		
+
 		// Register event bus and handlers
 		services.AddEventBus();
 

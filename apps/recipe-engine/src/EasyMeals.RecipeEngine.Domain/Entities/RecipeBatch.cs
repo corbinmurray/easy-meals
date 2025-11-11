@@ -25,10 +25,10 @@ public class RecipeBatch
 
 	private RecipeBatch() => ProviderId = string.Empty;
 
-    /// <summary>
-    ///     Factory method to create a new batch.
-    /// </summary>
-    public static RecipeBatch CreateBatch(string providerId, int batchSize, TimeSpan timeWindow)
+	/// <summary>
+	///     Factory method to create a new batch.
+	/// </summary>
+	public static RecipeBatch CreateBatch(string providerId, int batchSize, TimeSpan timeWindow)
 	{
 		if (string.IsNullOrWhiteSpace(providerId))
 			throw new ArgumentException("ProviderId is required", nameof(providerId));
@@ -53,18 +53,16 @@ public class RecipeBatch
 		};
 	}
 
-    /// <summary>
-    ///     Factory method to create a new batch with time window in minutes.
-    /// </summary>
-    public static RecipeBatch CreateBatch(string providerId, int batchSize, int timeWindowMinutes)
-	{
-		return CreateBatch(providerId, batchSize, TimeSpan.FromMinutes(timeWindowMinutes));
-	}
+	/// <summary>
+	///     Factory method to create a new batch with time window in minutes.
+	/// </summary>
+	public static RecipeBatch CreateBatch(string providerId, int batchSize, int timeWindowMinutes) =>
+		CreateBatch(providerId, batchSize, TimeSpan.FromMinutes(timeWindowMinutes));
 
-    /// <summary>
-    ///     Reconstitute a batch from persisted data.
-    /// </summary>
-    public static RecipeBatch Reconstitute(
+	/// <summary>
+	///     Reconstitute a batch from persisted data.
+	/// </summary>
+	public static RecipeBatch Reconstitute(
 		Guid id,
 		string providerId,
 		int batchSize,
@@ -92,12 +90,12 @@ public class RecipeBatch
 			Status = Enum.Parse<BatchStatus>(status)
 		};
 
-		foreach (var url in processedUrls)
+		foreach (string url in processedUrls)
 		{
 			batch._processedUrls.Add(url);
 		}
 
-		foreach (var url in failedUrls)
+		foreach (string url in failedUrls)
 		{
 			batch._failedUrls.Add(url);
 		}
@@ -105,10 +103,10 @@ public class RecipeBatch
 		return batch;
 	}
 
-    /// <summary>
-    ///     Mark a recipe as successfully processed.
-    /// </summary>
-    public void MarkRecipeProcessed(string url)
+	/// <summary>
+	///     Mark a recipe as successfully processed.
+	/// </summary>
+	public void MarkRecipeProcessed(string url)
 	{
 		if (string.IsNullOrWhiteSpace(url))
 			throw new ArgumentException("URL is required", nameof(url));
@@ -120,10 +118,10 @@ public class RecipeBatch
 		ProcessedCount++;
 	}
 
-    /// <summary>
-    ///     Mark a recipe as skipped (duplicate or invalid).
-    /// </summary>
-    public void MarkRecipeSkipped(string url)
+	/// <summary>
+	///     Mark a recipe as skipped (duplicate or invalid).
+	/// </summary>
+	public void MarkRecipeSkipped(string url)
 	{
 		if (string.IsNullOrWhiteSpace(url))
 			throw new ArgumentException("URL is required", nameof(url));
@@ -134,10 +132,10 @@ public class RecipeBatch
 		SkippedCount++;
 	}
 
-    /// <summary>
-    ///     Mark a recipe as failed (permanent error).
-    /// </summary>
-    public void MarkRecipeFailed(string url)
+	/// <summary>
+	///     Mark a recipe as failed (permanent error).
+	/// </summary>
+	public void MarkRecipeFailed(string url)
 	{
 		if (string.IsNullOrWhiteSpace(url))
 			throw new ArgumentException("URL is required", nameof(url));
@@ -149,10 +147,10 @@ public class RecipeBatch
 		FailedCount++;
 	}
 
-    /// <summary>
-    ///     Complete the batch processing.
-    /// </summary>
-    public void CompleteBatch()
+	/// <summary>
+	///     Complete the batch processing.
+	/// </summary>
+	public void CompleteBatch()
 	{
 		if (Status != BatchStatus.InProgress)
 			throw new InvalidOperationException("Cannot complete batch that is not in progress");
@@ -161,10 +159,10 @@ public class RecipeBatch
 		CompletedAt = DateTime.UtcNow;
 	}
 
-    /// <summary>
-    ///     Determine if batch should stop processing based on size and time window.
-    /// </summary>
-    public bool ShouldStopProcessing(DateTime currentTime)
+	/// <summary>
+	///     Determine if batch should stop processing based on size and time window.
+	/// </summary>
+	public bool ShouldStopProcessing(DateTime currentTime)
 	{
 		if (ProcessedCount >= BatchSize)
 			return true;
@@ -176,19 +174,19 @@ public class RecipeBatch
 		return false;
 	}
 
-    /// <summary>
-    ///     Get the elapsed processing time.
-    /// </summary>
-    public TimeSpan GetElapsedTime()
+	/// <summary>
+	///     Get the elapsed processing time.
+	/// </summary>
+	public TimeSpan GetElapsedTime()
 	{
 		DateTime endTime = CompletedAt ?? DateTime.UtcNow;
 		return endTime - StartedAt;
 	}
 
-    /// <summary>
-    ///     Get the total number of recipes processed (including skipped and failed).
-    /// </summary>
-    public int GetTotalProcessed() => ProcessedCount + SkippedCount + FailedCount;
+	/// <summary>
+	///     Get the total number of recipes processed (including skipped and failed).
+	/// </summary>
+	public int GetTotalProcessed() => ProcessedCount + SkippedCount + FailedCount;
 }
 
 public enum BatchStatus

@@ -19,10 +19,10 @@ public class RecipeFingerprint
 		RecipeUrl = string.Empty;
 	}
 
-    /// <summary>
-    ///     Factory method to create a new recipe fingerprint.
-    /// </summary>
-    public static RecipeFingerprint Create(string fingerprintHash, string providerId, string recipeUrl, Guid recipeId)
+	/// <summary>
+	///     Factory method to create a new recipe fingerprint.
+	/// </summary>
+	public static RecipeFingerprint Create(string fingerprintHash, string providerId, string recipeUrl, Guid recipeId)
 	{
 		if (string.IsNullOrWhiteSpace(fingerprintHash))
 			throw new ArgumentException("FingerprintHash is required", nameof(fingerprintHash));

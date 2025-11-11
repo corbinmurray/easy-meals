@@ -6,215 +6,215 @@ using FluentAssertions;
 namespace EasyMeals.RecipeEngine.Tests.Unit.DomainServices;
 
 /// <summary>
-/// Unit tests for BatchCompletionPolicy domain service.
-/// Tests batch size reached, time window exceeded, and both conditions.
+///     Unit tests for BatchCompletionPolicy domain service.
+///     Tests batch size reached, time window exceeded, and both conditions.
 /// </summary>
 public class BatchCompletionPolicyTests
 {
-    [Fact(DisplayName = "Should complete when batch size reached")]
-    public void ShouldCompleteBatch_BatchSizeReached_ReturnsTrue()
-    {
-        // Arrange
-        var policy = new BatchCompletionPolicy();
-        var batch = RecipeBatch.CreateBatch(
-            providerId: "test-provider",
-            batchSize: 10,
-            timeWindowMinutes: 60
-        );
+	[Fact(DisplayName = "Completion reason should be descriptive")]
+	public void GetCompletionReason_WhenBatchComplete_ReturnsDescriptiveReason()
+	{
+		// Arrange
+		var policy = new BatchCompletionPolicy();
+		var batch = RecipeBatch.CreateBatch(
+			"test-provider",
+			5,
+			60
+		);
 
-        // Simulate processing 10 recipes (batch size reached)
-        for (int i = 0; i < 10; i++)
-        {
-            batch.MarkRecipeProcessed($"https://example.com/recipe-{i}");
-        }
+		// Mark batch size reached
+		for (var i = 0; i < 5; i++)
+		{
+			batch.MarkRecipeProcessed($"https://example.com/recipe-{i}");
+		}
 
-        // Act
-        var shouldComplete = policy.ShouldCompleteBatch(batch, DateTime.UtcNow);
-        var reason = policy.GetCompletionReason(batch, DateTime.UtcNow);
+		// Act
+		BatchCompletionReason reason = policy.GetCompletionReason(batch, DateTime.UtcNow);
 
-        // Assert
-        shouldComplete.Should().BeTrue();
-        reason.Should().Be(BatchCompletionReason.BatchSizeReached);
-    }
+		// Assert
+		reason.Should().Be(BatchCompletionReason.BatchSizeReached);
+	}
 
-    [Fact(DisplayName = "Should not complete when batch size not reached and time window not exceeded")]
-    public void ShouldCompleteBatch_BatchNotComplete_ReturnsFalse()
-    {
-        // Arrange
-        var policy = new BatchCompletionPolicy();
-        var batch = RecipeBatch.CreateBatch(
-            providerId: "test-provider",
-            batchSize: 10,
-            timeWindowMinutes: 60
-        );
+	[Fact(DisplayName = "Should not complete when batch size not reached and time window not exceeded")]
+	public void ShouldCompleteBatch_BatchNotComplete_ReturnsFalse()
+	{
+		// Arrange
+		var policy = new BatchCompletionPolicy();
+		var batch = RecipeBatch.CreateBatch(
+			"test-provider",
+			10,
+			60
+		);
 
-        // Process only 5 recipes (batch size not reached)
-        for (int i = 0; i < 5; i++)
-        {
-            batch.MarkRecipeProcessed($"https://example.com/recipe-{i}");
-        }
+		// Process only 5 recipes (batch size not reached)
+		for (var i = 0; i < 5; i++)
+		{
+			batch.MarkRecipeProcessed($"https://example.com/recipe-{i}");
+		}
 
-        // Act
-        var shouldComplete = policy.ShouldCompleteBatch(batch, DateTime.UtcNow);
+		// Act
+		bool shouldComplete = policy.ShouldCompleteBatch(batch, DateTime.UtcNow);
 
-        // Assert
-        shouldComplete.Should().BeFalse();
-    }
+		// Assert
+		shouldComplete.Should().BeFalse();
+	}
 
-    [Fact(DisplayName = "Should complete when time window exceeded")]
-    public void ShouldCompleteBatch_TimeWindowExceeded_ReturnsTrue()
-    {
-        // Arrange
-        var policy = new BatchCompletionPolicy();
-        
-        // Create a batch that started more than the time window ago
-        var batchId = Guid.NewGuid();
-        var providerId = "test-provider";
-        var startedAt = DateTime.UtcNow.AddMinutes(-65); // Started 65 minutes ago
-        
-        // Create batch using Reconstitute to set custom start time
-        var batch = RecipeBatch.Reconstitute(
-            id: batchId,
-            providerId: providerId,
-            batchSize: 100,
-            timeWindowMinutes: 60,
-            startedAt: startedAt,
-            completedAt: null,
-            processedCount: 5, // Only processed 5 out of 100
-            skippedCount: 0,
-            failedCount: 0,
-            status: "InProgress",
-            processedUrls: new List<string> { "url1", "url2", "url3", "url4", "url5" },
-            failedUrls: new List<string>()
-        );
+	[Fact(DisplayName = "Should complete when batch size reached")]
+	public void ShouldCompleteBatch_BatchSizeReached_ReturnsTrue()
+	{
+		// Arrange
+		var policy = new BatchCompletionPolicy();
+		var batch = RecipeBatch.CreateBatch(
+			"test-provider",
+			10,
+			60
+		);
 
-        // Act
-        var shouldComplete = policy.ShouldCompleteBatch(batch, DateTime.UtcNow);
-        var reason = policy.GetCompletionReason(batch, DateTime.UtcNow);
+		// Simulate processing 10 recipes (batch size reached)
+		for (var i = 0; i < 10; i++)
+		{
+			batch.MarkRecipeProcessed($"https://example.com/recipe-{i}");
+		}
 
-        // Assert
-        shouldComplete.Should().BeTrue();
-        reason.Should().Be(BatchCompletionReason.TimeWindowExceeded);
-    }
+		// Act
+		bool shouldComplete = policy.ShouldCompleteBatch(batch, DateTime.UtcNow);
+		BatchCompletionReason reason = policy.GetCompletionReason(batch, DateTime.UtcNow);
 
-    [Fact(DisplayName = "Should complete when both batch size and time window conditions met")]
-    public void ShouldCompleteBatch_BothConditionsMet_ReturnsTrue()
-    {
-        // Arrange
-        var policy = new BatchCompletionPolicy();
-        
-        // Create a batch that started more than the time window ago
-        var batchId = Guid.NewGuid();
-        var providerId = "test-provider";
-        var startedAt = DateTime.UtcNow.AddMinutes(-65);
-        
-        var batch = RecipeBatch.Reconstitute(
-            id: batchId,
-            providerId: providerId,
-            batchSize: 10,
-            timeWindowMinutes: 60,
-            startedAt: startedAt,
-            completedAt: null,
-            processedCount: 10, // Batch size reached
-            skippedCount: 0,
-            failedCount: 0,
-            status: "InProgress",
-            processedUrls: Enumerable.Range(1, 10).Select(i => $"url{i}").ToList(),
-            failedUrls: new List<string>()
-        );
+		// Assert
+		shouldComplete.Should().BeTrue();
+		reason.Should().Be(BatchCompletionReason.BatchSizeReached);
+	}
 
-        // Act
-        var shouldComplete = policy.ShouldCompleteBatch(batch, DateTime.UtcNow);
-        var reason = policy.GetCompletionReason(batch, DateTime.UtcNow);
+	[Fact(DisplayName = "Should complete when both batch size and time window conditions met")]
+	public void ShouldCompleteBatch_BothConditionsMet_ReturnsTrue()
+	{
+		// Arrange
+		var policy = new BatchCompletionPolicy();
 
-        // Assert
-        shouldComplete.Should().BeTrue();
-        reason.Should().Be(BatchCompletionReason.Both);
-    }
+		// Create a batch that started more than the time window ago
+		var batchId = Guid.NewGuid();
+		var providerId = "test-provider";
+		DateTime startedAt = DateTime.UtcNow.AddMinutes(-65);
 
-    [Fact(DisplayName = "Should handle zero batch size gracefully")]
-    public void ShouldCompleteBatch_ZeroBatchSize_ReturnsTrue()
-    {
-        // Arrange
-        var policy = new BatchCompletionPolicy();
-        
-        // Create batch with zero batch size using Reconstitute to bypass validation
-        var batch = RecipeBatch.Reconstitute(
-            id: Guid.NewGuid(),
-            providerId: "test-provider",
-            batchSize: 0,
-            timeWindowMinutes: 60,
-            startedAt: DateTime.UtcNow,
-            completedAt: null,
-            processedCount: 0,
-            skippedCount: 0,
-            failedCount: 0,
-            status: "InProgress",
-            processedUrls: new List<string>(),
-            failedUrls: new List<string>()
-        );
+		RecipeBatch batch = RecipeBatch.Reconstitute(
+			batchId,
+			providerId,
+			10,
+			60,
+			startedAt,
+			null,
+			10, // Batch size reached
+			0,
+			0,
+			"InProgress",
+			Enumerable.Range(1, 10).Select(i => $"url{i}").ToList(),
+			new List<string>()
+		);
 
-        // Act
-        var shouldComplete = policy.ShouldCompleteBatch(batch, DateTime.UtcNow);
+		// Act
+		bool shouldComplete = policy.ShouldCompleteBatch(batch, DateTime.UtcNow);
+		BatchCompletionReason reason = policy.GetCompletionReason(batch, DateTime.UtcNow);
 
-        // Assert - With zero batch size, processedCount (0) >= batchSize (0), so it should complete
-        shouldComplete.Should().BeTrue();
-    }
+		// Assert
+		shouldComplete.Should().BeTrue();
+		reason.Should().Be(BatchCompletionReason.Both);
+	}
 
-    [Fact(DisplayName = "Completion reason should be descriptive")]
-    public void GetCompletionReason_WhenBatchComplete_ReturnsDescriptiveReason()
-    {
-        // Arrange
-        var policy = new BatchCompletionPolicy();
-        var batch = RecipeBatch.CreateBatch(
-            providerId: "test-provider",
-            batchSize: 5,
-            timeWindowMinutes: 60
-        );
+	[Fact(DisplayName = "Should complete when approaching time window limit with no progress")]
+	public void ShouldCompleteBatch_NoProgressNearTimeout_ReturnsTrue()
+	{
+		// Arrange
+		var policy = new BatchCompletionPolicy();
 
-        // Mark batch size reached
-        for (int i = 0; i < 5; i++)
-        {
-            batch.MarkRecipeProcessed($"https://example.com/recipe-{i}");
-        }
+		// Create a batch that's been running for almost the full time window with no recipes processed
+		var batchId = Guid.NewGuid();
+		var providerId = "test-provider";
+		DateTime startedAt = DateTime.UtcNow.AddMinutes(-59); // 59 minutes ago, time window is 60
 
-        // Act
-        var reason = policy.GetCompletionReason(batch, DateTime.UtcNow);
+		RecipeBatch batch = RecipeBatch.Reconstitute(
+			batchId,
+			providerId,
+			100,
+			60,
+			startedAt,
+			null,
+			0, // No progress
+			0,
+			0,
+			"InProgress",
+			new List<string>(),
+			new List<string>()
+		);
 
-        // Assert
-        reason.Should().Be(BatchCompletionReason.BatchSizeReached);
-    }
+		// Act
+		bool shouldComplete = policy.ShouldCompleteBatch(batch, DateTime.UtcNow);
 
-    [Fact(DisplayName = "Should complete when approaching time window limit with no progress")]
-    public void ShouldCompleteBatch_NoProgressNearTimeout_ReturnsTrue()
-    {
-        // Arrange
-        var policy = new BatchCompletionPolicy();
-        
-        // Create a batch that's been running for almost the full time window with no recipes processed
-        var batchId = Guid.NewGuid();
-        var providerId = "test-provider";
-        var startedAt = DateTime.UtcNow.AddMinutes(-59); // 59 minutes ago, time window is 60
-        
-        var batch = RecipeBatch.Reconstitute(
-            id: batchId,
-            providerId: providerId,
-            batchSize: 100,
-            timeWindowMinutes: 60,
-            startedAt: startedAt,
-            completedAt: null,
-            processedCount: 0, // No progress
-            skippedCount: 0,
-            failedCount: 0,
-            status: "InProgress",
-            processedUrls: new List<string>(),
-            failedUrls: new List<string>()
-        );
+		// Assert - Should not complete yet, still within time window
+		shouldComplete.Should().BeFalse();
+	}
 
-        // Act
-        var shouldComplete = policy.ShouldCompleteBatch(batch, DateTime.UtcNow);
+	[Fact(DisplayName = "Should complete when time window exceeded")]
+	public void ShouldCompleteBatch_TimeWindowExceeded_ReturnsTrue()
+	{
+		// Arrange
+		var policy = new BatchCompletionPolicy();
 
-        // Assert - Should not complete yet, still within time window
-        shouldComplete.Should().BeFalse();
-    }
+		// Create a batch that started more than the time window ago
+		var batchId = Guid.NewGuid();
+		var providerId = "test-provider";
+		DateTime startedAt = DateTime.UtcNow.AddMinutes(-65); // Started 65 minutes ago
+
+		// Create batch using Reconstitute to set custom start time
+		RecipeBatch batch = RecipeBatch.Reconstitute(
+			batchId,
+			providerId,
+			100,
+			60,
+			startedAt,
+			null,
+			5, // Only processed 5 out of 100
+			0,
+			0,
+			"InProgress",
+			new List<string> { "url1", "url2", "url3", "url4", "url5" },
+			new List<string>()
+		);
+
+		// Act
+		bool shouldComplete = policy.ShouldCompleteBatch(batch, DateTime.UtcNow);
+		BatchCompletionReason reason = policy.GetCompletionReason(batch, DateTime.UtcNow);
+
+		// Assert
+		shouldComplete.Should().BeTrue();
+		reason.Should().Be(BatchCompletionReason.TimeWindowExceeded);
+	}
+
+	[Fact(DisplayName = "Should handle zero batch size gracefully")]
+	public void ShouldCompleteBatch_ZeroBatchSize_ReturnsTrue()
+	{
+		// Arrange
+		var policy = new BatchCompletionPolicy();
+
+		// Create batch with zero batch size using Reconstitute to bypass validation
+		RecipeBatch batch = RecipeBatch.Reconstitute(
+			Guid.NewGuid(),
+			"test-provider",
+			0,
+			60,
+			DateTime.UtcNow,
+			null,
+			0,
+			0,
+			0,
+			"InProgress",
+			new List<string>(),
+			new List<string>()
+		);
+
+		// Act
+		bool shouldComplete = policy.ShouldCompleteBatch(batch, DateTime.UtcNow);
+
+		// Assert - With zero batch size, processedCount (0) >= batchSize (0), so it should complete
+		shouldComplete.Should().BeTrue();
+	}
 }

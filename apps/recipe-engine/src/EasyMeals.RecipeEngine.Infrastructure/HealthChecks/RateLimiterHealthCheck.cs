@@ -7,10 +7,7 @@ public class RateLimiterHealthCheck : IHealthCheck
 {
 	private readonly IRateLimiter _rateLimiter;
 
-	public RateLimiterHealthCheck(IRateLimiter rateLimiter)
-	{
-		_rateLimiter = rateLimiter ?? throw new ArgumentNullException(nameof(rateLimiter));
-	}
+	public RateLimiterHealthCheck(IRateLimiter rateLimiter) => _rateLimiter = rateLimiter ?? throw new ArgumentNullException(nameof(rateLimiter));
 
 	public async Task<HealthCheckResult> CheckHealthAsync(
 		HealthCheckContext context,
@@ -20,10 +17,9 @@ public class RateLimiterHealthCheck : IHealthCheck
 		{
 			// Check if rate limiter can provide status information
 			var testProviderId = "health-check";
-			var status = await _rateLimiter.GetStatusAsync(testProviderId, cancellationToken);
+			RateLimitStatus status = await _rateLimiter.GetStatusAsync(testProviderId, cancellationToken);
 
 			if (status.RemainingRequests >= 0)
-			{
 				return HealthCheckResult.Healthy(
 					"Rate limiter is functioning correctly",
 					new Dictionary<string, object>
@@ -31,7 +27,6 @@ public class RateLimiterHealthCheck : IHealthCheck
 						{ "remainingRequests", status.RemainingRequests },
 						{ "isLimited", status.IsLimited }
 					});
-			}
 
 			return HealthCheckResult.Degraded(
 				"Rate limiter configuration may be invalid");
@@ -40,7 +35,7 @@ public class RateLimiterHealthCheck : IHealthCheck
 		{
 			return HealthCheckResult.Unhealthy(
 				"Rate limiter is not functioning",
-				exception: ex);
+				ex);
 		}
 	}
 }

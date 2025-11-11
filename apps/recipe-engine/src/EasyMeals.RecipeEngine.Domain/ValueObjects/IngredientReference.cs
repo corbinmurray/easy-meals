@@ -28,10 +28,10 @@ public class IngredientReference
 		DisplayOrder = displayOrder;
 	}
 
-    /// <summary>
-    ///     Indicates whether this ingredient has been normalized (canonical form exists).
-    /// </summary>
-    public bool IsNormalized => !string.IsNullOrWhiteSpace(CanonicalForm);
+	/// <summary>
+	///     Indicates whether this ingredient has been normalized (canonical form exists).
+	/// </summary>
+	public bool IsNormalized => !string.IsNullOrWhiteSpace(CanonicalForm);
 
 	public override bool Equals(object? obj) =>
 		obj is IngredientReference other &&

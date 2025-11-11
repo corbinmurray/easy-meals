@@ -1,3 +1,4 @@
+using System.Net;
 using EasyMeals.RecipeEngine.Application.Interfaces;
 using EasyMeals.RecipeEngine.Domain.Interfaces;
 using EasyMeals.RecipeEngine.Domain.Repositories;
@@ -17,9 +18,9 @@ using EasyMeals.Shared.Data.DependencyInjection;
 using EasyMeals.Shared.Data.Repositories;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Playwright;
 using Polly;
 using Polly.Extensions.Http;
-using System.Net;
 using IRecipeRepository = EasyMeals.RecipeEngine.Domain.Interfaces.IRecipeRepository;
 
 namespace EasyMeals.RecipeEngine.Infrastructure.DependencyInjection;
@@ -76,7 +77,7 @@ public static class ServiceCollectionExtensions
 		// Register application services
 		services.AddScoped<IProviderConfigurationLoader, ProviderConfigurationLoader>();
 		services.AddScoped<IIngredientNormalizer, IngredientNormalizationService>();
-		
+
 		// T125: Register fingerprinting service (Phase 9)
 		services.AddScoped<IRecipeFingerprinter, RecipeFingerprintService>();
 
@@ -85,19 +86,19 @@ public static class ServiceCollectionExtensions
 		services.AddScoped<DynamicCrawlDiscoveryService>();
 		services.AddScoped<ApiDiscoveryService>();
 		services.AddScoped<IDiscoveryServiceFactory, DiscoveryServiceFactory>();
-		
+
 		// Register Playwright for dynamic discovery
-		services.AddSingleton(_ => Microsoft.Playwright.Playwright.CreateAsync().GetAwaiter().GetResult());
+		services.AddSingleton(_ => Playwright.CreateAsync().GetAwaiter().GetResult());
 
 		// T098, T099: Register stealth services for IP ban avoidance
 		services.Configure<UserAgentOptions>(options =>
 		{
-			var userAgents = configuration.GetSection("UserAgents").Get<List<string>>() ?? new List<string>();
+			List<string> userAgents = configuration.GetSection("UserAgents").Get<List<string>>() ?? new List<string>();
 			options.UserAgents = userAgents;
 		});
 		services.AddSingleton<IRandomizedDelayService, RandomizedDelayService>();
 		services.AddSingleton<IUserAgentRotationService, UserAgentRotationService>();
-		
+
 		// T103: Register stealthy HTTP client
 		services.AddScoped<IStealthyHttpClient, StealthyHttpClient>();
 
@@ -132,7 +133,7 @@ public static class ServiceCollectionExtensions
 	}
 
 	/// <summary>
-	/// T102: Retry policy with exponential backoff for transient HTTP errors
+	///     T102: Retry policy with exponential backoff for transient HTTP errors
 	/// </summary>
 	private static IAsyncPolicy<HttpResponseMessage> GetRetryPolicy()
 	{
@@ -140,32 +141,27 @@ public static class ServiceCollectionExtensions
 			.HandleTransientHttpError()
 			.OrResult(msg => msg.StatusCode == HttpStatusCode.TooManyRequests)
 			.WaitAndRetryAsync(
-				retryCount: 3,
-				sleepDurationProvider: retryAttempt =>
+				3,
+				retryAttempt =>
 					TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)) + TimeSpan.FromMilliseconds(Random.Shared.Next(0, 1000)),
-				onRetry: (outcome, timespan, retryAttempt, context) =>
+				(outcome, timespan, retryAttempt, context) =>
 				{
 					// Log retry attempts (structured logging would be done by the saga)
 				});
 	}
 
 	/// <summary>
-	/// T102: Circuit breaker policy to prevent overwhelming failing services
+	///     T102: Circuit breaker policy to prevent overwhelming failing services
 	/// </summary>
-	private static IAsyncPolicy<HttpResponseMessage> GetCircuitBreakerPolicy()
-	{
-		return HttpPolicyExtensions
+	private static IAsyncPolicy<HttpResponseMessage> GetCircuitBreakerPolicy() =>
+		HttpPolicyExtensions
 			.HandleTransientHttpError()
 			.CircuitBreakerAsync(
-				handledEventsAllowedBeforeBreaking: 5,
-				durationOfBreak: TimeSpan.FromSeconds(30));
-	}
+				5,
+				TimeSpan.FromSeconds(30));
 
 	/// <summary>
-	/// T102: Timeout policy per request
+	///     T102: Timeout policy per request
 	/// </summary>
-	private static IAsyncPolicy<HttpResponseMessage> GetTimeoutPolicy()
-	{
-		return Policy.TimeoutAsync<HttpResponseMessage>(TimeSpan.FromSeconds(30));
-	}
+	private static IAsyncPolicy<HttpResponseMessage> GetTimeoutPolicy() => Policy.TimeoutAsync<HttpResponseMessage>(TimeSpan.FromSeconds(30));
 }

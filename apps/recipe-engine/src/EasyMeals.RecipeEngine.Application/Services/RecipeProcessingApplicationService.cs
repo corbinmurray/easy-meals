@@ -1,12 +1,14 @@
 using EasyMeals.RecipeEngine.Application.Interfaces;
+using EasyMeals.RecipeEngine.Domain.Entities;
 using EasyMeals.RecipeEngine.Domain.Repositories;
+using EasyMeals.RecipeEngine.Domain.ValueObjects;
 using Microsoft.Extensions.Logging;
 
 namespace EasyMeals.RecipeEngine.Application.Services;
 
 /// <summary>
-/// Application service that coordinates the recipe processing workflow.
-/// Orchestrates saga startup, batch creation, and domain event handling.
+///     Application service that coordinates the recipe processing workflow.
+///     Orchestrates saga startup, batch creation, and domain event handling.
 /// </summary>
 public class RecipeProcessingApplicationService(
 	ILogger<RecipeProcessingApplicationService> logger,
@@ -15,7 +17,7 @@ public class RecipeProcessingApplicationService(
 	IRecipeProcessingSaga recipeProcessingSaga)
 {
 	/// <summary>
-	/// Starts a new recipe processing batch for the specified provider.
+	///     Starts a new recipe processing batch for the specified provider.
 	/// </summary>
 	/// <param name="providerId">Provider identifier</param>
 	/// <param name="cancellationToken">Cancellation token</param>
@@ -25,30 +27,27 @@ public class RecipeProcessingApplicationService(
 		CancellationToken cancellationToken = default)
 	{
 		using (logger.BeginScope(new Dictionary<string, object>
-		{
-			["ProviderId"] = providerId,
-			["Operation"] = "StartBatchProcessing"
-		}))
+		       {
+			       ["ProviderId"] = providerId,
+			       ["Operation"] = "StartBatchProcessing"
+		       }))
 		{
 			logger.LogInformation("Starting recipe batch processing for provider {ProviderId}", providerId);
 
 			// Load provider configuration
-			var config = await configurationLoader.GetByProviderIdAsync(providerId, cancellationToken);
-			if (config == null)
-			{
-				throw new InvalidOperationException($"Provider configuration not found for {providerId}");
-			}
+			ProviderConfiguration? config = await configurationLoader.GetByProviderIdAsync(providerId, cancellationToken);
+			if (config == null) throw new InvalidOperationException($"Provider configuration not found for {providerId}");
 
 			// Create a new batch
-			var batch = await batchRepository.CreateAsync(providerId, config, cancellationToken);
+			RecipeBatch batch = await batchRepository.CreateAsync(providerId, config, cancellationToken);
 			logger.LogInformation(
 				"Created recipe batch {BatchId} for provider {ProviderId} with size {BatchSize}",
 				batch.Id, providerId, batch.BatchSize);
 
 			// Start the saga
-			var correlationId = await recipeProcessingSaga.StartProcessingAsync(
+			Guid correlationId = await recipeProcessingSaga.StartProcessingAsync(
 				providerId,
-				(int)batch.BatchSize,
+				batch.BatchSize,
 				batch.TimeWindow,
 				cancellationToken);
 
@@ -61,7 +60,7 @@ public class RecipeProcessingApplicationService(
 	}
 
 	/// <summary>
-	/// Resumes a previously started batch after application restart.
+	///     Resumes a previously started batch after application restart.
 	/// </summary>
 	/// <param name="batchId">Batch correlation ID</param>
 	/// <param name="cancellationToken">Cancellation token</param>
@@ -70,10 +69,10 @@ public class RecipeProcessingApplicationService(
 		CancellationToken cancellationToken = default)
 	{
 		using (logger.BeginScope(new Dictionary<string, object>
-		{
-			["BatchId"] = batchId,
-			["Operation"] = "ResumeBatchProcessing"
-		}))
+		       {
+			       ["BatchId"] = batchId,
+			       ["Operation"] = "ResumeBatchProcessing"
+		       }))
 		{
 			logger.LogInformation("Resuming recipe batch processing for batch {BatchId}", batchId);
 
@@ -84,20 +83,18 @@ public class RecipeProcessingApplicationService(
 	}
 
 	/// <summary>
-	/// Gets the current status of a batch.
+	///     Gets the current status of a batch.
 	/// </summary>
 	/// <param name="batchId">Batch correlation ID</param>
 	/// <param name="cancellationToken">Cancellation token</param>
-	public async Task<Domain.Entities.RecipeBatch?> GetBatchStatusAsync(
+	public async Task<RecipeBatch?> GetBatchStatusAsync(
 		Guid batchId,
-		CancellationToken cancellationToken = default)
-	{
-		return await recipeProcessingSaga.GetBatchStatusAsync(batchId, cancellationToken);
-	}
+		CancellationToken cancellationToken = default) =>
+		await recipeProcessingSaga.GetBatchStatusAsync(batchId, cancellationToken);
 
 	/// <summary>
-	/// Processes recipes for all enabled providers sequentially.
-	/// Creates a batch for each provider and respects batch time windows to avoid overlapping batches.
+	///     Processes recipes for all enabled providers sequentially.
+	///     Creates a batch for each provider and respects batch time windows to avoid overlapping batches.
 	/// </summary>
 	/// <param name="cancellationToken">Cancellation token</param>
 	/// <returns>Dictionary of provider IDs to their batch correlation IDs</returns>
@@ -109,13 +106,13 @@ public class RecipeProcessingApplicationService(
 		var results = new Dictionary<string, Guid>();
 
 		// Load all enabled provider configurations
-		var configurations = await configurationLoader.GetAllEnabledAsync(cancellationToken);
-		var configList = configurations.ToList();
+		IEnumerable<ProviderConfiguration> configurations = await configurationLoader.GetAllEnabledAsync(cancellationToken);
+		List<ProviderConfiguration> configList = configurations.ToList();
 
 		logger.LogInformation("Found {Count} enabled provider(s) to process", configList.Count);
 
 		// Process each provider sequentially to respect batch time windows
-		foreach (var config in configList)
+		foreach (ProviderConfiguration config in configList)
 		{
 			// Skip disabled providers (defensive check, should already be filtered)
 			if (!config.Enabled)
@@ -135,7 +132,7 @@ public class RecipeProcessingApplicationService(
 					config.TimeWindow);
 
 				// Start batch processing for this provider
-				var correlationId = await StartBatchProcessingAsync(config.ProviderId, cancellationToken);
+				Guid correlationId = await StartBatchProcessingAsync(config.ProviderId, cancellationToken);
 				results[config.ProviderId] = correlationId;
 
 				logger.LogInformation(

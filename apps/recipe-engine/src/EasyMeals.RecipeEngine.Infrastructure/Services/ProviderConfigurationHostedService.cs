@@ -27,17 +27,17 @@ public class ProviderConfigurationHostedService : IHostedService
 		{
 			_logger.LogInformation("Loading provider configurations from MongoDB...");
 			await _configurationLoader.LoadConfigurationsAsync(cancellationToken);
-			
+
 			// Get all loaded configurations to log details
-			var configurations = await _configurationLoader.GetAllEnabledAsync(cancellationToken);
-			var configList = configurations.ToList();
-			
+			IEnumerable<ProviderConfiguration> configurations = await _configurationLoader.GetAllEnabledAsync(cancellationToken);
+			List<ProviderConfiguration> configList = configurations.ToList();
+
 			_logger.LogInformation(
 				"Successfully loaded {Count} enabled provider configuration(s)",
 				configList.Count);
 
 			// Log each provider's settings (sanitize URLs)
-			foreach (var config in configList)
+			foreach (ProviderConfiguration config in configList)
 			{
 				_logger.LogInformation(
 					"Loaded provider {ProviderId}: Strategy={Strategy}, BatchSize={BatchSize}, " +

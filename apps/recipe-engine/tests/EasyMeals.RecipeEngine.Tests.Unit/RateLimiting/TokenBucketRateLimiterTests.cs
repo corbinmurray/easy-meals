@@ -5,237 +5,237 @@ using FluentAssertions;
 namespace EasyMeals.RecipeEngine.Tests.Unit.RateLimiting;
 
 /// <summary>
-/// Unit tests for TokenBucketRateLimiter implementation.
-/// Tests token consumption, refill, and burst handling.
+///     Unit tests for TokenBucketRateLimiter implementation.
+///     Tests token consumption, refill, and burst handling.
 /// </summary>
 public class TokenBucketRateLimiterTests
 {
-    [Fact(DisplayName = "Initial rate limiter should have full token capacity")]
-    public async Task GetStatusAsync_InitialState_ReturnsFullCapacity()
-    {
-        // Arrange
-        const int maxTokens = 10;
-        const int refillRatePerMinute = 5;
-        var rateLimiter = new TokenBucketRateLimiter(maxTokens, refillRatePerMinute);
-        const string key = "test-provider";
+	[Fact(DisplayName = "Initial rate limiter should have full token capacity")]
+	public async Task GetStatusAsync_InitialState_ReturnsFullCapacity()
+	{
+		// Arrange
+		const int maxTokens = 10;
+		const int refillRatePerMinute = 5;
+		var rateLimiter = new TokenBucketRateLimiter(maxTokens, refillRatePerMinute);
+		const string key = "test-provider";
 
-        // Act
-        var status = await rateLimiter.GetStatusAsync(key);
+		// Act
+		RateLimitStatus status = await rateLimiter.GetStatusAsync(key);
 
-        // Assert
-        status.Should().NotBeNull();
-        status.RemainingRequests.Should().Be(maxTokens);
-        status.IsLimited.Should().BeFalse();
-    }
+		// Assert
+		status.Should().NotBeNull();
+		status.RemainingRequests.Should().Be(maxTokens);
+		status.IsLimited.Should().BeFalse();
+	}
 
-    [Fact(DisplayName = "Successfully acquire single token when tokens available")]
-    public async Task TryAcquireAsync_WithAvailableTokens_ReturnsTrue()
-    {
-        // Arrange
-        const int maxTokens = 10;
-        const int refillRatePerMinute = 5;
-        var rateLimiter = new TokenBucketRateLimiter(maxTokens, refillRatePerMinute);
-        const string key = "test-provider";
+	[Fact(DisplayName = "Status shows limited when bucket is empty")]
+	public async Task GetStatusAsync_WhenBucketEmpty_ShowsLimited()
+	{
+		// Arrange
+		const int maxTokens = 2;
+		const int refillRatePerMinute = 1;
+		var rateLimiter = new TokenBucketRateLimiter(maxTokens, refillRatePerMinute);
+		const string key = "test-provider";
 
-        // Act
-        var acquired = await rateLimiter.TryAcquireAsync(key);
+		// Act - Deplete all tokens
+		await rateLimiter.TryAcquireAsync(key);
+		await rateLimiter.TryAcquireAsync(key);
+		RateLimitStatus status = await rateLimiter.GetStatusAsync(key);
 
-        // Assert
-        acquired.Should().BeTrue();
-    }
+		// Assert
+		status.IsLimited.Should().BeTrue();
+		status.RemainingRequests.Should().Be(0);
+	}
 
-    [Fact(DisplayName = "Token consumption reduces remaining tokens")]
-    public async Task TryAcquireAsync_AfterConsumption_ReducesRemainingTokens()
-    {
-        // Arrange
-        const int maxTokens = 10;
-        const int refillRatePerMinute = 5;
-        var rateLimiter = new TokenBucketRateLimiter(maxTokens, refillRatePerMinute);
-        const string key = "test-provider";
+	[Fact(DisplayName = "Reset clears rate limit for key")]
+	public async Task ResetAsync_AfterDepletion_RestoresFullCapacity()
+	{
+		// Arrange
+		const int maxTokens = 5;
+		const int refillRatePerMinute = 2;
+		var rateLimiter = new TokenBucketRateLimiter(maxTokens, refillRatePerMinute);
+		const string key = "test-provider";
 
-        // Act
-        await rateLimiter.TryAcquireAsync(key);
-        var status = await rateLimiter.GetStatusAsync(key);
+		// Act - Deplete tokens
+		await rateLimiter.TryAcquireAsync(key, 5);
+		RateLimitStatus statusBefore = await rateLimiter.GetStatusAsync(key);
 
-        // Assert
-        status.RemainingRequests.Should().Be(maxTokens - 1);
-    }
+		// Reset
+		await rateLimiter.ResetAsync(key);
+		RateLimitStatus statusAfter = await rateLimiter.GetStatusAsync(key);
 
-    [Fact(DisplayName = "Multiple token acquisition depletes bucket")]
-    public async Task TryAcquireAsync_MultipleAcquisitions_DepletesTokens()
-    {
-        // Arrange
-        const int maxTokens = 3;
-        const int refillRatePerMinute = 1;
-        var rateLimiter = new TokenBucketRateLimiter(maxTokens, refillRatePerMinute);
-        const string key = "test-provider";
+		// Assert
+		statusBefore.RemainingRequests.Should().Be(0);
+		statusAfter.RemainingRequests.Should().Be(maxTokens);
+		statusAfter.IsLimited.Should().BeFalse();
+	}
 
-        // Act - Acquire all tokens
-        await rateLimiter.TryAcquireAsync(key);
-        await rateLimiter.TryAcquireAsync(key);
-        await rateLimiter.TryAcquireAsync(key);
-        var finalStatus = await rateLimiter.GetStatusAsync(key);
+	[Fact(DisplayName = "Token consumption reduces remaining tokens")]
+	public async Task TryAcquireAsync_AfterConsumption_ReducesRemainingTokens()
+	{
+		// Arrange
+		const int maxTokens = 10;
+		const int refillRatePerMinute = 5;
+		var rateLimiter = new TokenBucketRateLimiter(maxTokens, refillRatePerMinute);
+		const string key = "test-provider";
 
-        // Assert
-        finalStatus.RemainingRequests.Should().Be(0);
-    }
+		// Act
+		await rateLimiter.TryAcquireAsync(key);
+		RateLimitStatus status = await rateLimiter.GetStatusAsync(key);
 
-    [Fact(DisplayName = "Acquisition fails when bucket is empty")]
-    public async Task TryAcquireAsync_WhenBucketEmpty_ReturnsFalse()
-    {
-        // Arrange
-        const int maxTokens = 2;
-        const int refillRatePerMinute = 1;
-        var rateLimiter = new TokenBucketRateLimiter(maxTokens, refillRatePerMinute);
-        const string key = "test-provider";
+		// Assert
+		status.RemainingRequests.Should().Be(maxTokens - 1);
+	}
 
-        // Act - Deplete all tokens
-        await rateLimiter.TryAcquireAsync(key);
-        await rateLimiter.TryAcquireAsync(key);
-        var thirdAttempt = await rateLimiter.TryAcquireAsync(key);
+	[Fact(DisplayName = "Tokens refill over time")]
+	public async Task TryAcquireAsync_AfterWait_TokensRefilled()
+	{
+		// Arrange
+		const int maxTokens = 10;
+		const int refillRatePerMinute = 60; // 1 per second for easier testing
+		var rateLimiter = new TokenBucketRateLimiter(maxTokens, refillRatePerMinute);
+		const string key = "test-provider";
 
-        // Assert
-        thirdAttempt.Should().BeFalse();
-    }
+		// Act - Consume some tokens
+		await rateLimiter.TryAcquireAsync(key, 5);
+		RateLimitStatus statusBefore = await rateLimiter.GetStatusAsync(key);
 
-    [Fact(DisplayName = "Status shows limited when bucket is empty")]
-    public async Task GetStatusAsync_WhenBucketEmpty_ShowsLimited()
-    {
-        // Arrange
-        const int maxTokens = 2;
-        const int refillRatePerMinute = 1;
-        var rateLimiter = new TokenBucketRateLimiter(maxTokens, refillRatePerMinute);
-        const string key = "test-provider";
+		// Wait for refill (1+ second = at least 1 token)
+		await Task.Delay(TimeSpan.FromSeconds(1.1));
 
-        // Act - Deplete all tokens
-        await rateLimiter.TryAcquireAsync(key);
-        await rateLimiter.TryAcquireAsync(key);
-        var status = await rateLimiter.GetStatusAsync(key);
+		RateLimitStatus statusAfter = await rateLimiter.GetStatusAsync(key);
 
-        // Assert
-        status.IsLimited.Should().BeTrue();
-        status.RemainingRequests.Should().Be(0);
-    }
+		// Assert
+		statusBefore.RemainingRequests.Should().Be(5);
+		statusAfter.RemainingRequests.Should().BeGreaterThan(5);
+		statusAfter.RemainingRequests.Should().BeLessThanOrEqualTo(maxTokens);
+	}
 
-    [Fact(DisplayName = "Acquire multiple tokens at once")]
-    public async Task TryAcquireAsync_MultiplePermits_ReducesTokensByPermitCount()
-    {
-        // Arrange
-        const int maxTokens = 10;
-        const int refillRatePerMinute = 5;
-        var rateLimiter = new TokenBucketRateLimiter(maxTokens, refillRatePerMinute);
-        const string key = "test-provider";
+	[Fact(DisplayName = "Burst handling allows temporary excess")]
+	public async Task TryAcquireAsync_BurstScenario_AllowsFullCapacity()
+	{
+		// Arrange
+		const int maxTokens = 100;
+		const int refillRatePerMinute = 10;
+		var rateLimiter = new TokenBucketRateLimiter(maxTokens, refillRatePerMinute);
+		const string key = "test-provider";
 
-        // Act
-        await rateLimiter.TryAcquireAsync(key, permits: 3);
-        var status = await rateLimiter.GetStatusAsync(key);
+		// Act - Burst acquire up to max tokens
+		var acquisitions = new List<bool>();
+		for (var i = 0; i < maxTokens; i++)
+		{
+			acquisitions.Add(await rateLimiter.TryAcquireAsync(key));
+		}
 
-        // Assert
-        status.RemainingRequests.Should().Be(maxTokens - 3);
-    }
+		// Assert
+		acquisitions.Should().AllSatisfy(result => result.Should().BeTrue());
+		RateLimitStatus status = await rateLimiter.GetStatusAsync(key);
+		status.RemainingRequests.Should().Be(0);
+	}
 
-    [Fact(DisplayName = "Cannot acquire more tokens than available")]
-    public async Task TryAcquireAsync_MorePermitsThanAvailable_ReturnsFalse()
-    {
-        // Arrange
-        const int maxTokens = 5;
-        const int refillRatePerMinute = 2;
-        var rateLimiter = new TokenBucketRateLimiter(maxTokens, refillRatePerMinute);
-        const string key = "test-provider";
+	[Fact(DisplayName = "Different keys have independent buckets")]
+	public async Task TryAcquireAsync_DifferentKeys_IndependentBuckets()
+	{
+		// Arrange
+		const int maxTokens = 5;
+		const int refillRatePerMinute = 2;
+		var rateLimiter = new TokenBucketRateLimiter(maxTokens, refillRatePerMinute);
+		const string key1 = "provider-1";
+		const string key2 = "provider-2";
 
-        // Act
-        var acquired = await rateLimiter.TryAcquireAsync(key, permits: 10);
+		// Act - Deplete tokens for key1
+		await rateLimiter.TryAcquireAsync(key1, 5);
+		RateLimitStatus status1 = await rateLimiter.GetStatusAsync(key1);
+		RateLimitStatus status2 = await rateLimiter.GetStatusAsync(key2);
 
-        // Assert
-        acquired.Should().BeFalse();
-    }
+		// Assert
+		status1.RemainingRequests.Should().Be(0);
+		status2.RemainingRequests.Should().Be(maxTokens); // key2 unaffected
+	}
 
-    [Fact(DisplayName = "Tokens refill over time")]
-    public async Task TryAcquireAsync_AfterWait_TokensRefilled()
-    {
-        // Arrange
-        const int maxTokens = 10;
-        const int refillRatePerMinute = 60; // 1 per second for easier testing
-        var rateLimiter = new TokenBucketRateLimiter(maxTokens, refillRatePerMinute);
-        const string key = "test-provider";
+	[Fact(DisplayName = "Cannot acquire more tokens than available")]
+	public async Task TryAcquireAsync_MorePermitsThanAvailable_ReturnsFalse()
+	{
+		// Arrange
+		const int maxTokens = 5;
+		const int refillRatePerMinute = 2;
+		var rateLimiter = new TokenBucketRateLimiter(maxTokens, refillRatePerMinute);
+		const string key = "test-provider";
 
-        // Act - Consume some tokens
-        await rateLimiter.TryAcquireAsync(key, permits: 5);
-        var statusBefore = await rateLimiter.GetStatusAsync(key);
+		// Act
+		bool acquired = await rateLimiter.TryAcquireAsync(key, 10);
 
-        // Wait for refill (1+ second = at least 1 token)
-        await Task.Delay(TimeSpan.FromSeconds(1.1));
+		// Assert
+		acquired.Should().BeFalse();
+	}
 
-        var statusAfter = await rateLimiter.GetStatusAsync(key);
+	[Fact(DisplayName = "Multiple token acquisition depletes bucket")]
+	public async Task TryAcquireAsync_MultipleAcquisitions_DepletesTokens()
+	{
+		// Arrange
+		const int maxTokens = 3;
+		const int refillRatePerMinute = 1;
+		var rateLimiter = new TokenBucketRateLimiter(maxTokens, refillRatePerMinute);
+		const string key = "test-provider";
 
-        // Assert
-        statusBefore.RemainingRequests.Should().Be(5);
-        statusAfter.RemainingRequests.Should().BeGreaterThan(5);
-        statusAfter.RemainingRequests.Should().BeLessThanOrEqualTo(maxTokens);
-    }
+		// Act - Acquire all tokens
+		await rateLimiter.TryAcquireAsync(key);
+		await rateLimiter.TryAcquireAsync(key);
+		await rateLimiter.TryAcquireAsync(key);
+		RateLimitStatus finalStatus = await rateLimiter.GetStatusAsync(key);
 
-    [Fact(DisplayName = "Reset clears rate limit for key")]
-    public async Task ResetAsync_AfterDepletion_RestoresFullCapacity()
-    {
-        // Arrange
-        const int maxTokens = 5;
-        const int refillRatePerMinute = 2;
-        var rateLimiter = new TokenBucketRateLimiter(maxTokens, refillRatePerMinute);
-        const string key = "test-provider";
+		// Assert
+		finalStatus.RemainingRequests.Should().Be(0);
+	}
 
-        // Act - Deplete tokens
-        await rateLimiter.TryAcquireAsync(key, permits: 5);
-        var statusBefore = await rateLimiter.GetStatusAsync(key);
+	[Fact(DisplayName = "Acquire multiple tokens at once")]
+	public async Task TryAcquireAsync_MultiplePermits_ReducesTokensByPermitCount()
+	{
+		// Arrange
+		const int maxTokens = 10;
+		const int refillRatePerMinute = 5;
+		var rateLimiter = new TokenBucketRateLimiter(maxTokens, refillRatePerMinute);
+		const string key = "test-provider";
 
-        // Reset
-        await rateLimiter.ResetAsync(key);
-        var statusAfter = await rateLimiter.GetStatusAsync(key);
+		// Act
+		await rateLimiter.TryAcquireAsync(key, 3);
+		RateLimitStatus status = await rateLimiter.GetStatusAsync(key);
 
-        // Assert
-        statusBefore.RemainingRequests.Should().Be(0);
-        statusAfter.RemainingRequests.Should().Be(maxTokens);
-        statusAfter.IsLimited.Should().BeFalse();
-    }
+		// Assert
+		status.RemainingRequests.Should().Be(maxTokens - 3);
+	}
 
-    [Fact(DisplayName = "Different keys have independent buckets")]
-    public async Task TryAcquireAsync_DifferentKeys_IndependentBuckets()
-    {
-        // Arrange
-        const int maxTokens = 5;
-        const int refillRatePerMinute = 2;
-        var rateLimiter = new TokenBucketRateLimiter(maxTokens, refillRatePerMinute);
-        const string key1 = "provider-1";
-        const string key2 = "provider-2";
+	[Fact(DisplayName = "Acquisition fails when bucket is empty")]
+	public async Task TryAcquireAsync_WhenBucketEmpty_ReturnsFalse()
+	{
+		// Arrange
+		const int maxTokens = 2;
+		const int refillRatePerMinute = 1;
+		var rateLimiter = new TokenBucketRateLimiter(maxTokens, refillRatePerMinute);
+		const string key = "test-provider";
 
-        // Act - Deplete tokens for key1
-        await rateLimiter.TryAcquireAsync(key1, permits: 5);
-        var status1 = await rateLimiter.GetStatusAsync(key1);
-        var status2 = await rateLimiter.GetStatusAsync(key2);
+		// Act - Deplete all tokens
+		await rateLimiter.TryAcquireAsync(key);
+		await rateLimiter.TryAcquireAsync(key);
+		bool thirdAttempt = await rateLimiter.TryAcquireAsync(key);
 
-        // Assert
-        status1.RemainingRequests.Should().Be(0);
-        status2.RemainingRequests.Should().Be(maxTokens); // key2 unaffected
-    }
+		// Assert
+		thirdAttempt.Should().BeFalse();
+	}
 
-    [Fact(DisplayName = "Burst handling allows temporary excess")]
-    public async Task TryAcquireAsync_BurstScenario_AllowsFullCapacity()
-    {
-        // Arrange
-        const int maxTokens = 100;
-        const int refillRatePerMinute = 10;
-        var rateLimiter = new TokenBucketRateLimiter(maxTokens, refillRatePerMinute);
-        const string key = "test-provider";
+	[Fact(DisplayName = "Successfully acquire single token when tokens available")]
+	public async Task TryAcquireAsync_WithAvailableTokens_ReturnsTrue()
+	{
+		// Arrange
+		const int maxTokens = 10;
+		const int refillRatePerMinute = 5;
+		var rateLimiter = new TokenBucketRateLimiter(maxTokens, refillRatePerMinute);
+		const string key = "test-provider";
 
-        // Act - Burst acquire up to max tokens
-        var acquisitions = new List<bool>();
-        for (int i = 0; i < maxTokens; i++)
-        {
-            acquisitions.Add(await rateLimiter.TryAcquireAsync(key));
-        }
+		// Act
+		bool acquired = await rateLimiter.TryAcquireAsync(key);
 
-        // Assert
-        acquisitions.Should().AllSatisfy(result => result.Should().BeTrue());
-        var status = await rateLimiter.GetStatusAsync(key);
-        status.RemainingRequests.Should().Be(0);
-    }
+		// Assert
+		acquired.Should().BeTrue();
+	}
 }

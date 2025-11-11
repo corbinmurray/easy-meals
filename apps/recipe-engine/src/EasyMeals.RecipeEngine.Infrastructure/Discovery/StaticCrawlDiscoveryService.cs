@@ -6,8 +6,8 @@ using Microsoft.Extensions.Logging;
 namespace EasyMeals.RecipeEngine.Infrastructure.Discovery;
 
 /// <summary>
-/// T109: Static crawl discovery service using HtmlAgilityPack for static HTML parsing
-/// Implements discovery strategy for sites that don't require JavaScript rendering
+///     T109: Static crawl discovery service using HtmlAgilityPack for static HTML parsing
+///     Implements discovery strategy for sites that don't require JavaScript rendering
 /// </summary>
 public class StaticCrawlDiscoveryService : IDiscoveryService
 {
@@ -23,7 +23,7 @@ public class StaticCrawlDiscoveryService : IDiscoveryService
 	}
 
 	/// <summary>
-	/// Discovers recipe URLs from a provider's base URL using static HTML parsing
+	///     Discovers recipe URLs from a provider's base URL using static HTML parsing
 	/// </summary>
 	public async Task<IEnumerable<DiscoveredUrl>> DiscoverRecipeUrlsAsync(
 		string baseUrl,
@@ -71,7 +71,7 @@ public class StaticCrawlDiscoveryService : IDiscoveryService
 	}
 
 	/// <summary>
-	/// Recursive discovery of recipe URLs from HTML pages
+	///     Recursive discovery of recipe URLs from HTML pages
 	/// </summary>
 	private async Task DiscoverRecursiveAsync(
 		string currentUrl,
@@ -84,57 +84,42 @@ public class StaticCrawlDiscoveryService : IDiscoveryService
 		CancellationToken cancellationToken)
 	{
 		// Check limits
-		if (currentDepth > maxDepth || discoveredUrls.Count >= maxUrls)
-		{
-			return;
-		}
+		if (currentDepth > maxDepth || discoveredUrls.Count >= maxUrls) return;
 
 		// Avoid revisiting URLs
-		if (!visitedUrls.Add(currentUrl))
-		{
-			return;
-		}
+		if (!visitedUrls.Add(currentUrl)) return;
 
 		try
 		{
 			// Fetch HTML content
-			var response = await _httpClient.GetAsync(currentUrl, cancellationToken);
-			
+			HttpResponseMessage response = await _httpClient.GetAsync(currentUrl, cancellationToken);
+
 			// Ensure success status code - throws HttpRequestException on error
 			response.EnsureSuccessStatusCode();
 
-			var html = await response.Content.ReadAsStringAsync(cancellationToken);
+			string html = await response.Content.ReadAsStringAsync(cancellationToken);
 
 			// Parse HTML with HtmlAgilityPack
 			var htmlDoc = new HtmlDocument();
 			htmlDoc.LoadHtml(html);
 
 			// Extract all links
-			var linkNodes = htmlDoc.DocumentNode.SelectNodes("//a[@href]");
+			HtmlNodeCollection? linkNodes = htmlDoc.DocumentNode.SelectNodes("//a[@href]");
 			if (linkNodes == null)
 			{
 				_logger.LogDebug("No links found on page {Url}", currentUrl);
 				return;
 			}
 
-			foreach (var linkNode in linkNodes)
+			foreach (HtmlNode linkNode in linkNodes)
 			{
-				if (discoveredUrls.Count >= maxUrls)
-				{
-					break;
-				}
+				if (discoveredUrls.Count >= maxUrls) break;
 
-				var href = linkNode.GetAttributeValue("href", string.Empty);
-				if (string.IsNullOrWhiteSpace(href))
-				{
-					continue;
-				}
+				string href = linkNode.GetAttributeValue("href", string.Empty);
+				if (string.IsNullOrWhiteSpace(href)) continue;
 
 				// Convert relative URLs to absolute
-				if (!Uri.TryCreate(new Uri(currentUrl), href, out var absoluteUri))
-				{
-					continue;
-				}
+				if (!Uri.TryCreate(new Uri(currentUrl), href, out Uri? absoluteUri)) continue;
 
 				var absoluteUrl = absoluteUri.ToString();
 
@@ -142,7 +127,7 @@ public class StaticCrawlDiscoveryService : IDiscoveryService
 				if (IsRecipeUrl(absoluteUrl, provider))
 				{
 					// Calculate confidence based on URL patterns
-					var confidence = CalculateConfidence(absoluteUrl);
+					decimal confidence = CalculateConfidence(absoluteUrl);
 
 					var discoveredUrl = DiscoveredUrl.CreateDiscovered(
 						absoluteUrl,
@@ -167,29 +152,23 @@ public class StaticCrawlDiscoveryService : IDiscoveryService
 			_logger.LogWarning(ex,
 				"Failed to fetch URL {Url} at depth {Depth}",
 				currentUrl, currentDepth);
-			
+
 			// Re-throw for the base URL (depth 0) to fail fast
-			if (currentDepth == 0)
-			{
-				throw;
-			}
+			if (currentDepth == 0) throw;
 		}
 		catch (TaskCanceledException ex)
 		{
 			_logger.LogWarning(ex,
 				"Request timeout for URL {Url} at depth {Depth}",
 				currentUrl, currentDepth);
-			
+
 			// Re-throw for the base URL (depth 0) to fail fast
-			if (currentDepth == 0)
-			{
-				throw;
-			}
+			if (currentDepth == 0) throw;
 		}
 	}
 
 	/// <summary>
-	/// Discovers recipe URLs from multiple seed URLs
+	///     Discovers recipe URLs from multiple seed URLs
 	/// </summary>
 	public async Task<IEnumerable<DiscoveredUrl>> DiscoverFromSeedUrlsAsync(
 		IEnumerable<string> seedUrls,
@@ -199,14 +178,11 @@ public class StaticCrawlDiscoveryService : IDiscoveryService
 	{
 		var allDiscoveredUrls = new List<DiscoveredUrl>();
 
-		foreach (var seedUrl in seedUrls)
+		foreach (string seedUrl in seedUrls)
 		{
-			if (cancellationToken.IsCancellationRequested)
-			{
-				break;
-			}
+			if (cancellationToken.IsCancellationRequested) break;
 
-			var urls = await DiscoverRecipeUrlsAsync(
+			IEnumerable<DiscoveredUrl> urls = await DiscoverRecipeUrlsAsync(
 				seedUrl,
 				provider,
 				discoveryOptions.MaxDepth,
@@ -215,24 +191,18 @@ public class StaticCrawlDiscoveryService : IDiscoveryService
 
 			allDiscoveredUrls.AddRange(urls);
 
-			if (allDiscoveredUrls.Count >= discoveryOptions.MaxUrls)
-			{
-				break;
-			}
+			if (allDiscoveredUrls.Count >= discoveryOptions.MaxUrls) break;
 		}
 
 		return allDiscoveredUrls;
 	}
 
 	/// <summary>
-	/// Checks if a URL is likely to be a recipe page based on provider patterns
+	///     Checks if a URL is likely to be a recipe page based on provider patterns
 	/// </summary>
 	public bool IsRecipeUrl(string url, string provider)
 	{
-		if (string.IsNullOrWhiteSpace(url))
-		{
-			return false;
-		}
+		if (string.IsNullOrWhiteSpace(url)) return false;
 
 		// Common recipe URL patterns
 		var recipePatterns = new[]
@@ -263,55 +233,44 @@ public class StaticCrawlDiscoveryService : IDiscoveryService
 			"/author"
 		};
 
-		var lowerUrl = url.ToLowerInvariant();
+		string lowerUrl = url.ToLowerInvariant();
 
 		// Check if URL matches exclude patterns
-		if (excludePatterns.Any(pattern => lowerUrl.Contains(pattern)))
-		{
-			return false;
-		}
+		if (excludePatterns.Any(pattern => lowerUrl.Contains(pattern))) return false;
 
 		// Check if URL matches recipe patterns
 		return recipePatterns.Any(pattern => lowerUrl.Contains(pattern));
 	}
 
 	/// <summary>
-	/// Gets discovery statistics for monitoring and optimization
+	///     Gets discovery statistics for monitoring and optimization
 	/// </summary>
 	public Task<DiscoveryStatistics> GetDiscoveryStatisticsAsync(
 		string provider,
-		TimeRange timeRange)
-	{
+		TimeRange timeRange) =>
 		// For static discovery, we don't track detailed statistics
 		// This would typically be implemented with a separate metrics service
-		return Task.FromResult(new DiscoveryStatistics(
-			TotalUrlsDiscovered: 0,
-			RecipeUrlsFound: 0,
-			FailedRequests: 0,
-			AverageConfidence: 0m,
-			AverageDiscoveryTime: TimeSpan.Zero,
-			UrlsByDepth: new Dictionary<int, int>(),
-			GeneratedAt: DateTime.UtcNow));
-	}
+		Task.FromResult(new DiscoveryStatistics(
+			0,
+			0,
+			0,
+			0m,
+			TimeSpan.Zero,
+			new Dictionary<int, int>(),
+			DateTime.UtcNow));
 
 	/// <summary>
-	/// Calculates confidence score based on URL patterns
+	///     Calculates confidence score based on URL patterns
 	/// </summary>
 	private decimal CalculateConfidence(string url)
 	{
-		var lowerUrl = url.ToLowerInvariant();
+		string lowerUrl = url.ToLowerInvariant();
 
 		// High confidence patterns (0.9)
-		if (lowerUrl.Contains("/recipe/") || lowerUrl.Contains("/recipes/"))
-		{
-			return 0.9m;
-		}
+		if (lowerUrl.Contains("/recipe/") || lowerUrl.Contains("/recipes/")) return 0.9m;
 
 		// Medium confidence patterns (0.7)
-		if (lowerUrl.Contains("/food/") || lowerUrl.Contains("/cooking/"))
-		{
-			return 0.7m;
-		}
+		if (lowerUrl.Contains("/food/") || lowerUrl.Contains("/cooking/")) return 0.7m;
 
 		// Low confidence patterns (0.5)
 		return 0.5m;
@@ -319,7 +278,7 @@ public class StaticCrawlDiscoveryService : IDiscoveryService
 }
 
 /// <summary>
-/// Exception thrown when discovery fails
+///     Exception thrown when discovery fails
 /// </summary>
 public class DiscoveryException : Exception
 {

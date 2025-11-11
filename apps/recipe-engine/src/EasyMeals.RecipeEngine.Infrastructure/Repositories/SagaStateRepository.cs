@@ -14,8 +14,8 @@ public class SagaStateRepository(IMongoDatabase database, IClientSessionHandle? 
 
 	public async Task<SagaState?> GetByCorrelationIdAsync(Guid correlationId, CancellationToken cancellationToken = default)
 	{
-		var filter = Builders<SagaStateDocument>.Filter.Eq(s => s.CorrelationId, correlationId.ToString());
-		var document = await _collection.Find(filter).FirstOrDefaultAsync(cancellationToken);
+		FilterDefinition<SagaStateDocument>? filter = Builders<SagaStateDocument>.Filter.Eq(s => s.CorrelationId, correlationId.ToString());
+		SagaStateDocument? document = await _collection.Find(filter).FirstOrDefaultAsync(cancellationToken);
 		return document?.ToDomain();
 	}
 
@@ -41,7 +41,7 @@ public class SagaStateRepository(IMongoDatabase database, IClientSessionHandle? 
 
 	public async Task<SagaState> UpdateAsync(SagaState sagaState, CancellationToken cancellationToken = default)
 	{
-		var document = SagaStateDocument.FromDomain(sagaState);
+		SagaStateDocument document = SagaStateDocument.FromDomain(sagaState);
 		await ReplaceByIdAsync(document.Id, document, cancellationToken);
 		return sagaState;
 	}

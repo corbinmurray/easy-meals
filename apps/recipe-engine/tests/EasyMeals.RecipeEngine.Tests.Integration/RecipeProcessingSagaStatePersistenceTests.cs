@@ -15,391 +15,378 @@ using Testcontainers.MongoDb;
 namespace EasyMeals.RecipeEngine.Tests.Integration;
 
 /// <summary>
-/// Integration tests for saga state persistence after each processing stage.
-/// Validates that DiscoveredUrls, FingerprintedUrls, ProcessedUrls, FailedUrls, and CurrentIndex
-/// are correctly updated and persisted for crash recovery.
+///     Integration tests for saga state persistence after each processing stage.
+///     Validates that DiscoveredUrls, FingerprintedUrls, ProcessedUrls, FailedUrls, and CurrentIndex
+///     are correctly updated and persisted for crash recovery.
 /// </summary>
 public class RecipeProcessingSagaStatePersistenceTests : IAsyncLifetime
 {
-    private MongoDbContainer? _mongoContainer;
-    private IMongoDatabase? _mongoDatabase;
-    private ISagaStateRepository? _sagaRepository;
+	private MongoDbContainer? _mongoContainer;
+	private IMongoDatabase? _mongoDatabase;
+	private ISagaStateRepository? _sagaRepository;
 
-    public async Task InitializeAsync()
-    {
-        _mongoContainer = new MongoDbBuilder()
-            .WithImage("mongo:7.0")
-            .Build();
+	public async Task DisposeAsync()
+	{
+		if (_mongoContainer != null) await _mongoContainer.DisposeAsync();
+	}
 
-        await _mongoContainer.StartAsync();
+	public async Task InitializeAsync()
+	{
+		_mongoContainer = new MongoDbBuilder()
+			.WithImage("mongo:7.0")
+			.Build();
 
-        var mongoClient = new MongoClient(_mongoContainer.GetConnectionString());
-        _mongoDatabase = mongoClient.GetDatabase("recipe-engine-persistence-test");
-        _sagaRepository = new SagaStateRepository(_mongoDatabase);
-    }
+		await _mongoContainer.StartAsync();
 
-    public async Task DisposeAsync()
-    {
-        if (_mongoContainer != null)
-        {
-            await _mongoContainer.DisposeAsync();
-        }
-    }
+		var mongoClient = new MongoClient(_mongoContainer.GetConnectionString());
+		_mongoDatabase = mongoClient.GetDatabase("recipe-engine-persistence-test");
+		_sagaRepository = new SagaStateRepository(_mongoDatabase);
+	}
 
-    [Fact(DisplayName = "Saga persists DiscoveredUrls after discovery phase")]
-    public async Task SagaStatePersistence_PersistsDiscoveredUrls_AfterDiscoveryPhase()
-    {
-        // Arrange
-        var mockLogger = new Mock<ILogger<RecipeProcessingSaga>>();
-        var mockConfigLoader = CreateMockConfigLoader();
-        
-        var expectedUrls = new[]
-        {
-            "https://test.com/recipe1",
-            "https://test.com/recipe2",
-            "https://test.com/recipe3"
-        };
-        
-        var mockDiscoveryService = CreateMockDiscoveryService(expectedUrls);
-        var mockFingerprinter = CreateMockFingerprinter();
-        var mockNormalizer = CreateMockNormalizer();
-        var mockRateLimiter = CreateMockRateLimiter();
-        var mockBatchRepository = CreateMockBatchRepository();
-        var mockEventBus = CreateMockEventBus();
+	private static Mock<IRecipeBatchRepository> CreateMockBatchRepository() => new();
 
-        var saga = new RecipeProcessingSaga(
-            mockLogger.Object,
-            _sagaRepository!,
-            mockConfigLoader.Object,
-            mockDiscoveryService.Object,
-            mockFingerprinter.Object,
-            mockNormalizer.Object,
-            mockRateLimiter.Object,
-            mockBatchRepository.Object,
-            mockEventBus.Object);
+	private static Mock<IProviderConfigurationLoader> CreateMockConfigLoader()
+	{
+		var mock = new Mock<IProviderConfigurationLoader>();
+		var config = new ProviderConfiguration(
+			"test-provider",
+			true,
+			DiscoveryStrategy.Static,
+			"https://test.com/recipes",
+			50,
+			60,
+			0.1,
+			10,
+			3,
+			30);
 
-        // Act
-        var batchId = await saga.StartProcessingAsync(
-            "test-provider",
-            batchSize: 10,
-            timeWindow: TimeSpan.FromMinutes(10),
-            CancellationToken.None);
+		mock.Setup(c => c.GetByProviderIdAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+			.ReturnsAsync(config);
 
-        // Assert
-        var sagaState = await _sagaRepository!.GetByCorrelationIdAsync(batchId, CancellationToken.None);
-        sagaState.Should().NotBeNull();
-        sagaState!.StateData.Should().ContainKey("DiscoveredUrls");
-        
-        var discoveredUrls = sagaState.StateData["DiscoveredUrls"] as List<string>;
-        discoveredUrls.Should().NotBeNull();
-        discoveredUrls.Should().HaveCount(expectedUrls.Length);
-        discoveredUrls.Should().BeEquivalentTo(expectedUrls);
-    }
+		return mock;
+	}
 
-    [Fact(DisplayName = "Saga persists FingerprintedUrls after fingerprinting phase")]
-    public async Task SagaStatePersistence_PersistsFingerprintedUrls_AfterFingerprintingPhase()
-    {
-        // Arrange
-        var mockLogger = new Mock<ILogger<RecipeProcessingSaga>>();
-        var mockConfigLoader = CreateMockConfigLoader();
-        var mockDiscoveryService = CreateMockDiscoveryService(new[]
-        {
-            "https://test.com/recipe1",
-            "https://test.com/recipe2-duplicate", // Will be filtered out
-            "https://test.com/recipe3"
-        });
+	private static Mock<IDiscoveryService> CreateMockDiscoveryService(string[] urls)
+	{
+		var mock = new Mock<IDiscoveryService>();
+		List<DiscoveredUrl> discoveredUrls = urls.Select(url =>
+			new DiscoveredUrl(url, "test-provider", DateTime.UtcNow)).ToList();
 
-        var mockFingerprinter = new Mock<IRecipeFingerprinter>();
-        mockFingerprinter
-            .Setup(f => f.GenerateFingerprint(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
-            .Returns((string url, string title, string description) => 
-                url.Contains("recipe2-duplicate") ? "fingerprint-recipe2" : $"fingerprint-{url}");
-        
-        // Mark recipe2 as duplicate
-        mockFingerprinter
-            .Setup(f => f.IsDuplicateAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((string fingerprint, CancellationToken ct) => 
-                fingerprint == "fingerprint-recipe2");
+		mock.Setup(d => d.DiscoverRecipeUrlsAsync(
+				It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+			.ReturnsAsync(discoveredUrls);
 
-        var mockNormalizer = CreateMockNormalizer();
-        var mockRateLimiter = CreateMockRateLimiter();
-        var mockBatchRepository = CreateMockBatchRepository();
-        var mockEventBus = CreateMockEventBus();
+		return mock;
+	}
 
-        var saga = new RecipeProcessingSaga(
-            mockLogger.Object,
-            _sagaRepository!,
-            mockConfigLoader.Object,
-            mockDiscoveryService.Object,
-            mockFingerprinter.Object,
-            mockNormalizer.Object,
-            mockRateLimiter.Object,
-            mockBatchRepository.Object,
-            mockEventBus.Object);
+	private static Mock<IEventBus> CreateMockEventBus() => new();
 
-        // Act
-        var batchId = await saga.StartProcessingAsync(
-            "test-provider",
-            batchSize: 10,
-            timeWindow: TimeSpan.FromMinutes(10),
-            CancellationToken.None);
+	private static Mock<IRecipeFingerprinter> CreateMockFingerprinter()
+	{
+		var mock = new Mock<IRecipeFingerprinter>();
+		mock.Setup(f => f.GenerateFingerprint(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+			.Returns("test-fingerprint");
+		mock.Setup(f => f.IsDuplicateAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+			.ReturnsAsync(false);
+		return mock;
+	}
 
-        // Assert
-        var sagaState = await _sagaRepository!.GetByCorrelationIdAsync(batchId, CancellationToken.None);
-        sagaState.Should().NotBeNull();
-        sagaState!.StateData.Should().ContainKey("FingerprintedUrls");
-        
-        var fingerprintedUrls = sagaState.StateData["FingerprintedUrls"] as List<string>;
-        fingerprintedUrls.Should().NotBeNull();
-        
-        // Should exclude duplicates
-        fingerprintedUrls.Should().NotContain(url => url.Contains("recipe2-duplicate"));
-    }
+	private static Mock<IIngredientNormalizer> CreateMockNormalizer()
+	{
+		var mock = new Mock<IIngredientNormalizer>();
+		mock.Setup(n => n.NormalizeBatchAsync(
+				It.IsAny<string>(), It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
+			.ReturnsAsync(new Dictionary<string, string?>());
+		return mock;
+	}
 
-    [Fact(DisplayName = "Saga persists ProcessedUrls and CurrentIndex during processing")]
-    public async Task SagaStatePersistence_PersistsProcessedUrlsAndCurrentIndex_DuringProcessing()
-    {
-        // Arrange
-        var mockLogger = new Mock<ILogger<RecipeProcessingSaga>>();
-        var mockConfigLoader = CreateMockConfigLoader();
-        var mockDiscoveryService = CreateMockDiscoveryService(new[]
-        {
-            "https://test.com/recipe1",
-            "https://test.com/recipe2",
-            "https://test.com/recipe3"
-        });
+	private static Mock<IRateLimiter> CreateMockRateLimiter()
+	{
+		var mock = new Mock<IRateLimiter>();
+		mock.Setup(r => r.TryAcquireAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+			.ReturnsAsync(true);
+		return mock;
+	}
 
-        var mockFingerprinter = CreateMockFingerprinter();
-        var mockNormalizer = CreateMockNormalizer();
-        var mockRateLimiter = CreateMockRateLimiter();
-        var mockBatchRepository = CreateMockBatchRepository();
-        var mockEventBus = CreateMockEventBus();
+	[Fact(DisplayName = "Saga state can be reconstituted for crash recovery")]
+	public async Task SagaStatePersistence_CanBeReconstituted_ForCrashRecovery()
+	{
+		// Arrange - First run
+		var mockLogger = new Mock<ILogger<RecipeProcessingSaga>>();
+		Mock<IProviderConfigurationLoader> mockConfigLoader = CreateMockConfigLoader();
+		Mock<IDiscoveryService> mockDiscoveryService = CreateMockDiscoveryService(new[]
+		{
+			"https://test.com/recipe1",
+			"https://test.com/recipe2",
+			"https://test.com/recipe3"
+		});
 
-        var saga = new RecipeProcessingSaga(
-            mockLogger.Object,
-            _sagaRepository!,
-            mockConfigLoader.Object,
-            mockDiscoveryService.Object,
-            mockFingerprinter.Object,
-            mockNormalizer.Object,
-            mockRateLimiter.Object,
-            mockBatchRepository.Object,
-            mockEventBus.Object);
+		Mock<IRecipeFingerprinter> mockFingerprinter = CreateMockFingerprinter();
+		Mock<IIngredientNormalizer> mockNormalizer = CreateMockNormalizer();
+		Mock<IRateLimiter> mockRateLimiter = CreateMockRateLimiter();
+		Mock<IRecipeBatchRepository> mockBatchRepository = CreateMockBatchRepository();
+		Mock<IEventBus> mockEventBus = CreateMockEventBus();
 
-        // Act
-        var batchId = await saga.StartProcessingAsync(
-            "test-provider",
-            batchSize: 10,
-            timeWindow: TimeSpan.FromMinutes(10),
-            CancellationToken.None);
+		var saga = new RecipeProcessingSaga(
+			mockLogger.Object,
+			_sagaRepository!,
+			mockConfigLoader.Object,
+			mockDiscoveryService.Object,
+			mockFingerprinter.Object,
+			mockNormalizer.Object,
+			mockRateLimiter.Object,
+			mockBatchRepository.Object,
+			mockEventBus.Object);
 
-        // Assert
-        var sagaState = await _sagaRepository!.GetByCorrelationIdAsync(batchId, CancellationToken.None);
-        sagaState.Should().NotBeNull();
-        
-        // Verify ProcessedUrls are tracked
-        sagaState!.StateData.Should().ContainKey("ProcessedUrls");
-        var processedUrls = sagaState.StateData["ProcessedUrls"] as List<string>;
-        processedUrls.Should().NotBeNull();
-        
-        // Verify CurrentIndex is tracked for resumability
-        sagaState.StateData.Should().ContainKey("CurrentIndex");
-        var currentIndex = sagaState.StateData["CurrentIndex"];
-        currentIndex.Should().NotBeNull();
-        
-        // In Phase 5, CurrentIndex should equal ProcessedUrls.Count after completion
-    }
+		Guid batchId = await saga.StartProcessingAsync(
+			"test-provider",
+			10,
+			TimeSpan.FromMinutes(10),
+			CancellationToken.None);
 
-    [Fact(DisplayName = "Saga persists FailedUrls with error details")]
-    public async Task SagaStatePersistence_PersistsFailedUrls_WithErrorDetails()
-    {
-        // Arrange
-        var mockLogger = new Mock<ILogger<RecipeProcessingSaga>>();
-        var mockConfigLoader = CreateMockConfigLoader();
-        var mockDiscoveryService = CreateMockDiscoveryService(new[]
-        {
-            "https://test.com/recipe1"
-        });
+		// Act - Verify state was persisted
+		SagaState? originalState = await _sagaRepository!.GetByCorrelationIdAsync(batchId, CancellationToken.None);
+		originalState.Should().NotBeNull();
 
-        var mockFingerprinter = CreateMockFingerprinter();
-        var mockNormalizer = CreateMockNormalizer();
-        var mockRateLimiter = CreateMockRateLimiter();
-        var mockBatchRepository = CreateMockBatchRepository();
-        var mockEventBus = CreateMockEventBus();
+		// Reconstitute from persisted data
+		SagaState reconstitutedState = SagaState.Reconstitute(
+			originalState!.Id,
+			originalState.SagaType,
+			originalState.CorrelationId,
+			originalState.Status,
+			originalState.CurrentPhase,
+			originalState.PhaseProgress,
+			originalState.StateData,
+			originalState.CheckpointData,
+			originalState.Metrics,
+			originalState.ErrorMessage,
+			originalState.ErrorStackTrace,
+			originalState.CreatedAt,
+			originalState.StartedAt,
+			originalState.UpdatedAt,
+			originalState.CompletedAt);
 
-        var saga = new RecipeProcessingSaga(
-            mockLogger.Object,
-            _sagaRepository!,
-            mockConfigLoader.Object,
-            mockDiscoveryService.Object,
-            mockFingerprinter.Object,
-            mockNormalizer.Object,
-            mockRateLimiter.Object,
-            mockBatchRepository.Object,
-            mockEventBus.Object);
+		// Assert - Reconstituted state should match original
+		reconstitutedState.Should().NotBeNull();
+		reconstitutedState.Id.Should().Be(originalState.Id);
+		reconstitutedState.CorrelationId.Should().Be(originalState.CorrelationId);
+		reconstitutedState.StateData["DiscoveredUrls"].Should().BeEquivalentTo(originalState.StateData["DiscoveredUrls"]);
+		reconstitutedState.StateData["ProcessedUrls"].Should().BeEquivalentTo(originalState.StateData["ProcessedUrls"]);
+		reconstitutedState.StateData["CurrentIndex"].Should().Be(originalState.StateData["CurrentIndex"]);
+	}
 
-        // Act
-        var batchId = await saga.StartProcessingAsync(
-            "test-provider",
-            batchSize: 10,
-            timeWindow: TimeSpan.FromMinutes(10),
-            CancellationToken.None);
+	[Fact(DisplayName = "Saga persists DiscoveredUrls after discovery phase")]
+	public async Task SagaStatePersistence_PersistsDiscoveredUrls_AfterDiscoveryPhase()
+	{
+		// Arrange
+		var mockLogger = new Mock<ILogger<RecipeProcessingSaga>>();
+		Mock<IProviderConfigurationLoader> mockConfigLoader = CreateMockConfigLoader();
 
-        // Assert
-        var sagaState = await _sagaRepository!.GetByCorrelationIdAsync(batchId, CancellationToken.None);
-        sagaState.Should().NotBeNull();
-        sagaState!.StateData.Should().ContainKey("FailedUrls");
-        
-        var failedUrls = sagaState.StateData["FailedUrls"] as List<Dictionary<string, object>>;
-        failedUrls.Should().NotBeNull();
-        
-        // In Phase 5, when errors occur, FailedUrls should contain:
-        // - Url
-        // - Error message
-        // - RetryCount
-        // - Timestamp
-        // - IsPermanent/IsTransient flag
-    }
+		var expectedUrls = new[]
+		{
+			"https://test.com/recipe1",
+			"https://test.com/recipe2",
+			"https://test.com/recipe3"
+		};
 
-    [Fact(DisplayName = "Saga state can be reconstituted for crash recovery")]
-    public async Task SagaStatePersistence_CanBeReconstituted_ForCrashRecovery()
-    {
-        // Arrange - First run
-        var mockLogger = new Mock<ILogger<RecipeProcessingSaga>>();
-        var mockConfigLoader = CreateMockConfigLoader();
-        var mockDiscoveryService = CreateMockDiscoveryService(new[]
-        {
-            "https://test.com/recipe1",
-            "https://test.com/recipe2",
-            "https://test.com/recipe3"
-        });
+		Mock<IDiscoveryService> mockDiscoveryService = CreateMockDiscoveryService(expectedUrls);
+		Mock<IRecipeFingerprinter> mockFingerprinter = CreateMockFingerprinter();
+		Mock<IIngredientNormalizer> mockNormalizer = CreateMockNormalizer();
+		Mock<IRateLimiter> mockRateLimiter = CreateMockRateLimiter();
+		Mock<IRecipeBatchRepository> mockBatchRepository = CreateMockBatchRepository();
+		Mock<IEventBus> mockEventBus = CreateMockEventBus();
 
-        var mockFingerprinter = CreateMockFingerprinter();
-        var mockNormalizer = CreateMockNormalizer();
-        var mockRateLimiter = CreateMockRateLimiter();
-        var mockBatchRepository = CreateMockBatchRepository();
-        var mockEventBus = CreateMockEventBus();
+		var saga = new RecipeProcessingSaga(
+			mockLogger.Object,
+			_sagaRepository!,
+			mockConfigLoader.Object,
+			mockDiscoveryService.Object,
+			mockFingerprinter.Object,
+			mockNormalizer.Object,
+			mockRateLimiter.Object,
+			mockBatchRepository.Object,
+			mockEventBus.Object);
 
-        var saga = new RecipeProcessingSaga(
-            mockLogger.Object,
-            _sagaRepository!,
-            mockConfigLoader.Object,
-            mockDiscoveryService.Object,
-            mockFingerprinter.Object,
-            mockNormalizer.Object,
-            mockRateLimiter.Object,
-            mockBatchRepository.Object,
-            mockEventBus.Object);
+		// Act
+		Guid batchId = await saga.StartProcessingAsync(
+			"test-provider",
+			10,
+			TimeSpan.FromMinutes(10),
+			CancellationToken.None);
 
-        var batchId = await saga.StartProcessingAsync(
-            "test-provider",
-            batchSize: 10,
-            timeWindow: TimeSpan.FromMinutes(10),
-            CancellationToken.None);
+		// Assert
+		SagaState? sagaState = await _sagaRepository!.GetByCorrelationIdAsync(batchId, CancellationToken.None);
+		sagaState.Should().NotBeNull();
+		sagaState!.StateData.Should().ContainKey("DiscoveredUrls");
 
-        // Act - Verify state was persisted
-        var originalState = await _sagaRepository!.GetByCorrelationIdAsync(batchId, CancellationToken.None);
-        originalState.Should().NotBeNull();
+		var discoveredUrls = sagaState.StateData["DiscoveredUrls"] as List<string>;
+		discoveredUrls.Should().NotBeNull();
+		discoveredUrls.Should().HaveCount(expectedUrls.Length);
+		discoveredUrls.Should().BeEquivalentTo(expectedUrls);
+	}
 
-        // Reconstitute from persisted data
-        var reconstitutedState = SagaState.Reconstitute(
-            id: originalState!.Id,
-            sagaType: originalState.SagaType,
-            correlationId: originalState.CorrelationId,
-            status: originalState.Status,
-            currentPhase: originalState.CurrentPhase,
-            phaseProgress: originalState.PhaseProgress,
-            stateData: originalState.StateData,
-            checkpointData: originalState.CheckpointData,
-            metrics: originalState.Metrics,
-            errorMessage: originalState.ErrorMessage,
-            errorStackTrace: originalState.ErrorStackTrace,
-            createdAt: originalState.CreatedAt,
-            startedAt: originalState.StartedAt,
-            updatedAt: originalState.UpdatedAt,
-            completedAt: originalState.CompletedAt);
+	[Fact(DisplayName = "Saga persists FailedUrls with error details")]
+	public async Task SagaStatePersistence_PersistsFailedUrls_WithErrorDetails()
+	{
+		// Arrange
+		var mockLogger = new Mock<ILogger<RecipeProcessingSaga>>();
+		Mock<IProviderConfigurationLoader> mockConfigLoader = CreateMockConfigLoader();
+		Mock<IDiscoveryService> mockDiscoveryService = CreateMockDiscoveryService(new[]
+		{
+			"https://test.com/recipe1"
+		});
 
-        // Assert - Reconstituted state should match original
-        reconstitutedState.Should().NotBeNull();
-        reconstitutedState.Id.Should().Be(originalState.Id);
-        reconstitutedState.CorrelationId.Should().Be(originalState.CorrelationId);
-        reconstitutedState.StateData["DiscoveredUrls"].Should().BeEquivalentTo(originalState.StateData["DiscoveredUrls"]);
-        reconstitutedState.StateData["ProcessedUrls"].Should().BeEquivalentTo(originalState.StateData["ProcessedUrls"]);
-        reconstitutedState.StateData["CurrentIndex"].Should().Be(originalState.StateData["CurrentIndex"]);
-    }
+		Mock<IRecipeFingerprinter> mockFingerprinter = CreateMockFingerprinter();
+		Mock<IIngredientNormalizer> mockNormalizer = CreateMockNormalizer();
+		Mock<IRateLimiter> mockRateLimiter = CreateMockRateLimiter();
+		Mock<IRecipeBatchRepository> mockBatchRepository = CreateMockBatchRepository();
+		Mock<IEventBus> mockEventBus = CreateMockEventBus();
 
-    #region Helper Methods
+		var saga = new RecipeProcessingSaga(
+			mockLogger.Object,
+			_sagaRepository!,
+			mockConfigLoader.Object,
+			mockDiscoveryService.Object,
+			mockFingerprinter.Object,
+			mockNormalizer.Object,
+			mockRateLimiter.Object,
+			mockBatchRepository.Object,
+			mockEventBus.Object);
 
-    private static Mock<IProviderConfigurationLoader> CreateMockConfigLoader()
-    {
-        var mock = new Mock<IProviderConfigurationLoader>();
-        var config = new ProviderConfiguration(
-            providerId: "test-provider",
-            enabled: true,
-            discoveryStrategy: DiscoveryStrategy.Static,
-            recipeRootUrl: "https://test.com/recipes",
-            batchSize: 50,
-            timeWindowMinutes: 60,
-            minDelaySeconds: 0.1,
-            maxRequestsPerMinute: 10,
-            retryCount: 3,
-            requestTimeoutSeconds: 30);
+		// Act
+		Guid batchId = await saga.StartProcessingAsync(
+			"test-provider",
+			10,
+			TimeSpan.FromMinutes(10),
+			CancellationToken.None);
 
-        mock.Setup(c => c.GetByProviderIdAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(config);
+		// Assert
+		SagaState? sagaState = await _sagaRepository!.GetByCorrelationIdAsync(batchId, CancellationToken.None);
+		sagaState.Should().NotBeNull();
+		sagaState!.StateData.Should().ContainKey("FailedUrls");
 
-        return mock;
-    }
+		var failedUrls = sagaState.StateData["FailedUrls"] as List<Dictionary<string, object>>;
+		failedUrls.Should().NotBeNull();
 
-    private static Mock<Domain.Interfaces.IDiscoveryService> CreateMockDiscoveryService(string[] urls)
-    {
-        var mock = new Mock<Domain.Interfaces.IDiscoveryService>();
-        var discoveredUrls = urls.Select(url => 
-            new DiscoveredUrl(url, "test-provider", DateTime.UtcNow)).ToList();
+		// In Phase 5, when errors occur, FailedUrls should contain:
+		// - Url
+		// - Error message
+		// - RetryCount
+		// - Timestamp
+		// - IsPermanent/IsTransient flag
+	}
 
-        mock.Setup(d => d.DiscoverRecipeUrlsAsync(
-                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(discoveredUrls);
+	[Fact(DisplayName = "Saga persists FingerprintedUrls after fingerprinting phase")]
+	public async Task SagaStatePersistence_PersistsFingerprintedUrls_AfterFingerprintingPhase()
+	{
+		// Arrange
+		var mockLogger = new Mock<ILogger<RecipeProcessingSaga>>();
+		Mock<IProviderConfigurationLoader> mockConfigLoader = CreateMockConfigLoader();
+		Mock<IDiscoveryService> mockDiscoveryService = CreateMockDiscoveryService(new[]
+		{
+			"https://test.com/recipe1",
+			"https://test.com/recipe2-duplicate", // Will be filtered out
+			"https://test.com/recipe3"
+		});
 
-        return mock;
-    }
+		var mockFingerprinter = new Mock<IRecipeFingerprinter>();
+		mockFingerprinter
+			.Setup(f => f.GenerateFingerprint(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+			.Returns((string url, string title, string description) =>
+				url.Contains("recipe2-duplicate") ? "fingerprint-recipe2" : $"fingerprint-{url}");
 
-    private static Mock<IRecipeFingerprinter> CreateMockFingerprinter()
-    {
-        var mock = new Mock<IRecipeFingerprinter>();
-        mock.Setup(f => f.GenerateFingerprint(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
-            .Returns("test-fingerprint");
-        mock.Setup(f => f.IsDuplicateAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(false);
-        return mock;
-    }
+		// Mark recipe2 as duplicate
+		mockFingerprinter
+			.Setup(f => f.IsDuplicateAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+			.ReturnsAsync((string fingerprint, CancellationToken ct) =>
+				fingerprint == "fingerprint-recipe2");
 
-    private static Mock<IIngredientNormalizer> CreateMockNormalizer()
-    {
-        var mock = new Mock<IIngredientNormalizer>();
-        mock.Setup(n => n.NormalizeBatchAsync(
-                It.IsAny<string>(), It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new Dictionary<string, string?>());
-        return mock;
-    }
+		Mock<IIngredientNormalizer> mockNormalizer = CreateMockNormalizer();
+		Mock<IRateLimiter> mockRateLimiter = CreateMockRateLimiter();
+		Mock<IRecipeBatchRepository> mockBatchRepository = CreateMockBatchRepository();
+		Mock<IEventBus> mockEventBus = CreateMockEventBus();
 
-    private static Mock<IRateLimiter> CreateMockRateLimiter()
-    {
-        var mock = new Mock<IRateLimiter>();
-        mock.Setup(r => r.TryAcquireAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(true);
-        return mock;
-    }
+		var saga = new RecipeProcessingSaga(
+			mockLogger.Object,
+			_sagaRepository!,
+			mockConfigLoader.Object,
+			mockDiscoveryService.Object,
+			mockFingerprinter.Object,
+			mockNormalizer.Object,
+			mockRateLimiter.Object,
+			mockBatchRepository.Object,
+			mockEventBus.Object);
 
-    private static Mock<IRecipeBatchRepository> CreateMockBatchRepository()
-    {
-        return new Mock<IRecipeBatchRepository>();
-    }
+		// Act
+		Guid batchId = await saga.StartProcessingAsync(
+			"test-provider",
+			10,
+			TimeSpan.FromMinutes(10),
+			CancellationToken.None);
 
-    private static Mock<IEventBus> CreateMockEventBus()
-    {
-        return new Mock<IEventBus>();
-    }
+		// Assert
+		SagaState? sagaState = await _sagaRepository!.GetByCorrelationIdAsync(batchId, CancellationToken.None);
+		sagaState.Should().NotBeNull();
+		sagaState!.StateData.Should().ContainKey("FingerprintedUrls");
 
-    #endregion
+		var fingerprintedUrls = sagaState.StateData["FingerprintedUrls"] as List<string>;
+		fingerprintedUrls.Should().NotBeNull();
+
+		// Should exclude duplicates
+		fingerprintedUrls.Should().NotContain(url => url.Contains("recipe2-duplicate"));
+	}
+
+	[Fact(DisplayName = "Saga persists ProcessedUrls and CurrentIndex during processing")]
+	public async Task SagaStatePersistence_PersistsProcessedUrlsAndCurrentIndex_DuringProcessing()
+	{
+		// Arrange
+		var mockLogger = new Mock<ILogger<RecipeProcessingSaga>>();
+		Mock<IProviderConfigurationLoader> mockConfigLoader = CreateMockConfigLoader();
+		Mock<IDiscoveryService> mockDiscoveryService = CreateMockDiscoveryService(new[]
+		{
+			"https://test.com/recipe1",
+			"https://test.com/recipe2",
+			"https://test.com/recipe3"
+		});
+
+		Mock<IRecipeFingerprinter> mockFingerprinter = CreateMockFingerprinter();
+		Mock<IIngredientNormalizer> mockNormalizer = CreateMockNormalizer();
+		Mock<IRateLimiter> mockRateLimiter = CreateMockRateLimiter();
+		Mock<IRecipeBatchRepository> mockBatchRepository = CreateMockBatchRepository();
+		Mock<IEventBus> mockEventBus = CreateMockEventBus();
+
+		var saga = new RecipeProcessingSaga(
+			mockLogger.Object,
+			_sagaRepository!,
+			mockConfigLoader.Object,
+			mockDiscoveryService.Object,
+			mockFingerprinter.Object,
+			mockNormalizer.Object,
+			mockRateLimiter.Object,
+			mockBatchRepository.Object,
+			mockEventBus.Object);
+
+		// Act
+		Guid batchId = await saga.StartProcessingAsync(
+			"test-provider",
+			10,
+			TimeSpan.FromMinutes(10),
+			CancellationToken.None);
+
+		// Assert
+		SagaState? sagaState = await _sagaRepository!.GetByCorrelationIdAsync(batchId, CancellationToken.None);
+		sagaState.Should().NotBeNull();
+
+		// Verify ProcessedUrls are tracked
+		sagaState!.StateData.Should().ContainKey("ProcessedUrls");
+		var processedUrls = sagaState.StateData["ProcessedUrls"] as List<string>;
+		processedUrls.Should().NotBeNull();
+
+		// Verify CurrentIndex is tracked for resumability
+		sagaState.StateData.Should().ContainKey("CurrentIndex");
+		object currentIndex = sagaState.StateData["CurrentIndex"];
+		currentIndex.Should().NotBeNull();
+
+		// In Phase 5, CurrentIndex should equal ProcessedUrls.Count after completion
+	}
 }

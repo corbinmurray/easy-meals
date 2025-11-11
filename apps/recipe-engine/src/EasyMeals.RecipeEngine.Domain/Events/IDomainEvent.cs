@@ -6,20 +6,20 @@ namespace EasyMeals.RecipeEngine.Domain.Events;
 /// </summary>
 public interface IDomainEvent
 {
-    /// <summary>
-    ///     Unique identifier for the event
-    /// </summary>
-    Guid EventId { get; }
+	/// <summary>
+	///     Unique identifier for the event
+	/// </summary>
+	Guid EventId { get; }
 
-    /// <summary>
-    ///     Timestamp when the event occurred
-    /// </summary>
-    DateTime OccurredOn { get; }
+	/// <summary>
+	///     Timestamp when the event occurred
+	/// </summary>
+	DateTime OccurredOn { get; }
 
-    /// <summary>
-    ///     Version of the event for schema evolution
-    /// </summary>
-    int Version { get; }
+	/// <summary>
+	///     Version of the event for schema evolution
+	/// </summary>
+	int Version { get; }
 }
 
 /// <summary>

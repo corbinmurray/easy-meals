@@ -27,10 +27,7 @@ public class ProviderConfigurationLoader : IProviderConfigurationLoader
 		CancellationToken cancellationToken = default)
 	{
 		// Check cache first
-		if (_cache.TryGetValue(providerId, out CacheEntry? entry) && !entry.IsExpired)
-		{
-			return entry.Configuration;
-		}
+		if (_cache.TryGetValue(providerId, out CacheEntry? entry) && !entry.IsExpired) return entry.Configuration;
 
 		// Load from MongoDB if not cached or expired
 		ProviderConfigurationDocument? document = await _repository.GetFirstOrDefaultAsync(
@@ -45,10 +42,10 @@ public class ProviderConfigurationLoader : IProviderConfigurationLoader
 		}
 
 		ProviderConfiguration config = ToDomain(document);
-		
+
 		// Cache the result
 		_cache[providerId] = new CacheEntry(config, _cacheTtl);
-		
+
 		return config;
 	}
 
@@ -85,7 +82,7 @@ public class ProviderConfigurationLoader : IProviderConfigurationLoader
 	}
 
 	/// <summary>
-	/// Invalidates the cache for a specific provider, forcing reload on next access.
+	///     Invalidates the cache for a specific provider, forcing reload on next access.
 	/// </summary>
 	/// <param name="providerId">Provider ID to invalidate</param>
 	public void InvalidateCache(string providerId)
@@ -94,7 +91,7 @@ public class ProviderConfigurationLoader : IProviderConfigurationLoader
 	}
 
 	/// <summary>
-	/// Clears the entire cache, forcing reload for all providers.
+	///     Clears the entire cache, forcing reload for all providers.
 	/// </summary>
 	public void ClearCache()
 	{
@@ -104,7 +101,7 @@ public class ProviderConfigurationLoader : IProviderConfigurationLoader
 	private static ProviderConfiguration ToDomain(ProviderConfigurationDocument document)
 	{
 		// Parse the discovery strategy from string to enum
-		if (!Enum.TryParse<DiscoveryStrategy>(document.DiscoveryStrategy, true, out DiscoveryStrategy strategy))
+		if (!Enum.TryParse(document.DiscoveryStrategy, true, out DiscoveryStrategy strategy))
 			throw new InvalidOperationException($"Invalid DiscoveryStrategy value: {document.DiscoveryStrategy}");
 
 		return new ProviderConfiguration(
@@ -122,7 +119,7 @@ public class ProviderConfigurationLoader : IProviderConfigurationLoader
 	}
 
 	/// <summary>
-	/// Cache entry with expiration support.
+	///     Cache entry with expiration support.
 	/// </summary>
 	private class CacheEntry
 	{

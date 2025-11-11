@@ -42,7 +42,7 @@ try
 	services.AddLogging(opts =>
 	{
 		opts.ClearProviders();
-		opts.AddSerilog(Log.Logger, dispose: true);
+		opts.AddSerilog(Log.Logger, true);
 	});
 
 	// Recipe Engine infrastructure includes MongoDB setup
@@ -70,18 +70,18 @@ try
 	{
 		await using AsyncServiceScope scope = serviceProvider.CreateAsyncScope();
 		var processor = scope.ServiceProvider.GetRequiredService<IRecipeProcessingSaga>();
-		
+
 		// Start processing with default configuration
 		// In production, these would come from configuration or command-line arguments
 		var providerId = "provider_001";
 		var batchSize = 100;
-		var timeWindow = TimeSpan.FromHours(1);
-		
-		Log.Information("Starting recipe processing for {ProviderId} with batch size {BatchSize} and time window {TimeWindow}", 
+		TimeSpan timeWindow = TimeSpan.FromHours(1);
+
+		Log.Information("Starting recipe processing for {ProviderId} with batch size {BatchSize} and time window {TimeWindow}",
 			providerId, batchSize, timeWindow);
-		
+
 		await processor.StartProcessingAsync(providerId, batchSize, timeWindow, cts.Token);
-		
+
 		Log.Information("Recipe processing completed successfully");
 	}
 	catch (OperationCanceledException)

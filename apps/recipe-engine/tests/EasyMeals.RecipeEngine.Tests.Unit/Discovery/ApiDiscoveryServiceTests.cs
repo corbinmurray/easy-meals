@@ -1,23 +1,23 @@
-using EasyMeals.RecipeEngine.Domain.Interfaces;
+using System.Net;
+using System.Text;
+using System.Text.Json;
 using EasyMeals.RecipeEngine.Domain.ValueObjects.Discovery;
 using EasyMeals.RecipeEngine.Infrastructure.Discovery;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Moq.Protected;
-using System.Net;
-using System.Text.Json;
 
 namespace EasyMeals.RecipeEngine.Tests.Unit.Discovery;
 
 /// <summary>
-/// T107: Unit tests for ApiDiscoveryService
-/// Tests API-based discovery with JSON parsing
+///     T107: Unit tests for ApiDiscoveryService
+///     Tests API-based discovery with JSON parsing
 /// </summary>
 public class ApiDiscoveryServiceTests
 {
-	private readonly Mock<ILogger<ApiDiscoveryService>> _mockLogger;
-	private readonly Mock<HttpMessageHandler> _mockHttpMessageHandler;
 	private readonly HttpClient _httpClient;
+	private readonly Mock<HttpMessageHandler> _mockHttpMessageHandler;
+	private readonly Mock<ILogger<ApiDiscoveryService>> _mockLogger;
 
 	public ApiDiscoveryServiceTests()
 	{
@@ -26,36 +26,21 @@ public class ApiDiscoveryServiceTests
 		_httpClient = new HttpClient(_mockHttpMessageHandler.Object);
 	}
 
-	[Fact(DisplayName = "DiscoverRecipeUrlsAsync_ValidJsonResponse_ExtractsRecipeUrls")]
-	public async Task DiscoverRecipeUrlsAsync_ValidJsonResponse_ExtractsRecipeUrls()
+	private void SetupJsonResponse<T>(string url, T response)
 	{
-		// Arrange
-		const string baseUrl = "https://api.example.com/recipes";
-		var jsonResponse = new
-		{
-			recipes = new[]
+		string jsonContent = JsonSerializer.Serialize(response);
+
+		_mockHttpMessageHandler
+			.Protected()
+			.Setup<Task<HttpResponseMessage>>(
+				"SendAsync",
+				ItExpr.Is<HttpRequestMessage>(req => req.RequestUri!.ToString() == url),
+				ItExpr.IsAny<CancellationToken>())
+			.ReturnsAsync(new HttpResponseMessage
 			{
-				new { id = "1", url = "https://example.com/recipe/pasta", title = "Pasta" },
-				new { id = "2", url = "https://example.com/recipe/pizza", title = "Pizza" },
-				new { id = "3", url = "https://example.com/recipe/salad", title = "Salad" }
-			}
-		};
-
-		SetupJsonResponse(baseUrl, jsonResponse);
-
-		var service = new ApiDiscoveryService(_mockLogger.Object, _httpClient);
-
-		// Act
-		var result = await service.DiscoverRecipeUrlsAsync(
-			baseUrl,
-			"test_provider",
-			maxDepth: 1,
-			maxUrls: 100);
-
-		// Assert
-		var urls = result.ToList();
-		Assert.Equal(3, urls.Count);
-		Assert.All(urls, url => Assert.Contains("/recipe/", url.Url));
+				StatusCode = HttpStatusCode.OK,
+				Content = new StringContent(jsonContent, Encoding.UTF8, "application/json")
+			});
 	}
 
 	[Fact(DisplayName = "DiscoverRecipeUrlsAsync_EmptyJsonResponse_ReturnsEmptyList")]
@@ -70,14 +55,107 @@ public class ApiDiscoveryServiceTests
 		var service = new ApiDiscoveryService(_mockLogger.Object, _httpClient);
 
 		// Act
-		var result = await service.DiscoverRecipeUrlsAsync(
+		IEnumerable<DiscoveredUrl> result = await service.DiscoverRecipeUrlsAsync(
 			baseUrl,
 			"test_provider",
-			maxDepth: 1,
-			maxUrls: 100);
+			1,
+			100);
 
 		// Assert
 		Assert.Empty(result);
+	}
+
+	[Fact(DisplayName = "DiscoverRecipeUrlsAsync_HttpError_ThrowsException")]
+	public async Task DiscoverRecipeUrlsAsync_HttpError_ThrowsException()
+	{
+		// Arrange
+		const string baseUrl = "https://api.example.com/recipes";
+
+		_mockHttpMessageHandler
+			.Protected()
+			.Setup<Task<HttpResponseMessage>>(
+				"SendAsync",
+				ItExpr.IsAny<HttpRequestMessage>(),
+				ItExpr.IsAny<CancellationToken>())
+			.ReturnsAsync(new HttpResponseMessage
+			{
+				StatusCode = HttpStatusCode.InternalServerError,
+				Content = new StringContent("Server Error")
+			});
+
+		var service = new ApiDiscoveryService(_mockLogger.Object, _httpClient);
+
+		// Act & Assert
+		await Assert.ThrowsAnyAsync<Exception>(async () =>
+		{
+			await service.DiscoverRecipeUrlsAsync(
+				baseUrl,
+				"test_provider",
+				1,
+				100);
+		});
+	}
+
+	[Fact(DisplayName = "DiscoverRecipeUrlsAsync_InvalidJson_ThrowsException")]
+	public async Task DiscoverRecipeUrlsAsync_InvalidJson_ThrowsException()
+	{
+		// Arrange
+		const string baseUrl = "https://api.example.com/recipes";
+
+		_mockHttpMessageHandler
+			.Protected()
+			.Setup<Task<HttpResponseMessage>>(
+				"SendAsync",
+				ItExpr.IsAny<HttpRequestMessage>(),
+				ItExpr.IsAny<CancellationToken>())
+			.ReturnsAsync(new HttpResponseMessage
+			{
+				StatusCode = HttpStatusCode.OK,
+				Content = new StringContent("{ invalid json }")
+			});
+
+		var service = new ApiDiscoveryService(_mockLogger.Object, _httpClient);
+
+		// Act & Assert - Expect DiscoveryException which wraps JSON parsing errors
+		var exception = await Assert.ThrowsAsync<DiscoveryException>(async () =>
+		{
+			await service.DiscoverRecipeUrlsAsync(
+				baseUrl,
+				"test_provider",
+				1,
+				100);
+		});
+
+		// Verify inner exception is a JSON-related exception
+		Assert.NotNull(exception.InnerException);
+		Assert.Contains("JSON", exception.Message);
+	}
+
+	[Fact(DisplayName = "DiscoverRecipeUrlsAsync_MaxUrlsLimit_RespectsLimit")]
+	public async Task DiscoverRecipeUrlsAsync_MaxUrlsLimit_RespectsLimit()
+	{
+		// Arrange
+		const string baseUrl = "https://api.example.com/recipes";
+
+		var recipes = Enumerable.Range(1, 100)
+			.Select(i => new { id = i.ToString(), url = $"https://example.com/recipe/{i}", title = $"Recipe {i}" })
+			.ToArray();
+
+		var jsonResponse = new { recipes };
+
+		SetupJsonResponse(baseUrl, jsonResponse);
+
+		var service = new ApiDiscoveryService(_mockLogger.Object, _httpClient);
+
+		// Act - limit to 10 URLs
+		IEnumerable<DiscoveredUrl> result = await service.DiscoverRecipeUrlsAsync(
+			baseUrl,
+			"test_provider",
+			1,
+			10);
+
+		// Assert
+		Assert.Equal(10, result.Count());
 	}
 
 	[Fact(DisplayName = "DiscoverRecipeUrlsAsync_PaginatedResponse_HandlesMultiplePages")]
@@ -85,7 +163,7 @@ public class ApiDiscoveryServiceTests
 	{
 		// Arrange
 		const string baseUrl = "https://api.example.com/recipes";
-		
+
 		// First page
 		var page1Response = new
 		{
@@ -113,110 +191,49 @@ public class ApiDiscoveryServiceTests
 		var service = new ApiDiscoveryService(_mockLogger.Object, _httpClient);
 
 		// Act
-		var result = await service.DiscoverRecipeUrlsAsync(
+		IEnumerable<DiscoveredUrl> result = await service.DiscoverRecipeUrlsAsync(
 			baseUrl,
 			"test_provider",
-			maxDepth: 2,
-			maxUrls: 100);
+			2,
+			100);
 
 		// Assert
-		var urls = result.ToList();
+		List<DiscoveredUrl> urls = result.ToList();
 		// Note: Pagination might be limited by implementation, so we check for at least the first page
 		Assert.NotEmpty(urls);
 		Assert.Contains(urls, u => u.Url.Contains("/recipe/1"));
 	}
 
-	[Fact(DisplayName = "DiscoverRecipeUrlsAsync_MaxUrlsLimit_RespectsLimit")]
-	public async Task DiscoverRecipeUrlsAsync_MaxUrlsLimit_RespectsLimit()
+	[Fact(DisplayName = "DiscoverRecipeUrlsAsync_ValidJsonResponse_ExtractsRecipeUrls")]
+	public async Task DiscoverRecipeUrlsAsync_ValidJsonResponse_ExtractsRecipeUrls()
 	{
 		// Arrange
 		const string baseUrl = "https://api.example.com/recipes";
-		
-		var recipes = Enumerable.Range(1, 100)
-			.Select(i => new { id = i.ToString(), url = $"https://example.com/recipe/{i}", title = $"Recipe {i}" })
-			.ToArray();
-
-		var jsonResponse = new { recipes };
+		var jsonResponse = new
+		{
+			recipes = new[]
+			{
+				new { id = "1", url = "https://example.com/recipe/pasta", title = "Pasta" },
+				new { id = "2", url = "https://example.com/recipe/pizza", title = "Pizza" },
+				new { id = "3", url = "https://example.com/recipe/salad", title = "Salad" }
+			}
+		};
 
 		SetupJsonResponse(baseUrl, jsonResponse);
 
 		var service = new ApiDiscoveryService(_mockLogger.Object, _httpClient);
 
-		// Act - limit to 10 URLs
-		var result = await service.DiscoverRecipeUrlsAsync(
+		// Act
+		IEnumerable<DiscoveredUrl> result = await service.DiscoverRecipeUrlsAsync(
 			baseUrl,
 			"test_provider",
-			maxDepth: 1,
-			maxUrls: 10);
+			1,
+			100);
 
 		// Assert
-		Assert.Equal(10, result.Count());
-	}
-
-	[Fact(DisplayName = "DiscoverRecipeUrlsAsync_HttpError_ThrowsException")]
-	public async Task DiscoverRecipeUrlsAsync_HttpError_ThrowsException()
-	{
-		// Arrange
-		const string baseUrl = "https://api.example.com/recipes";
-		
-		_mockHttpMessageHandler
-			.Protected()
-			.Setup<Task<HttpResponseMessage>>(
-				"SendAsync",
-				ItExpr.IsAny<HttpRequestMessage>(),
-				ItExpr.IsAny<CancellationToken>())
-			.ReturnsAsync(new HttpResponseMessage
-			{
-				StatusCode = HttpStatusCode.InternalServerError,
-				Content = new StringContent("Server Error")
-			});
-
-		var service = new ApiDiscoveryService(_mockLogger.Object, _httpClient);
-
-		// Act & Assert
-		await Assert.ThrowsAnyAsync<Exception>(async () =>
-		{
-			await service.DiscoverRecipeUrlsAsync(
-				baseUrl,
-				"test_provider",
-				maxDepth: 1,
-				maxUrls: 100);
-		});
-	}
-
-	[Fact(DisplayName = "DiscoverRecipeUrlsAsync_InvalidJson_ThrowsException")]
-	public async Task DiscoverRecipeUrlsAsync_InvalidJson_ThrowsException()
-	{
-		// Arrange
-		const string baseUrl = "https://api.example.com/recipes";
-		
-		_mockHttpMessageHandler
-			.Protected()
-			.Setup<Task<HttpResponseMessage>>(
-				"SendAsync",
-				ItExpr.IsAny<HttpRequestMessage>(),
-				ItExpr.IsAny<CancellationToken>())
-			.ReturnsAsync(new HttpResponseMessage
-			{
-				StatusCode = HttpStatusCode.OK,
-				Content = new StringContent("{ invalid json }")
-			});
-
-		var service = new ApiDiscoveryService(_mockLogger.Object, _httpClient);
-
-		// Act & Assert - Expect DiscoveryException which wraps JSON parsing errors
-		var exception = await Assert.ThrowsAsync<DiscoveryException>(async () =>
-		{
-			await service.DiscoverRecipeUrlsAsync(
-				baseUrl,
-				"test_provider",
-				maxDepth: 1,
-				maxUrls: 100);
-		});
-		
-		// Verify inner exception is a JSON-related exception
-		Assert.NotNull(exception.InnerException);
-		Assert.Contains("JSON", exception.Message);
+		List<DiscoveredUrl> urls = result.ToList();
+		Assert.Equal(3, urls.Count);
+		Assert.All(urls, url => Assert.Contains("/recipe/", url.Url));
 	}
 
 	[Fact(DisplayName = "IsRecipeUrl_ValidRecipeUrl_ReturnsTrue")]
@@ -228,22 +245,5 @@ public class ApiDiscoveryServiceTests
 		// Act & Assert
 		Assert.True(service.IsRecipeUrl("https://example.com/recipe/pasta", "test_provider"));
 		Assert.True(service.IsRecipeUrl("https://example.com/recipes/123", "test_provider"));
-	}
-
-	private void SetupJsonResponse<T>(string url, T response)
-	{
-		var jsonContent = JsonSerializer.Serialize(response);
-		
-		_mockHttpMessageHandler
-			.Protected()
-			.Setup<Task<HttpResponseMessage>>(
-				"SendAsync",
-				ItExpr.Is<HttpRequestMessage>(req => req.RequestUri!.ToString() == url),
-				ItExpr.IsAny<CancellationToken>())
-			.ReturnsAsync(new HttpResponseMessage
-			{
-				StatusCode = HttpStatusCode.OK,
-				Content = new StringContent(jsonContent, System.Text.Encoding.UTF8, "application/json")
-			});
 	}
 }

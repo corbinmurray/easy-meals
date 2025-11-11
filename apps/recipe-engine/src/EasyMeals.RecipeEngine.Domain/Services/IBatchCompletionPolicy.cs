@@ -7,15 +7,15 @@ namespace EasyMeals.RecipeEngine.Domain.Services;
 /// </summary>
 public interface IBatchCompletionPolicy
 {
-    /// <summary>
-    ///     Determine if a batch should complete based on size and time window.
-    /// </summary>
-    bool ShouldCompleteBatch(RecipeBatch batch, DateTime currentTime);
+	/// <summary>
+	///     Determine if a batch should complete based on size and time window.
+	/// </summary>
+	bool ShouldCompleteBatch(RecipeBatch batch, DateTime currentTime);
 
-    /// <summary>
-    ///     Get the reason why a batch should complete.
-    /// </summary>
-    BatchCompletionReason GetCompletionReason(RecipeBatch batch, DateTime currentTime);
+	/// <summary>
+	///     Get the reason why a batch should complete.
+	/// </summary>
+	BatchCompletionReason GetCompletionReason(RecipeBatch batch, DateTime currentTime);
 }
 
 public enum BatchCompletionReason

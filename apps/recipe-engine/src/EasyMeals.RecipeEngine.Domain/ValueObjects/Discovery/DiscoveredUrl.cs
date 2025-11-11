@@ -6,17 +6,17 @@ namespace EasyMeals.RecipeEngine.Domain.ValueObjects.Discovery;
 /// </summary>
 public sealed record DiscoveredUrl
 {
-    /// <summary>
-    ///     Creates a new discovered URL with validation
-    /// </summary>
-    /// <param name="url">The discovered URL</param>
-    /// <param name="provider">Source provider name</param>
-    /// <param name="discoveredAt">When the URL was discovered</param>
-    /// <param name="depth">Discovery depth level</param>
-    /// <param name="confidence">Confidence score that this is a recipe URL (0.0-1.0)</param>
-    /// <param name="parentUrl">URL where this was discovered from</param>
-    /// <param name="metadata">Additional discovery metadata</param>
-    public DiscoveredUrl(
+	/// <summary>
+	///     Creates a new discovered URL with validation
+	/// </summary>
+	/// <param name="url">The discovered URL</param>
+	/// <param name="provider">Source provider name</param>
+	/// <param name="discoveredAt">When the URL was discovered</param>
+	/// <param name="depth">Discovery depth level</param>
+	/// <param name="confidence">Confidence score that this is a recipe URL (0.0-1.0)</param>
+	/// <param name="parentUrl">URL where this was discovered from</param>
+	/// <param name="metadata">Additional discovery metadata</param>
+	public DiscoveredUrl(
 		string url,
 		string provider,
 		DateTime discoveredAt,
@@ -57,20 +57,20 @@ public sealed record DiscoveredUrl
 	/// <summary>Additional discovery metadata</summary>
 	public IReadOnlyDictionary<string, object> Metadata { get; init; }
 
-    /// <summary>
-    ///     Indicates if this URL has high confidence of being a recipe
-    /// </summary>
-    public bool IsHighConfidence => Confidence >= 0.8m;
+	/// <summary>
+	///     Indicates if this URL has high confidence of being a recipe
+	/// </summary>
+	public bool IsHighConfidence => Confidence >= 0.8m;
 
-    /// <summary>
-    ///     Indicates if this URL was directly seeded (not discovered through crawling)
-    /// </summary>
-    public bool IsSeedUrl => Depth == 0 && ParentUrl == null;
+	/// <summary>
+	///     Indicates if this URL was directly seeded (not discovered through crawling)
+	/// </summary>
+	public bool IsSeedUrl => Depth == 0 && ParentUrl == null;
 
-    /// <summary>
-    ///     Gets the domain of the discovered URL
-    /// </summary>
-    public string Domain
+	/// <summary>
+	///     Gets the domain of the discovered URL
+	/// </summary>
+	public string Domain
 	{
 		get
 		{
@@ -80,40 +80,40 @@ public sealed record DiscoveredUrl
 		}
 	}
 
-    /// <summary>
-    ///     Gets metadata value by key with type safety
-    /// </summary>
-    public T? GetMetadata<T>(string key)
+	/// <summary>
+	///     Gets metadata value by key with type safety
+	/// </summary>
+	public T? GetMetadata<T>(string key)
 	{
 		if (Metadata.TryGetValue(key, out object? value) && value is T typedValue)
 			return typedValue;
 		return default;
 	}
 
-    /// <summary>
-    ///     Creates a copy with updated confidence score
-    /// </summary>
-    public DiscoveredUrl WithConfidence(decimal newConfidence) => this with { Confidence = ValidateConfidence(newConfidence) };
+	/// <summary>
+	///     Creates a copy with updated confidence score
+	/// </summary>
+	public DiscoveredUrl WithConfidence(decimal newConfidence) => this with { Confidence = ValidateConfidence(newConfidence) };
 
-    /// <summary>
-    ///     Creates a copy with additional metadata
-    /// </summary>
-    public DiscoveredUrl WithMetadata(string key, object value)
+	/// <summary>
+	///     Creates a copy with additional metadata
+	/// </summary>
+	public DiscoveredUrl WithMetadata(string key, object value)
 	{
 		var newMetadata = new Dictionary<string, object>(Metadata) { [key] = value };
 		return this with { Metadata = newMetadata };
 	}
 
-    /// <summary>
-    ///     Factory method for creating seed URLs
-    /// </summary>
-    public static DiscoveredUrl CreateSeed(string url, string provider, decimal confidence = 1.0m) =>
+	/// <summary>
+	///     Factory method for creating seed URLs
+	/// </summary>
+	public static DiscoveredUrl CreateSeed(string url, string provider, decimal confidence = 1.0m) =>
 		new(url, provider, DateTime.UtcNow, 0, confidence);
 
-    /// <summary>
-    ///     Factory method for creating discovered URLs from crawling
-    /// </summary>
-    public static DiscoveredUrl CreateDiscovered(
+	/// <summary>
+	///     Factory method for creating discovered URLs from crawling
+	/// </summary>
+	public static DiscoveredUrl CreateDiscovered(
 		string url,
 		string provider,
 		string parentUrl,

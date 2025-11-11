@@ -20,10 +20,10 @@ public class IngredientMapping
 		CanonicalForm = string.Empty;
 	}
 
-    /// <summary>
-    ///     Factory method to create a new ingredient mapping.
-    /// </summary>
-    public static IngredientMapping Create(string providerId, string providerCode, string canonicalForm, string? notes = null)
+	/// <summary>
+	///     Factory method to create a new ingredient mapping.
+	/// </summary>
+	public static IngredientMapping Create(string providerId, string providerCode, string canonicalForm, string? notes = null)
 	{
 		if (string.IsNullOrWhiteSpace(providerId))
 			throw new ArgumentException("ProviderId is required", nameof(providerId));
@@ -45,10 +45,10 @@ public class IngredientMapping
 		};
 	}
 
-    /// <summary>
-    ///     Update the canonical form for this mapping.
-    /// </summary>
-    public void UpdateCanonicalForm(string newCanonicalForm)
+	/// <summary>
+	///     Update the canonical form for this mapping.
+	/// </summary>
+	public void UpdateCanonicalForm(string newCanonicalForm)
 	{
 		if (string.IsNullOrWhiteSpace(newCanonicalForm))
 			throw new ArgumentException("CanonicalForm is required", nameof(newCanonicalForm));
@@ -57,10 +57,10 @@ public class IngredientMapping
 		UpdatedAt = DateTime.UtcNow;
 	}
 
-    /// <summary>
-    ///     Update the notes for this mapping.
-    /// </summary>
-    public void UpdateNotes(string? notes)
+	/// <summary>
+	///     Update the notes for this mapping.
+	/// </summary>
+	public void UpdateNotes(string? notes)
 	{
 		Notes = notes;
 		UpdatedAt = DateTime.UtcNow;

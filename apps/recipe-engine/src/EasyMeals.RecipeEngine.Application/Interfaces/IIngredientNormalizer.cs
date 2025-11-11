@@ -1,5 +1,3 @@
-using EasyMeals.RecipeEngine.Domain.ValueObjects;
-
 namespace EasyMeals.RecipeEngine.Application.Interfaces;
 
 /// <summary>
@@ -16,9 +14,9 @@ public interface IIngredientNormalizer
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>The canonical form if mapping exists, otherwise null</returns>
     Task<string?> NormalizeAsync(
-        string providerId,
-        string providerCode,
-        CancellationToken cancellationToken = default);
+		string providerId,
+		string providerCode,
+		CancellationToken cancellationToken = default);
 
     /// <summary>
     ///     Normalize a batch of provider ingredient codes to their canonical forms.
@@ -29,7 +27,7 @@ public interface IIngredientNormalizer
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Dictionary mapping provider codes to canonical forms (null for unmapped)</returns>
     Task<IDictionary<string, string?>> NormalizeBatchAsync(
-        string providerId,
-        IEnumerable<string> providerCodes,
-        CancellationToken cancellationToken = default);
+		string providerId,
+		IEnumerable<string> providerCodes,
+		CancellationToken cancellationToken = default);
 }

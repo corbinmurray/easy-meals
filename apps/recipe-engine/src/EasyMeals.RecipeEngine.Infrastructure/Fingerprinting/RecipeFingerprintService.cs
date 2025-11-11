@@ -7,33 +7,31 @@ using EasyMeals.RecipeEngine.Domain.Repositories;
 namespace EasyMeals.RecipeEngine.Infrastructure.Fingerprinting;
 
 /// <summary>
-/// Service for generating content-based fingerprints for recipes using SHA256 hash.
-/// Implements duplicate detection by comparing normalized content (URL + title + description).
+///     Service for generating content-based fingerprints for recipes using SHA256 hash.
+///     Implements duplicate detection by comparing normalized content (URL + title + description).
 /// </summary>
 public class RecipeFingerprintService : IRecipeFingerprinter
 {
 	private readonly IRecipeFingerprintRepository _repository;
 
-	public RecipeFingerprintService(IRecipeFingerprintRepository repository)
-	{
+	public RecipeFingerprintService(IRecipeFingerprintRepository repository) =>
 		_repository = repository ?? throw new ArgumentNullException(nameof(repository));
-	}
 
 	/// <summary>
-	/// T121: Generates a content-based fingerprint (SHA256 hash) for a recipe.
-	/// Normalizes URL (lowercase, removes query params), title (trim, lowercase),
-	/// and description (first 200 chars, trim, lowercase) before hashing.
+	///     T121: Generates a content-based fingerprint (SHA256 hash) for a recipe.
+	///     Normalizes URL (lowercase, removes query params), title (trim, lowercase),
+	///     and description (first 200 chars, trim, lowercase) before hashing.
 	/// </summary>
 	public string GenerateFingerprint(string url, string title, string description)
 	{
 		// Normalize URL: lowercase and remove query parameters
-		var normalizedUrl = NormalizeUrl(url);
+		string normalizedUrl = NormalizeUrl(url);
 
 		// Normalize title: trim and lowercase
-		var normalizedTitle = NormalizeTitle(title);
+		string normalizedTitle = NormalizeTitle(title);
 
 		// Normalize description: substring first 200 chars, trim, lowercase
-		var normalizedDescription = NormalizeDescription(description);
+		string normalizedDescription = NormalizeDescription(description);
 
 		// Concatenate normalized components
 		var contentToHash = $"{normalizedUrl}|{normalizedTitle}|{normalizedDescription}";
@@ -43,8 +41,8 @@ public class RecipeFingerprintService : IRecipeFingerprinter
 	}
 
 	/// <summary>
-	/// T122: Checks if a recipe with the given fingerprint has already been processed.
-	/// Queries the recipe_fingerprints MongoDB collection by hash.
+	///     T122: Checks if a recipe with the given fingerprint has already been processed.
+	///     Queries the recipe_fingerprints MongoDB collection by hash.
 	/// </summary>
 	public async Task<bool> IsDuplicateAsync(
 		string fingerprintHash,
@@ -58,8 +56,8 @@ public class RecipeFingerprintService : IRecipeFingerprinter
 	}
 
 	/// <summary>
-	/// T123: Persists a recipe fingerprint to MongoDB after successful recipe processing.
-	/// Creates a RecipeFingerprint entity and saves via repository.
+	///     T123: Persists a recipe fingerprint to MongoDB after successful recipe processing.
+	///     Creates a RecipeFingerprint entity and saves via repository.
 	/// </summary>
 	public async Task StoreFingerprintAsync(
 		string fingerprintHash,
@@ -94,7 +92,7 @@ public class RecipeFingerprintService : IRecipeFingerprinter
 	#region Private Helper Methods
 
 	/// <summary>
-	/// Normalizes URL by converting to lowercase and removing query parameters.
+	///     Normalizes URL by converting to lowercase and removing query parameters.
 	/// </summary>
 	private static string NormalizeUrl(string url)
 	{
@@ -105,17 +103,14 @@ public class RecipeFingerprintService : IRecipeFingerprinter
 		url = url.ToLowerInvariant();
 
 		// Remove query parameters (everything after '?')
-		var queryIndex = url.IndexOf('?');
-		if (queryIndex >= 0)
-		{
-			url = url[..queryIndex];
-		}
+		int queryIndex = url.IndexOf('?');
+		if (queryIndex >= 0) url = url[..queryIndex];
 
 		return url;
 	}
 
 	/// <summary>
-	/// Normalizes title by trimming whitespace and converting to lowercase.
+	///     Normalizes title by trimming whitespace and converting to lowercase.
 	/// </summary>
 	private static string NormalizeTitle(string title)
 	{
@@ -126,7 +121,7 @@ public class RecipeFingerprintService : IRecipeFingerprinter
 	}
 
 	/// <summary>
-	/// Normalizes description by taking first 200 characters, trimming, and converting to lowercase.
+	///     Normalizes description by taking first 200 characters, trimming, and converting to lowercase.
 	/// </summary>
 	private static string NormalizeDescription(string description)
 	{
@@ -136,25 +131,22 @@ public class RecipeFingerprintService : IRecipeFingerprinter
 		description = description.Trim();
 
 		// Take first 200 characters
-		if (description.Length > 200)
-		{
-			description = description[..200];
-		}
+		if (description.Length > 200) description = description[..200];
 
 		return description.ToLowerInvariant();
 	}
 
 	/// <summary>
-	/// Computes SHA256 hash of input string and returns as lowercase hexadecimal string.
+	///     Computes SHA256 hash of input string and returns as lowercase hexadecimal string.
 	/// </summary>
 	private static string ComputeSha256Hash(string input)
 	{
-		var bytes = Encoding.UTF8.GetBytes(input);
-		var hash = SHA256.HashData(bytes);
+		byte[] bytes = Encoding.UTF8.GetBytes(input);
+		byte[] hash = SHA256.HashData(bytes);
 
 		// Convert to lowercase hex string
 		var builder = new StringBuilder(hash.Length * 2);
-		foreach (var b in hash)
+		foreach (byte b in hash)
 		{
 			builder.Append(b.ToString("x2"));
 		}
