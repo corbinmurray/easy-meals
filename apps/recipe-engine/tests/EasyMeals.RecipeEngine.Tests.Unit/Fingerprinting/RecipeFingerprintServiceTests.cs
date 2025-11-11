@@ -3,7 +3,7 @@ using EasyMeals.RecipeEngine.Domain.Entities;
 using EasyMeals.RecipeEngine.Domain.Repositories;
 using EasyMeals.RecipeEngine.Infrastructure.Fingerprinting;
 using FluentAssertions;
-using NSubstitute;
+using Moq;
 
 namespace EasyMeals.RecipeEngine.Tests.Unit.Fingerprinting;
 
@@ -13,13 +13,13 @@ namespace EasyMeals.RecipeEngine.Tests.Unit.Fingerprinting;
 /// </summary>
 public class RecipeFingerprintServiceTests
 {
-	private readonly IRecipeFingerprintRepository _mockRepository;
+	private readonly Mock<IRecipeFingerprintRepository> _repositoryMock;
 	private readonly IRecipeFingerprinter _fingerprintService;
 
 	public RecipeFingerprintServiceTests()
 	{
-		_mockRepository = Substitute.For<IRecipeFingerprintRepository>();
-		_fingerprintService = new RecipeFingerprintService(_mockRepository);
+		_repositoryMock = new Mock<IRecipeFingerprintRepository>();
+		_fingerprintService = new RecipeFingerprintService(_repositoryMock.Object);
 	}
 
 	#region T117: Unit test for fingerprint generation (SHA256 hash of normalized URL + title + description)
@@ -208,10 +208,11 @@ public class RecipeFingerprintServiceTests
 		// Arrange - Use proper 64-character SHA256 hash
 		const string fingerprintHash = "abc123def456789012345678901234567890abcdef1234567890123456789012";
 
-		_mockRepository.ExistsByHashAsync(
-			fingerprintHash,
-			Arg.Any<CancellationToken>())
-			.Returns(true);
+		_repositoryMock
+			.Setup(repository => repository.ExistsByHashAsync(
+				fingerprintHash,
+				It.IsAny<CancellationToken>()))
+			.ReturnsAsync(true);
 
 		// Act
 		var isDuplicate = await _fingerprintService.IsDuplicateAsync(fingerprintHash);
@@ -226,10 +227,11 @@ public class RecipeFingerprintServiceTests
 		// Arrange - Use proper 64-character SHA256 hash
 		const string fingerprintHash = "1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef";
 
-		_mockRepository.ExistsByHashAsync(
-			fingerprintHash,
-			Arg.Any<CancellationToken>())
-			.Returns(false);
+		_repositoryMock
+			.Setup(repository => repository.ExistsByHashAsync(
+				fingerprintHash,
+				It.IsAny<CancellationToken>()))
+			.ReturnsAsync(false);
 
 		// Act
 		var isDuplicate = await _fingerprintService.IsDuplicateAsync(fingerprintHash);
@@ -255,13 +257,14 @@ public class RecipeFingerprintServiceTests
 			recipeId);
 
 		// Assert
-		await _mockRepository.Received(1).SaveAsync(
-			Arg.Is<RecipeFingerprint>(fp =>
+		_repositoryMock.Verify(repository => repository.SaveAsync(
+			It.Is<RecipeFingerprint>(fp =>
 				fp.FingerprintHash == fingerprintHash &&
 				fp.ProviderId == providerId &&
 				fp.RecipeUrl == recipeUrl &&
 				fp.RecipeId == recipeId),
-			Arg.Any<CancellationToken>());
+			It.IsAny<CancellationToken>()),
+			Times.Once());
 	}
 
 	#endregion

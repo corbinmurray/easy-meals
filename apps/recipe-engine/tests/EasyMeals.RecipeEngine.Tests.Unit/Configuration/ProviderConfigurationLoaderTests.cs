@@ -1,22 +1,21 @@
-using EasyMeals.RecipeEngine.Application.Interfaces;
-using EasyMeals.RecipeEngine.Domain.ValueObjects;
+using System.Linq.Expressions;
 using EasyMeals.RecipeEngine.Infrastructure.Documents;
 using EasyMeals.RecipeEngine.Infrastructure.Services;
 using EasyMeals.Shared.Data.Repositories;
 using FluentAssertions;
-using NSubstitute;
+using Moq;
 
 namespace EasyMeals.RecipeEngine.Tests.Unit.Configuration;
 
 public class ProviderConfigurationLoaderTests
 {
-	private readonly IMongoRepository<ProviderConfigurationDocument> _mockRepository;
+	private readonly Mock<IMongoRepository<ProviderConfigurationDocument>> _repositoryMock;
 	private readonly ProviderConfigurationLoader _loader;
 
 	public ProviderConfigurationLoaderTests()
 	{
-		_mockRepository = Substitute.For<IMongoRepository<ProviderConfigurationDocument>>();
-		_loader = new ProviderConfigurationLoader(_mockRepository);
+		_repositoryMock = new Mock<IMongoRepository<ProviderConfigurationDocument>>();
+		_loader = new ProviderConfigurationLoader(_repositoryMock.Object);
 	}
 
 	[Fact]
@@ -29,10 +28,11 @@ public class ProviderConfigurationLoaderTests
 			CreateProviderDocument("provider_002", true)
 		};
 
-		_mockRepository.GetAllAsync(
-				Arg.Any<System.Linq.Expressions.Expression<Func<ProviderConfigurationDocument, bool>>>(),
-				Arg.Any<CancellationToken>())
-			.Returns(documents);
+		_repositoryMock
+			.Setup(repository => repository.GetAllAsync(
+				It.IsAny<Expression<Func<ProviderConfigurationDocument, bool>>>(),
+				It.IsAny<CancellationToken>()))
+			.ReturnsAsync(documents);
 
 		// Act
 		var result = await _loader.GetAllEnabledAsync();
@@ -48,10 +48,11 @@ public class ProviderConfigurationLoaderTests
 	public async Task GetAllEnabledAsync_ReturnsEmptyList_WhenNoEnabledProviders()
 	{
 		// Arrange
-		_mockRepository.GetAllAsync(
-				Arg.Any<System.Linq.Expressions.Expression<Func<ProviderConfigurationDocument, bool>>>(),
-				Arg.Any<CancellationToken>())
-			.Returns(new List<ProviderConfigurationDocument>());
+		_repositoryMock
+			.Setup(repository => repository.GetAllAsync(
+				It.IsAny<Expression<Func<ProviderConfigurationDocument, bool>>>(),
+				It.IsAny<CancellationToken>()))
+			.ReturnsAsync(new List<ProviderConfigurationDocument>());
 
 		// Act
 		var result = await _loader.GetAllEnabledAsync();
@@ -65,10 +66,11 @@ public class ProviderConfigurationLoaderTests
 	{
 		// Arrange
 		var document = CreateProviderDocument("provider_001", true);
-		_mockRepository.GetFirstOrDefaultAsync(
-				Arg.Any<System.Linq.Expressions.Expression<Func<ProviderConfigurationDocument, bool>>>(),
-				Arg.Any<CancellationToken>())
-			.Returns(document);
+		_repositoryMock
+			.Setup(repository => repository.GetFirstOrDefaultAsync(
+				It.IsAny<Expression<Func<ProviderConfigurationDocument, bool>>>(),
+				It.IsAny<CancellationToken>()))
+			.ReturnsAsync(document);
 
 		// Act
 		var result = await _loader.GetByProviderIdAsync("provider_001");
@@ -82,10 +84,11 @@ public class ProviderConfigurationLoaderTests
 	public async Task GetByProviderIdAsync_ReturnsNull_WhenProviderDoesNotExist()
 	{
 		// Arrange
-		_mockRepository.GetFirstOrDefaultAsync(
-				Arg.Any<System.Linq.Expressions.Expression<Func<ProviderConfigurationDocument, bool>>>(),
-				Arg.Any<CancellationToken>())
-			.Returns((ProviderConfigurationDocument?)null);
+		_repositoryMock
+			.Setup(repository => repository.GetFirstOrDefaultAsync(
+				It.IsAny<Expression<Func<ProviderConfigurationDocument, bool>>>(),
+				It.IsAny<CancellationToken>()))
+			.ReturnsAsync((ProviderConfigurationDocument?)null);
 
 		// Act
 		var result = await _loader.GetByProviderIdAsync("nonexistent");
@@ -98,10 +101,11 @@ public class ProviderConfigurationLoaderTests
 	public async Task LoadConfigurationsAsync_ThrowsException_WhenNoEnabledProviders()
 	{
 		// Arrange
-		_mockRepository.GetAllAsync(
-				Arg.Any<System.Linq.Expressions.Expression<Func<ProviderConfigurationDocument, bool>>>(),
-				Arg.Any<CancellationToken>())
-			.Returns(new List<ProviderConfigurationDocument>());
+		_repositoryMock
+			.Setup(repository => repository.GetAllAsync(
+				It.IsAny<Expression<Func<ProviderConfigurationDocument, bool>>>(),
+				It.IsAny<CancellationToken>()))
+			.ReturnsAsync(new List<ProviderConfigurationDocument>());
 
 		// Act & Assert
 		await _loader.Invoking(async l => await l.LoadConfigurationsAsync())
@@ -118,10 +122,11 @@ public class ProviderConfigurationLoaderTests
 			CreateProviderDocument("provider_001", true)
 		};
 
-		_mockRepository.GetAllAsync(
-				Arg.Any<System.Linq.Expressions.Expression<Func<ProviderConfigurationDocument, bool>>>(),
-				Arg.Any<CancellationToken>())
-			.Returns(documents);
+		_repositoryMock
+			.Setup(repository => repository.GetAllAsync(
+				It.IsAny<Expression<Func<ProviderConfigurationDocument, bool>>>(),
+				It.IsAny<CancellationToken>()))
+			.ReturnsAsync(documents);
 
 		// Act & Assert
 		await _loader.Invoking(async l => await l.LoadConfigurationsAsync())
@@ -137,25 +142,27 @@ public class ProviderConfigurationLoaderTests
 			CreateProviderDocument("provider_001", true)
 		};
 
-		_mockRepository.GetAllAsync(
-				Arg.Any<System.Linq.Expressions.Expression<Func<ProviderConfigurationDocument, bool>>>(),
-				Arg.Any<CancellationToken>())
-			.Returns(documents);
+		_repositoryMock
+			.Setup(repository => repository.GetAllAsync(
+				It.IsAny<Expression<Func<ProviderConfigurationDocument, bool>>>(),
+				It.IsAny<CancellationToken>()))
+			.ReturnsAsync(documents);
 
 		// Act - First load configurations (populates cache)
 		await _loader.LoadConfigurationsAsync();
-		
+
 		// Clear the mock to verify cache is used for subsequent calls
-		_mockRepository.ClearReceivedCalls();
-		
+		_repositoryMock.Invocations.Clear();
+
 		// Second call should use cache for individual provider lookup
 		var result = await _loader.GetByProviderIdAsync("provider_001");
 
 		// Assert - Should not query repository (using cache instead)
-		await _mockRepository.DidNotReceive().GetFirstOrDefaultAsync(
-			Arg.Any<System.Linq.Expressions.Expression<Func<ProviderConfigurationDocument, bool>>>(),
-			Arg.Any<CancellationToken>());
-		
+		_repositoryMock.Verify(repository => repository.GetFirstOrDefaultAsync(
+			It.IsAny<Expression<Func<ProviderConfigurationDocument, bool>>>(),
+			It.IsAny<CancellationToken>()),
+			Times.Never());
+
 		result.Should().NotBeNull();
 		result!.ProviderId.Should().Be("provider_001");
 	}
