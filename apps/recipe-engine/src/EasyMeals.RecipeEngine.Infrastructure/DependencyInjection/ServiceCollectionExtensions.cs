@@ -11,6 +11,7 @@ using EasyMeals.RecipeEngine.Infrastructure.Documents.SagaState;
 using EasyMeals.RecipeEngine.Infrastructure.Fingerprinting;
 using EasyMeals.RecipeEngine.Infrastructure.HealthChecks;
 using EasyMeals.RecipeEngine.Infrastructure.Normalization;
+using EasyMeals.RecipeEngine.Infrastructure.RateLimiting;
 using EasyMeals.RecipeEngine.Infrastructure.Repositories;
 using EasyMeals.RecipeEngine.Infrastructure.Services;
 using EasyMeals.RecipeEngine.Infrastructure.Stealth;
@@ -101,6 +102,13 @@ public static class ServiceCollectionExtensions
 
 		// T103: Register stealthy HTTP client
 		services.AddScoped<IStealthyHttpClient, StealthyHttpClient>();
+
+		// T100: Register rate limiter with default settings
+		// These can be overridden by provider-specific configurations
+		services.AddSingleton<IRateLimiter>(sp => new TokenBucketRateLimiter(
+			maxTokens: 20,           // Max 20 requests can burst
+			refillRatePerMinute: 20  // Refill at 20 requests per minute
+		));
 
 		// T101, T102: Configure HttpClient with connection pooling and Polly policies
 		services.AddHttpClient("RecipeEngineHttpClient", client =>

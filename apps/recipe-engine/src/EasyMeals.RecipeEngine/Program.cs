@@ -1,6 +1,7 @@
 ﻿using EasyMeals.RecipeEngine.Application.DependencyInjection;
 using EasyMeals.RecipeEngine.Application.Interfaces;
 using EasyMeals.RecipeEngine.Application.Options;
+using EasyMeals.RecipeEngine.Domain.ValueObjects;
 using EasyMeals.RecipeEngine.Infrastructure.DependencyInjection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -70,19 +71,55 @@ try
 	{
 		await using AsyncServiceScope scope = serviceProvider.CreateAsyncScope();
 		var processor = scope.ServiceProvider.GetRequiredService<IRecipeProcessingSaga>();
+		var configLoader = scope.ServiceProvider.GetRequiredService<IProviderConfigurationLoader>();
 
-		// Start processing with default configuration
-		// In production, these would come from configuration or command-line arguments
-		const string providerId = "provider_001";
-		const int batchSize = 100;
-		TimeSpan timeWindow = TimeSpan.FromHours(1);
+		// Load all enabled provider configurations from MongoDB
+		Log.Information("Loading enabled provider configurations from MongoDB...");
+		IEnumerable<ProviderConfiguration> providers = await configLoader.GetAllEnabledAsync(cts.Token);
+		var providerList = providers.ToList();
 
-		Log.Information("Starting recipe processing for {ProviderId} with batch size {BatchSize} and time window {TimeWindow}",
-			providerId, batchSize, timeWindow);
+		if (providerList.Count == 0)
+		{
+			Log.Warning("No enabled providers found in MongoDB. Please seed provider configurations.");
+			return;
+		}
 
-		await processor.StartProcessingAsync(providerId, batchSize, timeWindow, cts.Token);
+		Log.Information("Found {ProviderCount} enabled provider(s)", providerList.Count);
 
-		Log.Information("Recipe processing completed successfully");
+		// Process each enabled provider
+		foreach (var providerConfig in providerList)
+		{
+			try
+			{
+				Log.Information(
+					"Starting recipe processing for provider {ProviderId} with batch size {BatchSize} and time window {TimeWindow}",
+					providerConfig.ProviderId,
+					providerConfig.BatchSize,
+					providerConfig.TimeWindow);
+
+				Guid batchId = await processor.StartProcessingAsync(
+					providerConfig.ProviderId,
+					providerConfig.BatchSize,
+					providerConfig.TimeWindow,
+					cts.Token);
+
+				Log.Information(
+					"Recipe processing completed successfully for provider {ProviderId} with batch ID {BatchId}",
+					providerConfig.ProviderId,
+					batchId);
+			}
+			catch (Exception ex)
+			{
+				Log.Error(
+					ex,
+					"Failed to process provider {ProviderId}: {ErrorMessage}",
+					providerConfig.ProviderId,
+					ex.Message);
+				// Continue with next provider instead of failing completely
+			}
+		}
+
+		Log.Information("All enabled providers processed");
 	}
 	catch (OperationCanceledException)
 	{
