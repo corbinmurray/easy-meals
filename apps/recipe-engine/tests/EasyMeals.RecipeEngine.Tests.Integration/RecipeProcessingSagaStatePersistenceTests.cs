@@ -230,7 +230,7 @@ public class RecipeProcessingSagaStatePersistenceTests : IAsyncLifetime
 		var discoveredUrls = sagaState.StateData["DiscoveredUrls"] as List<string>;
 		discoveredUrls.ShouldNotBeNull();
 		discoveredUrls!.Count.ShouldBe(expectedUrls.Length);
-		discoveredUrls.ShouldBeEquivalentTo(expectedUrls);
+		discoveredUrls.ShouldBe(expectedUrls.ToList());
 	}
 
 	[Fact(DisplayName = "Saga persists FailedUrls with error details")]
