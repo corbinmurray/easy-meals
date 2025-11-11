@@ -13,14 +13,21 @@ namespace EasyMeals.RecipeEngine.Application.Sagas;
 /// <summary>
 ///     Saga that orchestrates the complete recipe processing workflow
 ///     Demonstrates the Saga pattern for managing complex, multi-step business processes
-///     Workflow Steps:
-///     1. Discovery: Find recipe URLs from provider sites
-///     2. Fingerprinting: Scrape and validate content
+///     
+///     Workflow Steps (Sequential):
+///     1. Discovery: Find recipe URLs from provider sites (follows category pages to find recipes)
+///     2. Fingerprinting: Scrape and validate content, detect duplicates
 ///     3. Processing: Extract structured recipe data with ingredient normalization (Phase 4)
 ///     4. Persistence: Save to repository
 ///     5. Notification: Publish completion events
-///     This Saga includes compensating transactions and comprehensive error handling
-///     State is persisted for resumability across application restarts
+///     
+///     Architecture Notes:
+///     - Workflow is orchestrated SEQUENTIALLY through direct method calls (await pattern)
+///     - Event bus is used ONLY for cross-cutting concerns (monitoring, alerting, integration)
+///     - Event bus is NOT used for workflow orchestration (no event-driven saga here)
+///     - This design choice is intentional: sequential processing is simpler and more predictable
+///     - State is persisted for resumability across application restarts
+///     - Includes compensating transactions and comprehensive error handling
 /// </summary>
 public class RecipeProcessingSaga(
 	ILogger<RecipeProcessingSaga> logger,
@@ -438,10 +445,11 @@ public class RecipeProcessingSaga(
 
 					// TODO: In full implementation, we would:
 					// 1. Fetch the recipe page
-					// 2. Parse the recipe data
-					// 3. Normalize ingredients
-					// 4. Create Recipe entity
-					// For now, we'll just mark as processed
+					// 2. Parse the recipe data using recipe scraper
+					// 3. Normalize ingredients using ProcessIngredientsAsync
+					// 4. Create Recipe entity with all extracted data
+					// 5. Persist to recipe repository
+					// For now, we'll just mark as processed to test the workflow
 
 					processedUrls.Add(url);
 					logger.LogDebug("Processed URL {Url} ({Index}/{Total})", url, i + 1, totalUrls);
@@ -485,7 +493,9 @@ public class RecipeProcessingSaga(
 								["StackTrace"] = ex.StackTrace ?? ""
 							});
 
-							// Emit ProcessingErrorEvent for monitoring
+							// Emit ProcessingErrorEvent for monitoring and alerting
+							// NOTE: Event bus is used here for cross-cutting concerns (monitoring, alerting)
+							// NOT for orchestrating the saga workflow which is handled by sequential method calls
 							eventBus.Publish(new ProcessingErrorEvent(url, providerId, ex.Message, DateTime.UtcNow));
 						}
 						else if (isTransient)
@@ -649,7 +659,9 @@ public class RecipeProcessingSaga(
 				batch.SkippedCount,
 				batch.FailedCount);
 
-			// Emit BatchCompletedEvent
+			// Emit BatchCompletedEvent for monitoring, reporting, and downstream systems
+			// NOTE: Event bus is used here for cross-cutting concerns (monitoring, reporting, integration)
+			// NOT for orchestrating the saga workflow which is handled by sequential method calls
 			var completedEvent = new BatchCompletedEvent(
 				batch.Id,
 				batch.ProcessedCount,
