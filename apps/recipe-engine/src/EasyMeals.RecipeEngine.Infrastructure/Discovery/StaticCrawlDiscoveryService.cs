@@ -308,17 +308,16 @@ public class StaticCrawlDiscoveryService : IDiscoveryService
         // Try to get provider-specific regex pattern
         Regex? categoryRegex = GetCategoryPatternForProvider(provider);
 
-        if (categoryRegex != null)
+        if (categoryRegex == null) return IsCategoryUrlDefaultPatterns(url);
+        
+        try
         {
-            try
-            {
-                return categoryRegex.IsMatch(url);
-            }
-            catch (RegexMatchTimeoutException ex)
-            {
-                _logger.LogWarning(ex, "Regex timeout checking category URL pattern for provider {Provider}", provider);
-                // Fall through to default patterns
-            }
+            return categoryRegex.IsMatch(url);
+        }
+        catch (RegexMatchTimeoutException ex)
+        {
+            _logger.LogWarning(ex, "Regex timeout checking category URL pattern for provider {Provider}", provider);
+            // Fall through to default patterns
         }
 
         // Fall back to default patterns if no provider-specific pattern or pattern failed
@@ -328,7 +327,7 @@ public class StaticCrawlDiscoveryService : IDiscoveryService
     /// <summary>
     ///     Default category URL pattern matching (fallback when no provider-specific pattern)
     /// </summary>
-    private bool IsCategoryUrlDefaultPatterns(string url)
+    private static bool IsCategoryUrlDefaultPatterns(string url)
     {
         // Category/listing page patterns (pages we should crawl but not return as recipes)
         var categoryPatterns = new[]
