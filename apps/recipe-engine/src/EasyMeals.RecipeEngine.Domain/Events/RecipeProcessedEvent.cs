@@ -4,7 +4,7 @@ namespace EasyMeals.RecipeEngine.Domain.Events;
 ///     Domain event raised when a recipe is successfully processed.
 /// </summary>
 public record RecipeProcessedEvent(
-	Guid RecipeId,
-	string Url,
-	string ProviderId,
-	DateTime ProcessedAt) : BaseDomainEvent;
+    Guid RecipeId,
+    string Url,
+    string ProviderId,
+    DateTime ProcessedAt) : BaseDomainEvent;

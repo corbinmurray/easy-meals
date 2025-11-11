@@ -4,7 +4,7 @@ namespace EasyMeals.RecipeEngine.Domain.Events;
 ///     Domain event raised when a processing error occurs.
 /// </summary>
 public record ProcessingErrorEvent(
-	string Url,
-	string ProviderId,
-	string ErrorMessage,
-	DateTime OccurredAt) : BaseDomainEvent;
+    string Url,
+    string ProviderId,
+    string ErrorMessage,
+    DateTime OccurredAt) : BaseDomainEvent;

@@ -10,24 +10,24 @@ namespace EasyMeals.RecipeEngine.Application.EventHandlers;
 /// </summary>
 public class RecipeProcessedEventHandler(ILogger<RecipeProcessedEventHandler> logger) : IEventHandler<RecipeProcessedEvent>
 {
-	public Task HandleAsync(RecipeProcessedEvent @event, CancellationToken cancellationToken = default)
-	{
-		using (logger.BeginScope(new Dictionary<string, object>
-		       {
-			       ["RecipeUrl"] = @event.Url,
-			       ["ProviderId"] = @event.ProviderId,
-			       ["RecipeId"] = @event.RecipeId,
-			       ["EventType"] = nameof(RecipeProcessedEvent)
-		       }))
-		{
-			logger.LogInformation(
-				"Recipe processed - URL: {RecipeUrl}, ProviderId: {ProviderId}, RecipeId: {RecipeId}, ProcessedAt: {ProcessedAt}",
-				@event.Url,
-				@event.ProviderId,
-				@event.RecipeId,
-				@event.ProcessedAt);
-		}
+    public Task HandleAsync(RecipeProcessedEvent @event, CancellationToken cancellationToken = default)
+    {
+        using (logger.BeginScope(new Dictionary<string, object>
+        {
+            ["RecipeUrl"] = @event.Url,
+            ["ProviderId"] = @event.ProviderId,
+            ["RecipeId"] = @event.RecipeId,
+            ["EventType"] = nameof(RecipeProcessedEvent)
+        }))
+        {
+            logger.LogInformation(
+                "Recipe processed - URL: {RecipeUrl}, ProviderId: {ProviderId}, RecipeId: {RecipeId}, ProcessedAt: {ProcessedAt}",
+                @event.Url,
+                @event.ProviderId,
+                @event.RecipeId,
+                @event.ProcessedAt);
+        }
 
-		return Task.CompletedTask;
-	}
+        return Task.CompletedTask;
+    }
 }

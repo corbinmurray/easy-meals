@@ -5,10 +5,10 @@ namespace EasyMeals.RecipeEngine.Domain.Interfaces;
 /// </summary>
 public interface IRandomizedDelayService
 {
-	/// <summary>
-	///     Calculates a randomized delay with ±20% variance around the minimum delay.
-	/// </summary>
-	/// <param name="minDelay">The baseline minimum delay</param>
-	/// <returns>A randomized delay within ±20% of the minimum delay</returns>
-	TimeSpan CalculateDelay(TimeSpan minDelay);
+    /// <summary>
+    ///     Calculates a randomized delay with ±20% variance around the minimum delay.
+    /// </summary>
+    /// <param name="minDelay">The baseline minimum delay</param>
+    /// <returns>A randomized delay within ±20% of the minimum delay</returns>
+    TimeSpan CalculateDelay(TimeSpan minDelay);
 }
