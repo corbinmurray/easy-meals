@@ -111,6 +111,9 @@ public class StaticCrawlDiscoveryService : IDiscoveryService
 				return;
 			}
 
+			// Track category/listing pages to crawl recursively
+			var categoryUrlsToCrawl = new List<string>();
+
 			foreach (HtmlNode linkNode in linkNodes)
 			{
 				if (discoveredUrls.Count >= maxUrls) break;
@@ -145,6 +148,27 @@ public class StaticCrawlDiscoveryService : IDiscoveryService
 							absoluteUrl, currentDepth, confidence);
 					}
 				}
+				// Check if this is a category/listing page we should crawl
+				else if (IsCategoryUrl(absoluteUrl) && currentDepth < maxDepth)
+				{
+					categoryUrlsToCrawl.Add(absoluteUrl);
+				}
+			}
+
+			// Recursively crawl category pages to find more recipes
+			foreach (string categoryUrl in categoryUrlsToCrawl)
+			{
+				if (discoveredUrls.Count >= maxUrls) break;
+
+				await DiscoverRecursiveAsync(
+					categoryUrl,
+					provider,
+					currentDepth + 1,
+					maxDepth,
+					maxUrls,
+					discoveredUrls,
+					visitedUrls,
+					cancellationToken);
 			}
 		}
 		catch (HttpRequestException ex)
@@ -215,7 +239,7 @@ public class StaticCrawlDiscoveryService : IDiscoveryService
 			"/dish/"
 		};
 
-		// Exclude common non-recipe patterns
+		// Exclude common non-recipe patterns (pages we don't want as results)
 		var excludePatterns = new[]
 		{
 			"/about",
@@ -227,10 +251,7 @@ public class StaticCrawlDiscoveryService : IDiscoveryService
 			"/cart",
 			"/checkout",
 			"/account",
-			"/search",
-			"/category",
-			"/tag",
-			"/author"
+			"/search"
 		};
 
 		string lowerUrl = url.ToLowerInvariant();
@@ -240,6 +261,50 @@ public class StaticCrawlDiscoveryService : IDiscoveryService
 
 		// Check if URL matches recipe patterns
 		return recipePatterns.Any(pattern => lowerUrl.Contains(pattern));
+	}
+
+	/// <summary>
+	///     Checks if a URL is a category/listing page that should be crawled for recipes
+	/// </summary>
+	private bool IsCategoryUrl(string url)
+	{
+		if (string.IsNullOrWhiteSpace(url)) return false;
+
+		// Category/listing page patterns (pages we should crawl but not return as recipes)
+		var categoryPatterns = new[]
+		{
+			"/category",
+			"/categories",
+			"/tag",
+			"/tags",
+			"/collection",
+			"/cuisine",
+			"/meal-type",
+			"/recipes" // Main listings page
+		};
+
+		// Exclude patterns that shouldn't be crawled
+		var excludePatterns = new[]
+		{
+			"/about",
+			"/contact",
+			"/privacy",
+			"/terms",
+			"/login",
+			"/signup",
+			"/cart",
+			"/checkout",
+			"/account",
+			"/search"
+		};
+
+		string lowerUrl = url.ToLowerInvariant();
+
+		// Don't crawl excluded pages
+		if (excludePatterns.Any(pattern => lowerUrl.Contains(pattern))) return false;
+
+		// Check if URL matches category patterns
+		return categoryPatterns.Any(pattern => lowerUrl.Contains(pattern));
 	}
 
 	/// <summary>

@@ -1,5 +1,6 @@
 // MongoDB seed script for Hello Fresh provider configuration
 // This inserts the Hello Fresh provider configuration into MongoDB
+// Usage: mongosh -u admin -p devpassword --file tools/seed-hellofresh.js
 
 db = db.getSiblingDB('easymeals');
 
