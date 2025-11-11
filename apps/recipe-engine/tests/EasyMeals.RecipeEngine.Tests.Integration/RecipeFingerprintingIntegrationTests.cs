@@ -31,7 +31,7 @@ public class RecipeFingerprintingIntegrationTests : IAsyncLifetime
 	public async Task InitializeAsync()
 	{
 		_mongoContainer = new MongoDbBuilder()
-			.WithImage("mongo:7.0")
+			.WithImage("mongo:8.0")
 			.Build();
 
 		await _mongoContainer.StartAsync();

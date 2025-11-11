@@ -33,7 +33,7 @@ public class RecipeProcessingWorkflowTests : IAsyncLifetime
 	{
 		// Start MongoDB container for integration testing
 		_mongoContainer = new MongoDbBuilder()
-			.WithImage("mongo:7.0")
+			.WithImage("mongo:8.0")
 			.Build();
 
 		await _mongoContainer.StartAsync();
@@ -89,11 +89,15 @@ public class RecipeProcessingWorkflowTests : IAsyncLifetime
 
 		var mockBatchRepo = new Mock<IRecipeBatchRepository>();
 
+		var mockFactory = new Mock<IDiscoveryServiceFactory>();
+		mockFactory.Setup(f => f.CreateDiscoveryService(mockConfig.DiscoveryStrategy))
+			.Returns(mockDiscoveryService.Object);
+
 		var saga = new RecipeProcessingSaga(
 			Mock.Of<ILogger<RecipeProcessingSaga>>(),
 			_sagaRepository!,
 			mockConfigLoader.Object,
-			mockDiscoveryService.Object,
+			mockFactory.Object,
 			mockFingerprinter.Object,
 			Mock.Of<IIngredientNormalizer>(),
 			mockRateLimiter.Object,
@@ -174,11 +178,14 @@ public class RecipeProcessingWorkflowTests : IAsyncLifetime
 			.Callback(() => processedCount++)
 			.ReturnsAsync(true);
 
+		var mockFactory = new Mock<IDiscoveryServiceFactory>();
+		mockFactory.Setup(f => f.CreateDiscoveryService(mockConfig.DiscoveryStrategy))
+			.Returns(mockDiscoveryService.Object);
 		var saga = new RecipeProcessingSaga(
 			Mock.Of<ILogger<RecipeProcessingSaga>>(),
 			_sagaRepository!,
 			mockConfigLoader.Object,
-			mockDiscoveryService.Object,
+			mockFactory.Object,
 			mockFingerprinter.Object,
 			Mock.Of<IIngredientNormalizer>(),
 			mockRateLimiter.Object,
@@ -205,11 +212,14 @@ public class RecipeProcessingWorkflowTests : IAsyncLifetime
 		mockConfigLoader.Setup(c => c.GetByProviderIdAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
 			.ReturnsAsync((ProviderConfiguration?)null);
 
+		var mockFactory = new Mock<IDiscoveryServiceFactory>();
+		mockFactory.Setup(f => f.CreateDiscoveryService(It.IsAny<DiscoveryStrategy>()))
+			.Returns(Mock.Of<IDiscoveryService>());
 		var saga = new RecipeProcessingSaga(
 			Mock.Of<ILogger<RecipeProcessingSaga>>(),
 			_sagaRepository!,
 			mockConfigLoader.Object,
-			Mock.Of<IDiscoveryService>(),
+			mockFactory.Object,
 			Mock.Of<IRecipeFingerprinter>(),
 			Mock.Of<IIngredientNormalizer>(),
 			Mock.Of<IRateLimiter>(),
@@ -265,11 +275,14 @@ public class RecipeProcessingWorkflowTests : IAsyncLifetime
 			.Callback(() => processedCount++)
 			.ReturnsAsync(true);
 
+		var mockFactory = new Mock<IDiscoveryServiceFactory>();
+		mockFactory.Setup(f => f.CreateDiscoveryService(mockConfig.DiscoveryStrategy))
+			.Returns(mockDiscoveryService.Object);
 		var saga = new RecipeProcessingSaga(
 			Mock.Of<ILogger<RecipeProcessingSaga>>(),
 			_sagaRepository!,
 			mockConfigLoader.Object,
-			mockDiscoveryService.Object,
+			mockFactory.Object,
 			mockFingerprinter.Object,
 			Mock.Of<IIngredientNormalizer>(),
 			mockRateLimiter.Object,

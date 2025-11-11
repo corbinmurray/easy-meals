@@ -33,7 +33,7 @@ public class RecipeProcessingErrorHandlingTests : IAsyncLifetime
 	public async Task InitializeAsync()
 	{
 		_mongoContainer = new MongoDbBuilder()
-			.WithImage("mongo:7.0")
+			.WithImage("mongo:8.0")
 			.Build();
 
 		await _mongoContainer.StartAsync();
@@ -141,11 +141,15 @@ public class RecipeProcessingErrorHandlingTests : IAsyncLifetime
 		Mock<IRecipeBatchRepository> mockBatchRepository = CreateMockBatchRepository();
 		Mock<IEventBus> mockEventBus = CreateMockEventBus();
 
+		var mockFactory = new Mock<IDiscoveryServiceFactory>();
+		mockFactory.Setup(f => f.CreateDiscoveryService(It.IsAny<DiscoveryStrategy>()))
+			.Returns(mockDiscoveryService.Object);
+
 		var saga = new RecipeProcessingSaga(
 			mockLogger.Object,
 			_sagaRepository!,
 			mockConfigLoader.Object,
-			mockDiscoveryService.Object,
+			mockFactory.Object,
 			mockFingerprinter.Object,
 			mockNormalizer.Object,
 			mockRateLimiter.Object,
@@ -186,11 +190,15 @@ public class RecipeProcessingErrorHandlingTests : IAsyncLifetime
 		Mock<IRecipeBatchRepository> mockBatchRepository = CreateMockBatchRepository();
 		Mock<IEventBus> mockEventBus = CreateMockEventBus();
 
+		var mockFactory = new Mock<IDiscoveryServiceFactory>();
+		mockFactory.Setup(f => f.CreateDiscoveryService(It.IsAny<DiscoveryStrategy>()))
+			.Returns(mockDiscoveryService.Object);
+
 		var saga = new RecipeProcessingSaga(
 			mockLogger.Object,
 			_sagaRepository!,
 			mockConfigLoader.Object,
-			mockDiscoveryService.Object,
+			mockFactory.Object,
 			mockFingerprinter.Object,
 			mockNormalizer.Object,
 			mockRateLimiter.Object,
@@ -225,6 +233,7 @@ public class RecipeProcessingErrorHandlingTests : IAsyncLifetime
 		Mock<IProviderConfigurationLoader> mockConfigLoader = CreateMockConfigLoader();
 		var attemptCount = 0;
 
+		var mockDiscoveryFactoryService = new Mock<IDiscoveryServiceFactory>();
 		var mockDiscoveryService = new Mock<IDiscoveryService>();
 		mockDiscoveryService
 			.Setup(d => d.DiscoverRecipeUrlsAsync(
@@ -241,6 +250,7 @@ public class RecipeProcessingErrorHandlingTests : IAsyncLifetime
 					new("https://test.com/recipe1", provider, DateTime.UtcNow)
 				});
 			});
+		mockDiscoveryFactoryService.Setup(x => x.CreateDiscoveryService(It.IsAny<DiscoveryStrategy>())).Returns(mockDiscoveryService.Object);
 
 		Mock<IRecipeFingerprinter> mockFingerprinter = CreateMockFingerprinter();
 		Mock<IIngredientNormalizer> mockNormalizer = CreateMockNormalizer();
@@ -252,7 +262,7 @@ public class RecipeProcessingErrorHandlingTests : IAsyncLifetime
 			mockLogger.Object,
 			_sagaRepository!,
 			mockConfigLoader.Object,
-			mockDiscoveryService.Object,
+			mockDiscoveryFactoryService.Object,
 			mockFingerprinter.Object,
 			mockNormalizer.Object,
 			mockRateLimiter.Object,
@@ -291,11 +301,15 @@ public class RecipeProcessingErrorHandlingTests : IAsyncLifetime
 		Mock<IRecipeBatchRepository> mockBatchRepository = CreateMockBatchRepository();
 		Mock<IEventBus> mockEventBus = CreateMockEventBus();
 
+		var mockFactory = new Mock<IDiscoveryServiceFactory>();
+		mockFactory.Setup(f => f.CreateDiscoveryService(It.IsAny<DiscoveryStrategy>()))
+			.Returns(mockDiscoveryService.Object);
+
 		var saga = new RecipeProcessingSaga(
 			mockLogger.Object,
 			_sagaRepository!,
 			mockConfigLoader.Object,
-			mockDiscoveryService.Object,
+			mockFactory.Object,
 			mockFingerprinter.Object,
 			mockNormalizer.Object,
 			mockRateLimiter.Object,

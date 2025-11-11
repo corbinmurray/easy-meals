@@ -37,7 +37,7 @@ public class IngredientNormalizationIntegrationTests : IAsyncLifetime
 	{
 		// Start MongoDB container
 		_mongoContainer = new MongoDbBuilder()
-			.WithImage("mongo:7.0")
+			.WithImage("mongo:8.0")
 			.WithUsername("admin")
 			.WithPassword("testpassword")
 			.Build();

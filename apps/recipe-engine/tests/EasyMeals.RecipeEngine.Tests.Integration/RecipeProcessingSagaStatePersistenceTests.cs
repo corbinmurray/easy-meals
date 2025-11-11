@@ -33,7 +33,7 @@ public class RecipeProcessingSagaStatePersistenceTests : IAsyncLifetime
 	public async Task InitializeAsync()
 	{
 		_mongoContainer = new MongoDbBuilder()
-			.WithImage("mongo:7.0")
+			.WithImage("mongo:8.0")
 			.Build();
 
 		await _mongoContainer.StartAsync();
@@ -127,11 +127,15 @@ public class RecipeProcessingSagaStatePersistenceTests : IAsyncLifetime
 		Mock<IRecipeBatchRepository> mockBatchRepository = CreateMockBatchRepository();
 		Mock<IEventBus> mockEventBus = CreateMockEventBus();
 
+		var mockFactory = new Mock<IDiscoveryServiceFactory>();
+		mockFactory.Setup(f => f.CreateDiscoveryService(It.IsAny<DiscoveryStrategy>()))
+			.Returns(mockDiscoveryService.Object);
+
 		var saga = new RecipeProcessingSaga(
 			mockLogger.Object,
 			_sagaRepository!,
 			mockConfigLoader.Object,
-			mockDiscoveryService.Object,
+			mockFactory.Object,
 			mockFingerprinter.Object,
 			mockNormalizer.Object,
 			mockRateLimiter.Object,
@@ -196,11 +200,15 @@ public class RecipeProcessingSagaStatePersistenceTests : IAsyncLifetime
 		Mock<IRecipeBatchRepository> mockBatchRepository = CreateMockBatchRepository();
 		Mock<IEventBus> mockEventBus = CreateMockEventBus();
 
+		var mockFactory = new Mock<IDiscoveryServiceFactory>();
+		mockFactory.Setup(f => f.CreateDiscoveryService(It.IsAny<DiscoveryStrategy>()))
+			.Returns(mockDiscoveryService.Object);
+
 		var saga = new RecipeProcessingSaga(
 			mockLogger.Object,
 			_sagaRepository!,
 			mockConfigLoader.Object,
-			mockDiscoveryService.Object,
+			mockFactory.Object,
 			mockFingerprinter.Object,
 			mockNormalizer.Object,
 			mockRateLimiter.Object,
@@ -242,11 +250,15 @@ public class RecipeProcessingSagaStatePersistenceTests : IAsyncLifetime
 		Mock<IRecipeBatchRepository> mockBatchRepository = CreateMockBatchRepository();
 		Mock<IEventBus> mockEventBus = CreateMockEventBus();
 
+		var mockFactory = new Mock<IDiscoveryServiceFactory>();
+		mockFactory.Setup(f => f.CreateDiscoveryService(It.IsAny<DiscoveryStrategy>()))
+			.Returns(mockDiscoveryService.Object);
+
 		var saga = new RecipeProcessingSaga(
 			mockLogger.Object,
 			_sagaRepository!,
 			mockConfigLoader.Object,
-			mockDiscoveryService.Object,
+			mockFactory.Object,
 			mockFingerprinter.Object,
 			mockNormalizer.Object,
 			mockRateLimiter.Object,
@@ -288,6 +300,8 @@ public class RecipeProcessingSagaStatePersistenceTests : IAsyncLifetime
 			"https://test.com/recipe2-duplicate", // Will be filtered out
 			"https://test.com/recipe3"
 		});
+		var mockDiscoveryFactoryService = new Mock<IDiscoveryServiceFactory>();
+		mockDiscoveryFactoryService.Setup(x => x.CreateDiscoveryService(It.IsAny<DiscoveryStrategy>())).Returns(mockDiscoveryService.Object);
 
 		var mockFingerprinter = new Mock<IRecipeFingerprinter>();
 		mockFingerprinter
@@ -310,7 +324,7 @@ public class RecipeProcessingSagaStatePersistenceTests : IAsyncLifetime
 			mockLogger.Object,
 			_sagaRepository!,
 			mockConfigLoader.Object,
-			mockDiscoveryService.Object,
+			mockDiscoveryFactoryService.Object,
 			mockFingerprinter.Object,
 			mockNormalizer.Object,
 			mockRateLimiter.Object,
@@ -355,11 +369,15 @@ public class RecipeProcessingSagaStatePersistenceTests : IAsyncLifetime
 		Mock<IRecipeBatchRepository> mockBatchRepository = CreateMockBatchRepository();
 		Mock<IEventBus> mockEventBus = CreateMockEventBus();
 
+		var mockFactory = new Mock<IDiscoveryServiceFactory>();
+		mockFactory.Setup(f => f.CreateDiscoveryService(It.IsAny<DiscoveryStrategy>()))
+			.Returns(mockDiscoveryService.Object);
+
 		var saga = new RecipeProcessingSaga(
 			mockLogger.Object,
 			_sagaRepository!,
 			mockConfigLoader.Object,
-			mockDiscoveryService.Object,
+			mockFactory.Object,
 			mockFingerprinter.Object,
 			mockNormalizer.Object,
 			mockRateLimiter.Object,
