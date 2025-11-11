@@ -4,7 +4,7 @@ using EasyMeals.RecipeEngine.Domain.Entities;
 using EasyMeals.RecipeEngine.Domain.Interfaces;
 using EasyMeals.RecipeEngine.Domain.Repositories;
 using EasyMeals.RecipeEngine.Domain.ValueObjects;
-using FluentAssertions;
+using Shouldly;
 using Microsoft.Extensions.Logging;
 using Moq;
 
@@ -32,11 +32,11 @@ public class RecipeProcessingSagaContractTests
 		sagaState.CreateCheckpoint("ProcessingCheckpoint", checkpointData);
 
 		// Assert
-		sagaState.HasCheckpoint.Should().BeTrue();
+		sagaState.HasCheckpoint.ShouldBeTrue();
 		Dictionary<string, object>? retrievedCheckpoint = sagaState.GetCheckpoint("ProcessingCheckpoint");
-		retrievedCheckpoint.Should().NotBeNull();
-		retrievedCheckpoint.Should().ContainKey("DiscoveredUrls");
-		retrievedCheckpoint.Should().ContainKey("CurrentIndex");
+		retrievedCheckpoint.ShouldNotBeNull();
+		retrievedCheckpoint.ShouldContainKey("DiscoveredUrls");
+		retrievedCheckpoint.ShouldContainKey("CurrentIndex");
 	}
 
 	[Fact(DisplayName = "Saga can be paused and resumed")]
@@ -50,15 +50,15 @@ public class RecipeProcessingSagaContractTests
 		sagaState.Pause();
 
 		// Assert
-		sagaState.Status.Should().Be(SagaStatus.Paused);
-		sagaState.CanResume.Should().BeTrue();
+		sagaState.Status.ShouldBe(SagaStatus.Paused);
+		sagaState.CanResume.ShouldBeTrue();
 
 		// Act - Resume
 		sagaState.Resume();
 
 		// Assert
-		sagaState.Status.Should().Be(SagaStatus.Running);
-		sagaState.IsRunning.Should().BeTrue();
+		sagaState.Status.ShouldBe(SagaStatus.Running);
+		sagaState.IsRunning.ShouldBeTrue();
 	}
 
 	[Fact(DisplayName = "Saga handles failure state")]
@@ -74,11 +74,11 @@ public class RecipeProcessingSagaContractTests
 		sagaState.Fail(errorMessage, stackTrace);
 
 		// Assert
-		sagaState.Status.Should().Be(SagaStatus.Failed);
-		sagaState.IsFailed.Should().BeTrue();
-		sagaState.ErrorMessage.Should().Be(errorMessage);
-		sagaState.ErrorStackTrace.Should().Be(stackTrace);
-		sagaState.CompletedAt.Should().NotBeNull();
+		sagaState.Status.ShouldBe(SagaStatus.Failed);
+		sagaState.IsFailed.ShouldBeTrue();
+		sagaState.ErrorMessage.ShouldBe(errorMessage);
+		sagaState.ErrorStackTrace.ShouldBe(stackTrace);
+		sagaState.CompletedAt.ShouldNotBeNull();
 	}
 
 	[Fact(DisplayName = "Saga tracks processing metrics")]
@@ -91,9 +91,9 @@ public class RecipeProcessingSagaContractTests
 		sagaState.UpdateMetrics(10, 2, TimeSpan.FromSeconds(30));
 
 		// Assert
-		sagaState.Metrics.ItemsProcessed.Should().Be(10);
-		sagaState.Metrics.ItemsFailed.Should().Be(2);
-		sagaState.Metrics.TotalProcessingTime.Should().Be(TimeSpan.FromSeconds(30));
+		sagaState.Metrics.ItemsProcessed.ShouldBe(10);
+		sagaState.Metrics.ItemsFailed.ShouldBe(2);
+		sagaState.Metrics.TotalProcessingTime.ShouldBe(TimeSpan.FromSeconds(30));
 	}
 
 	[Fact(DisplayName = "Saga tracks workflow phases")]
@@ -104,27 +104,27 @@ public class RecipeProcessingSagaContractTests
 
 		// Act & Assert - Phase progression
 		sagaState.Start();
-		sagaState.Status.Should().Be(SagaStatus.Running);
+		sagaState.Status.ShouldBe(SagaStatus.Running);
 
 		sagaState.UpdateProgress("Discovering", 25);
-		sagaState.CurrentPhase.Should().Be("Discovering");
-		sagaState.PhaseProgress.Should().Be(25);
+		sagaState.CurrentPhase.ShouldBe("Discovering");
+		sagaState.PhaseProgress.ShouldBe(25);
 
 		sagaState.UpdateProgress("Fingerprinting", 50);
-		sagaState.CurrentPhase.Should().Be("Fingerprinting");
-		sagaState.PhaseProgress.Should().Be(50);
+		sagaState.CurrentPhase.ShouldBe("Fingerprinting");
+		sagaState.PhaseProgress.ShouldBe(50);
 
 		sagaState.UpdateProgress("Processing", 75);
-		sagaState.CurrentPhase.Should().Be("Processing");
-		sagaState.PhaseProgress.Should().Be(75);
+		sagaState.CurrentPhase.ShouldBe("Processing");
+		sagaState.PhaseProgress.ShouldBe(75);
 
 		sagaState.UpdateProgress("Persisting", 90);
-		sagaState.CurrentPhase.Should().Be("Persisting");
-		sagaState.PhaseProgress.Should().Be(90);
+		sagaState.CurrentPhase.ShouldBe("Persisting");
+		sagaState.PhaseProgress.ShouldBe(90);
 
 		sagaState.Complete();
-		sagaState.Status.Should().Be(SagaStatus.Completed);
-		sagaState.IsCompleted.Should().BeTrue();
+		sagaState.Status.ShouldBe(SagaStatus.Completed);
+		sagaState.IsCompleted.ShouldBeTrue();
 	}
 
 	[Fact(DisplayName = "Saga state includes required workflow data")]
@@ -164,17 +164,17 @@ public class RecipeProcessingSagaContractTests
 			await saga.StartProcessingAsync("provider_001", 100, TimeSpan.FromHours(1), CancellationToken.None));
 
 		// Assert - State includes workflow data
-		capturedState.Should().NotBeNull();
-		capturedState!.Id.Should().NotBeEmpty();
-		capturedState.CorrelationId.Should().NotBeEmpty();
-		capturedState.SagaType.Should().Be("RecipeProcessingSaga");
-		capturedState.StateData.Should().NotBeNull();
-		capturedState.StateData.Should().ContainKey("ProviderId");
-		capturedState.StateData.Should().ContainKey("BatchSize");
-		capturedState.StateData.Should().ContainKey("DiscoveredUrls");
-		capturedState.StateData.Should().ContainKey("ProcessedUrls");
-		capturedState.StateData.Should().ContainKey("FailedUrls");
-		capturedState.StateData.Should().ContainKey("CurrentIndex");
+		capturedState.ShouldNotBeNull();
+		capturedState!.Id.ShouldNotBe(Guid.Empty);
+		capturedState.CorrelationId.ShouldNotBe(Guid.Empty);
+		capturedState.SagaType.ShouldBe("RecipeProcessingSaga");
+		capturedState.StateData.ShouldNotBeNull();
+		capturedState.StateData.ShouldContainKey("ProviderId");
+		capturedState.StateData.ShouldContainKey("BatchSize");
+		capturedState.StateData.ShouldContainKey("DiscoveredUrls");
+		capturedState.StateData.ShouldContainKey("ProcessedUrls");
+		capturedState.StateData.ShouldContainKey("FailedUrls");
+		capturedState.StateData.ShouldContainKey("CurrentIndex");
 	}
 
 	[Fact(DisplayName = "Saga starts in created state")]
@@ -221,8 +221,8 @@ public class RecipeProcessingSagaContractTests
 			It.IsAny<CancellationToken>()), Times.Once);
 
 		// The state should have been created
-		addedState.Should().NotBeNull();
-		addedState!.SagaType.Should().Be("RecipeProcessingSaga");
+		addedState.ShouldNotBeNull();
+		addedState!.SagaType.ShouldBe("RecipeProcessingSaga");
 	}
 
 	[Fact(DisplayName = "Saga transitions from Created to Discovering")]
@@ -262,8 +262,8 @@ public class RecipeProcessingSagaContractTests
 			await saga.StartProcessingAsync("provider_001", 100, TimeSpan.FromHours(1), CancellationToken.None));
 
 		// Assert - State was created and moved to Discovering phase before failing
-		capturedState.Should().NotBeNull();
-		capturedState!.CurrentPhase.Should().Be("Discovering");
+		capturedState.ShouldNotBeNull();
+		capturedState!.CurrentPhase.ShouldBe("Discovering");
 		// Note: The saga will fail due to null config, so status will be Failed
 		// This is expected behavior for this test scenario
 	}

@@ -2,7 +2,7 @@ using EasyMeals.RecipeEngine.Domain.ValueObjects;
 using EasyMeals.RecipeEngine.Infrastructure.Documents;
 using EasyMeals.RecipeEngine.Infrastructure.Services;
 using EasyMeals.Shared.Data.Repositories;
-using FluentAssertions;
+using Shouldly;
 using MongoDB.Driver;
 using Testcontainers.MongoDb;
 
@@ -88,8 +88,7 @@ public class MultiProviderProcessingTests : IAsyncLifetime
 		await _repository.InsertOneAsync(CreateProvider("provider_003", "https://provider3.com/recipes", 30));
 
 		// Act & Assert - Should not throw
-		await _loader!.Invoking(async l => await l.LoadConfigurationsAsync())
-			.Should().NotThrowAsync();
+		await Should.NotThrowAsync(async () => await _loader!.LoadConfigurationsAsync());
 	}
 
 	[Fact(DisplayName = "Loader distinguishes between different discovery strategies")]
@@ -109,16 +108,16 @@ public class MultiProviderProcessingTests : IAsyncLifetime
 		List<ProviderConfiguration> configList = configs.ToList();
 
 		// Assert - All three strategies loaded correctly
-		configList.Should().HaveCount(3);
+		configList!.Count.ShouldBe(3);
 
 		ProviderConfiguration staticConfig = configList.First(c => c.ProviderId == "static_provider");
-		staticConfig.DiscoveryStrategy.ToString().Should().Be("Static");
+		staticConfig.DiscoveryStrategy.ToString().ShouldBe("Static");
 
 		ProviderConfiguration dynamicConfig = configList.First(c => c.ProviderId == "dynamic_provider");
-		dynamicConfig.DiscoveryStrategy.ToString().Should().Be("Dynamic");
+		dynamicConfig.DiscoveryStrategy.ToString().ShouldBe("Dynamic");
 
 		ProviderConfiguration apiConfig = configList.First(c => c.ProviderId == "api_provider");
-		apiConfig.DiscoveryStrategy.ToString().Should().Be("Api");
+		apiConfig.DiscoveryStrategy.ToString().ShouldBe("Api");
 	}
 
 	[Fact(DisplayName = "Loader handles mixed enabled and disabled providers")]
@@ -138,10 +137,10 @@ public class MultiProviderProcessingTests : IAsyncLifetime
 		List<ProviderConfiguration> configList = configs.ToList();
 
 		// Assert - Only enabled providers returned
-		configList.Should().HaveCount(2);
-		configList.Should().Contain(c => c.ProviderId == "provider_enabled_1");
-		configList.Should().Contain(c => c.ProviderId == "provider_enabled_2");
-		configList.Should().NotContain(c => c.ProviderId == "provider_disabled");
+		configList!.Count.ShouldBe(2);
+		configList.ShouldContain(c => c.ProviderId == "provider_enabled_1");
+		configList.ShouldContain(c => c.ProviderId == "provider_enabled_2");
+		configList.ShouldNotContain(c => c.ProviderId == "provider_disabled");
 	}
 
 	[Fact(DisplayName = "Loader handles multiple providers with different settings")]
@@ -188,27 +187,27 @@ public class MultiProviderProcessingTests : IAsyncLifetime
 		List<ProviderConfiguration> configList = configs.ToList();
 
 		// Assert - Both providers loaded
-		configList.Should().HaveCount(2);
+		configList!.Count.ShouldBe(2);
 
 		// Verify provider_001 settings
 		ProviderConfiguration config1 = configList.First(c => c.ProviderId == "provider_001");
-		config1.RecipeRootUrl.Should().Be("https://provider1.com/recipes");
-		config1.BatchSize.Should().Be(10);
-		config1.TimeWindow.Should().Be(TimeSpan.FromMinutes(10));
-		config1.MinDelay.Should().Be(TimeSpan.FromSeconds(2));
-		config1.MaxRequestsPerMinute.Should().Be(10);
-		config1.RetryCount.Should().Be(3);
-		config1.RequestTimeout.Should().Be(TimeSpan.FromSeconds(30));
+		config1.RecipeRootUrl.ShouldBe("https://provider1.com/recipes");
+		config1.BatchSize.ShouldBe(10);
+		config1.TimeWindow.ShouldBe(TimeSpan.FromMinutes(10));
+		config1.MinDelay.ShouldBe(TimeSpan.FromSeconds(2));
+		config1.MaxRequestsPerMinute.ShouldBe(10);
+		config1.RetryCount.ShouldBe(3);
+		config1.RequestTimeout.ShouldBe(TimeSpan.FromSeconds(30));
 
 		// Verify provider_002 settings
 		ProviderConfiguration config2 = configList.First(c => c.ProviderId == "provider_002");
-		config2.RecipeRootUrl.Should().Be("https://provider2.com/recipes");
-		config2.BatchSize.Should().Be(20);
-		config2.TimeWindow.Should().Be(TimeSpan.FromMinutes(15));
-		config2.MinDelay.Should().Be(TimeSpan.FromSeconds(3));
-		config2.MaxRequestsPerMinute.Should().Be(5);
-		config2.RetryCount.Should().Be(5);
-		config2.RequestTimeout.Should().Be(TimeSpan.FromSeconds(60));
+		config2.RecipeRootUrl.ShouldBe("https://provider2.com/recipes");
+		config2.BatchSize.ShouldBe(20);
+		config2.TimeWindow.ShouldBe(TimeSpan.FromMinutes(15));
+		config2.MinDelay.ShouldBe(TimeSpan.FromSeconds(3));
+		config2.MaxRequestsPerMinute.ShouldBe(5);
+		config2.RetryCount.ShouldBe(5);
+		config2.RequestTimeout.ShouldBe(TimeSpan.FromSeconds(60));
 	}
 
 	[Fact(DisplayName = "Loader processes providers sequentially without conflicts")]
@@ -236,9 +235,9 @@ public class MultiProviderProcessingTests : IAsyncLifetime
 		}
 
 		// Assert - All providers processed without conflicts
-		results.Should().HaveCount(3);
-		results.Should().Contain("provider_001");
-		results.Should().Contain("provider_002");
-		results.Should().Contain("provider_003");
+		results!.Count.ShouldBe(3);
+		results.ShouldContain("provider_001");
+		results.ShouldContain("provider_002");
+		results.ShouldContain("provider_003");
 	}
 }

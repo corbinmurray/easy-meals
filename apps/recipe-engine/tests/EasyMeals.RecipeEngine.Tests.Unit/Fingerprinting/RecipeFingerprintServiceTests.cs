@@ -2,7 +2,7 @@ using EasyMeals.RecipeEngine.Application.Interfaces;
 using EasyMeals.RecipeEngine.Domain.Entities;
 using EasyMeals.RecipeEngine.Domain.Repositories;
 using EasyMeals.RecipeEngine.Infrastructure.Fingerprinting;
-using FluentAssertions;
+using Shouldly;
 using Moq;
 
 namespace EasyMeals.RecipeEngine.Tests.Unit.Fingerprinting;
@@ -36,7 +36,7 @@ public class RecipeFingerprintServiceTests
 		string fingerprint2 = _fingerprintService.GenerateFingerprint(url, title, description2);
 
 		// Assert
-		fingerprint1.Should().NotBe(fingerprint2, "Different descriptions should produce different hashes");
+		fingerprint1.ShouldNotBe(fingerprint2, "Different descriptions should produce different hashes");
 	}
 
 	[Fact(DisplayName = "Different titles produce different fingerprints")]
@@ -53,7 +53,7 @@ public class RecipeFingerprintServiceTests
 		string fingerprint2 = _fingerprintService.GenerateFingerprint(url, title2, description);
 
 		// Assert
-		fingerprint1.Should().NotBe(fingerprint2, "Different titles should produce different hashes");
+		fingerprint1.ShouldNotBe(fingerprint2, "Different titles should produce different hashes");
 	}
 
 	[Fact(DisplayName = "Different URLs produce different fingerprints")]
@@ -70,7 +70,7 @@ public class RecipeFingerprintServiceTests
 		string fingerprint2 = _fingerprintService.GenerateFingerprint(url2, title, description);
 
 		// Assert
-		fingerprint1.Should().NotBe(fingerprint2, "Different URLs should produce different hashes");
+		fingerprint1.ShouldNotBe(fingerprint2, "Different URLs should produce different hashes");
 	}
 
 	[Fact(DisplayName = "Generate fingerprint handles empty description")]
@@ -85,9 +85,9 @@ public class RecipeFingerprintServiceTests
 		string fingerprint = _fingerprintService.GenerateFingerprint(url, title, description);
 
 		// Assert
-		fingerprint.Should().NotBeNullOrEmpty();
-		fingerprint.Should().HaveLength(64);
-		fingerprint.Should().MatchRegex("^[a-f0-9]{64}$");
+		fingerprint.ShouldNotBeNullOrEmpty();
+		fingerprint.Length.ShouldBe(64);
+		fingerprint.ShouldMatch("^[a-f0-9]{64}$");
 	}
 
 	[Fact(DisplayName = "Generate fingerprint normalizes description by taking first 200 chars, trimming, and lowercasing")]
@@ -108,8 +108,8 @@ public class RecipeFingerprintServiceTests
 		string expectedFingerprint = _fingerprintService.GenerateFingerprint(url, title, truncatedDescription);
 
 		// Assert
-		fingerprintLong.Should().Be(expectedFingerprint, "Description should be truncated to 200 chars");
-		fingerprintShort.Should().NotBe(fingerprintLong, "Short and truncated long descriptions should produce different hashes");
+		fingerprintLong.ShouldBe(expectedFingerprint, "Description should be truncated to 200 chars");
+		fingerprintShort.ShouldNotBe(fingerprintLong, "Short and truncated long descriptions should produce different hashes");
 	}
 
 	[Fact(DisplayName = "Same content produces same fingerprint hash")]
@@ -125,7 +125,7 @@ public class RecipeFingerprintServiceTests
 		string fingerprint2 = _fingerprintService.GenerateFingerprint(url, title, description);
 
 		// Assert
-		fingerprint1.Should().Be(fingerprint2, "Same content should always produce the same hash");
+		fingerprint1.ShouldBe(fingerprint2, "Same content should always produce the same hash");
 	}
 
 	[Fact(DisplayName = "Generate fingerprint normalizes title by trimming and lowercasing")]
@@ -142,7 +142,7 @@ public class RecipeFingerprintServiceTests
 		string fingerprint2 = _fingerprintService.GenerateFingerprint(url, titleNormalized, description);
 
 		// Assert
-		fingerprint1.Should().Be(fingerprint2, "Title should be trimmed and lowercased");
+		fingerprint1.ShouldBe(fingerprint2, "Title should be trimmed and lowercased");
 	}
 
 	[Fact(DisplayName = "Generate fingerprint normalizes URL to lowercase")]
@@ -159,7 +159,7 @@ public class RecipeFingerprintServiceTests
 		string fingerprint2 = _fingerprintService.GenerateFingerprint(urlLowercase, title, description);
 
 		// Assert
-		fingerprint1.Should().Be(fingerprint2, "URL should be normalized to lowercase");
+		fingerprint1.ShouldBe(fingerprint2, "URL should be normalized to lowercase");
 	}
 
 	[Fact(DisplayName = "Generate fingerprint removes query parameters from URL")]
@@ -176,7 +176,7 @@ public class RecipeFingerprintServiceTests
 		string fingerprint2 = _fingerprintService.GenerateFingerprint(urlWithoutParams, title, description);
 
 		// Assert
-		fingerprint1.Should().Be(fingerprint2, "Query parameters should be removed from URL");
+		fingerprint1.ShouldBe(fingerprint2, "Query parameters should be removed from URL");
 	}
 
 	[Fact(DisplayName = "Generate fingerprint with valid inputs returns SHA256 hash")]
@@ -191,9 +191,9 @@ public class RecipeFingerprintServiceTests
 		string fingerprint = _fingerprintService.GenerateFingerprint(url, title, description);
 
 		// Assert
-		fingerprint.Should().NotBeNullOrEmpty();
-		fingerprint.Should().HaveLength(64); // SHA256 produces 64-character hex string
-		fingerprint.Should().MatchRegex("^[a-f0-9]{64}$"); // Only lowercase hex characters
+		fingerprint.ShouldNotBeNullOrEmpty();
+		fingerprint.Length.ShouldBe(64); // SHA256 produces 64-character hex string
+		fingerprint.ShouldMatch("^[a-f0-9]{64}$"); // Only lowercase hex characters
 	}
 
 	[Fact(DisplayName = "Is duplicate returns true when fingerprint exists in repository")]
@@ -212,7 +212,7 @@ public class RecipeFingerprintServiceTests
 		bool isDuplicate = await _fingerprintService.IsDuplicateAsync(fingerprintHash);
 
 		// Assert
-		isDuplicate.Should().BeTrue("Fingerprint exists in repository");
+		isDuplicate.ShouldBeTrue(); // "Fingerprint exists in repository"
 	}
 
 	[Fact(DisplayName = "Is duplicate returns false when fingerprint does not exist")]
@@ -231,7 +231,7 @@ public class RecipeFingerprintServiceTests
 		bool isDuplicate = await _fingerprintService.IsDuplicateAsync(fingerprintHash);
 
 		// Assert
-		isDuplicate.Should().BeFalse("Fingerprint does not exist in repository");
+		isDuplicate.ShouldBeFalse(); // "Fingerprint does not exist in repository"
 	}
 
 	[Fact(DisplayName = "Store fingerprint persists to repository")]

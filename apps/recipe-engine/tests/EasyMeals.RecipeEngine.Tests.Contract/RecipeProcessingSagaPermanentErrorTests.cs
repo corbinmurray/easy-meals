@@ -1,6 +1,6 @@
 using System.Text.Json;
 using EasyMeals.RecipeEngine.Domain.Entities;
-using FluentAssertions;
+using Shouldly;
 
 namespace EasyMeals.RecipeEngine.Tests.Contract;
 
@@ -38,7 +38,7 @@ public class RecipeProcessingSagaPermanentErrorTests
 		bool isPermanent = IsPermanentError(error);
 
 		// Assert
-		isPermanent.Should().BeTrue("ArgumentException indicates invalid input that won't be fixed by retry");
+		isPermanent.ShouldBeTrue(); // "ArgumentException indicates invalid input that won't be fixed by retry";
 	}
 
 	[Fact(DisplayName = "Saga identifies InvalidOperationException as permanent error")]
@@ -51,7 +51,7 @@ public class RecipeProcessingSagaPermanentErrorTests
 		bool isPermanent = IsPermanentError(error);
 
 		// Assert
-		isPermanent.Should().BeTrue("InvalidOperationException indicates logic error that won't be fixed by retry");
+		isPermanent.ShouldBeTrue(); // "InvalidOperationException indicates logic error that won't be fixed by retry";
 	}
 
 	[Fact(DisplayName = "Saga identifies JsonException as permanent error")]
@@ -64,7 +64,7 @@ public class RecipeProcessingSagaPermanentErrorTests
 		bool isPermanent = IsPermanentError(error);
 
 		// Assert
-		isPermanent.Should().BeTrue("JsonException indicates malformed data that won't be fixed by retry");
+		isPermanent.ShouldBeTrue(); // "JsonException indicates malformed data that won't be fixed by retry";
 	}
 
 	[Fact(DisplayName = "Saga identifies NullReferenceException as permanent error")]
@@ -77,7 +77,7 @@ public class RecipeProcessingSagaPermanentErrorTests
 		bool isPermanent = IsPermanentError(error);
 
 		// Assert
-		isPermanent.Should().BeTrue("NullReferenceException indicates missing data that won't be fixed by retry");
+		isPermanent.ShouldBeTrue(); // "NullReferenceException indicates missing data that won't be fixed by retry";
 	}
 
 	[Fact(DisplayName = "Saga continues after permanent error without blocking")]
@@ -100,9 +100,9 @@ public class RecipeProcessingSagaPermanentErrorTests
 		}
 
 		// Assert
-		processedCount.Should().Be(99, "should process all URLs except the failed one");
-		failedCount.Should().Be(1);
-		(processedCount + failedCount).Should().Be(totalUrls, "should process all URLs");
+		processedCount.ShouldBe(99, "should process all URLs except the failed one");
+		failedCount.ShouldBe(1);
+		(processedCount + failedCount).ShouldBe(totalUrls, "should process all URLs");
 	}
 
 	[Fact(DisplayName = "Saga emits ProcessingErrorEvent for permanent failures")]
@@ -126,9 +126,9 @@ public class RecipeProcessingSagaPermanentErrorTests
 		};
 
 		// Assert
-		eventEmitted.Should().BeTrue("should emit event for monitoring");
-		eventData["EventType"].Should().Be("ProcessingError");
-		eventData["IsPermanent"].Should().Be(true);
+		eventEmitted.ShouldBeTrue(); // "should emit event for monitoring";
+		eventData["EventType"].ShouldBe("ProcessingError");
+		eventData["IsPermanent"].ShouldBe(true);
 	}
 
 	[Fact(DisplayName = "Saga logs permanent errors with full context")]
@@ -151,12 +151,12 @@ public class RecipeProcessingSagaPermanentErrorTests
 		};
 
 		// Assert - All required context should be present
-		errorContext.Should().ContainKey("Url");
-		errorContext.Should().ContainKey("ProviderId");
-		errorContext.Should().ContainKey("Error");
-		errorContext.Should().ContainKey("ErrorType");
-		errorContext.Should().ContainKey("IsPermanent");
-		errorContext["IsPermanent"].Should().Be(true);
+		errorContext.ShouldContainKey("Url");
+		errorContext.ShouldContainKey("ProviderId");
+		errorContext.ShouldContainKey("Error");
+		errorContext.ShouldContainKey("ErrorType");
+		errorContext.ShouldContainKey("IsPermanent");
+		errorContext["IsPermanent"].ShouldBe(true);
 	}
 
 	[Fact(DisplayName = "Saga skips permanent errors and continues processing")]
@@ -203,10 +203,10 @@ public class RecipeProcessingSagaPermanentErrorTests
 		}
 
 		// Assert
-		processedUrls.Should().HaveCount(2, "should process 2 successful recipes");
-		failedUrls.Should().HaveCount(1, "should have 1 permanently failed recipe");
-		failedUrls[0]["IsPermanent"].Should().Be(true);
-		failedUrls[0]["RetryCount"].Should().Be(0, "permanent errors should not be retried");
+		processedUrls!.Count.ShouldBe(2, "should process 2 successful recipes");
+		failedUrls!.Count.ShouldBe(1, "should have 1 permanently failed recipe");
+		failedUrls[0]["IsPermanent"].ShouldBe(true);
+		failedUrls[0]["RetryCount"].ShouldBe(0, "permanent errors should not be retried");
 	}
 
 	[Fact(DisplayName = "Saga marks permanent errors as non-retryable")]
@@ -222,7 +222,7 @@ public class RecipeProcessingSagaPermanentErrorTests
 		};
 
 		// Assert
-		failedUrl["IsPermanent"].Should().Be(true);
-		failedUrl["Retryable"].Should().Be(false);
+		failedUrl["IsPermanent"].ShouldBe(true);
+		failedUrl["Retryable"].ShouldBe(false);
 	}
 }

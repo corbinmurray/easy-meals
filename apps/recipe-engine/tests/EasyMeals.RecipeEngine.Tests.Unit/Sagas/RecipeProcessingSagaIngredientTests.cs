@@ -4,7 +4,7 @@ using EasyMeals.RecipeEngine.Domain.Events;
 using EasyMeals.RecipeEngine.Domain.Interfaces;
 using EasyMeals.RecipeEngine.Domain.Repositories;
 using EasyMeals.RecipeEngine.Domain.ValueObjects;
-using FluentAssertions;
+using Shouldly;
 using Microsoft.Extensions.Logging;
 using Moq;
 
@@ -64,18 +64,18 @@ public class RecipeProcessingSagaIngredientTests
 		IReadOnlyList<IngredientReference> result = await _sut.ProcessIngredientsAsync(providerId, recipeUrl, rawCodes);
 
 		// Assert
-		result.Should().HaveCount(3);
-		result[0].ProviderCode.Should().Be("HF-BROCCOLI-001");
-		result[0].CanonicalForm.Should().Be("broccoli");
-		result[0].DisplayOrder.Should().Be(1);
+		result!.Count.ShouldBe(3);
+		result[0].ProviderCode.ShouldBe("HF-BROCCOLI-001");
+		result[0].CanonicalForm.ShouldBe("broccoli");
+		result[0].DisplayOrder.ShouldBe(1);
 
-		result[1].ProviderCode.Should().Be("HF-GARLIC-002");
-		result[1].CanonicalForm.Should().Be("garlic");
-		result[1].DisplayOrder.Should().Be(2);
+		result[1].ProviderCode.ShouldBe("HF-GARLIC-002");
+		result[1].CanonicalForm.ShouldBe("garlic");
+		result[1].DisplayOrder.ShouldBe(2);
 
-		result[2].ProviderCode.Should().Be("HF-OLIVE-OIL-003");
-		result[2].CanonicalForm.Should().Be("olive oil");
-		result[2].DisplayOrder.Should().Be(3);
+		result[2].ProviderCode.ShouldBe("HF-OLIVE-OIL-003");
+		result[2].CanonicalForm.ShouldBe("olive oil");
+		result[2].DisplayOrder.ShouldBe(3);
 
 		// Verify no events were published for mapped ingredients
 		_mockEventBus.Verify(
@@ -127,7 +127,7 @@ public class RecipeProcessingSagaIngredientTests
 		IReadOnlyList<IngredientReference> result = await _sut.ProcessIngredientsAsync(providerId, recipeUrl, rawCodes);
 
 		// Assert
-		result.Should().BeEmpty();
+		result.ShouldBeEmpty();
 		_mockEventBus.Verify(
 			eb => eb.Publish(It.IsAny<IngredientMappingMissingEvent>()),
 			Times.Never);
@@ -157,11 +157,11 @@ public class RecipeProcessingSagaIngredientTests
 		IReadOnlyList<IngredientReference> result = await _sut.ProcessIngredientsAsync(providerId, recipeUrl, rawCodes);
 
 		// Assert - All 4 ingredients processed despite 2 being unmapped
-		result.Should().HaveCount(4);
-		result[0].CanonicalForm.Should().Be("broccoli");
-		result[1].CanonicalForm.Should().BeNull();
-		result[2].CanonicalForm.Should().Be("garlic");
-		result[3].CanonicalForm.Should().BeNull();
+		result!.Count.ShouldBe(4);
+		result[0].CanonicalForm.ShouldBe("broccoli");
+		result[1].CanonicalForm.ShouldBeNull();
+		result[2].CanonicalForm.ShouldBe("garlic");
+		result[3].CanonicalForm.ShouldBeNull();
 
 		// Verify events published for both unmapped ingredients
 		_mockEventBus.Verify(
@@ -197,11 +197,11 @@ public class RecipeProcessingSagaIngredientTests
 		IReadOnlyList<IngredientReference> result = await _sut.ProcessIngredientsAsync(providerId, recipeUrl, rawCodes);
 
 		// Assert
-		result.Should().HaveCount(5);
+		result!.Count.ShouldBe(5);
 		for (var i = 0; i < 5; i++)
 		{
-			result[i].DisplayOrder.Should().Be(i + 1);
-			result[i].ProviderCode.Should().Be($"CODE-{i + 1}");
+			result[i].DisplayOrder.ShouldBe(i + 1);
+			result[i].ProviderCode.ShouldBe($"CODE-{i + 1}");
 		}
 	}
 
@@ -227,9 +227,9 @@ public class RecipeProcessingSagaIngredientTests
 		IReadOnlyList<IngredientReference> result = await _sut.ProcessIngredientsAsync(providerId, recipeUrl, rawCodes);
 
 		// Assert
-		result.Should().HaveCount(2);
-		result[0].CanonicalForm.Should().Be("broccoli");
-		result[1].CanonicalForm.Should().BeNull(); // Unmapped stored as null
+		result!.Count.ShouldBe(2);
+		result[0].CanonicalForm.ShouldBe("broccoli");
+		result[1].CanonicalForm.ShouldBeNull(); // Unmapped stored as null
 
 		// Verify event was published for unmapped ingredient
 		_mockEventBus.Verify(

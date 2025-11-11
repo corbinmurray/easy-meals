@@ -6,7 +6,7 @@ using EasyMeals.RecipeEngine.Domain.Repositories;
 using EasyMeals.RecipeEngine.Domain.ValueObjects;
 using EasyMeals.RecipeEngine.Domain.ValueObjects.Discovery;
 using EasyMeals.RecipeEngine.Infrastructure.Repositories;
-using FluentAssertions;
+using Shouldly;
 using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
 using Moq;
@@ -168,7 +168,7 @@ public class RecipeProcessingErrorHandlingTests : IAsyncLifetime
 				CancellationToken.None);
 		});
 
-		exception.Message.Should().Contain("Invalid URL format");
+		exception.Message.ShouldContain("Invalid URL format");
 	}
 
 	[Fact(DisplayName = "Saga persists state after each processing attempt for crash recovery")]
@@ -214,10 +214,10 @@ public class RecipeProcessingErrorHandlingTests : IAsyncLifetime
 
 		// Assert
 		SagaState? sagaState = await _sagaRepository!.GetByCorrelationIdAsync(batchId, CancellationToken.None);
-		sagaState.Should().NotBeNull();
+		sagaState.ShouldNotBeNull();
 
 		// Verify state was persisted with checkpoints
-		sagaState!.HasCheckpoint.Should().BeTrue("should have created checkpoints during processing");
+		sagaState!.HasCheckpoint.ShouldBeTrue(); // "should have created checkpoints during processing";
 
 		// In Phase 5, we'll verify:
 		// - CurrentIndex is updated after each recipe
@@ -273,13 +273,13 @@ public class RecipeProcessingErrorHandlingTests : IAsyncLifetime
 		Guid batchId = await saga.StartProcessingAsync("test-provider", 10, TimeSpan.FromMinutes(10), CancellationToken.None);
 
 		// Assert
-		batchId.Should().NotBeEmpty("should successfully complete after retries");
-		attemptCount.Should().Be(3, "should have retried exactly 3 times (2 failures + 1 success)");
+		batchId.ShouldNotBe(Guid.Empty); // "should successfully complete after retries";
+		attemptCount.ShouldBe(3, "should have retried exactly 3 times (2 failures + 1 success)");
 
 		// Verify saga completed successfully
 		SagaState? sagaState = await _sagaRepository!.GetByCorrelationIdAsync(batchId, CancellationToken.None);
-		sagaState.Should().NotBeNull();
-		sagaState!.Status.Should().Be(SagaStatus.Completed, "saga should complete successfully after retries");
+		sagaState.ShouldNotBeNull();
+		sagaState!.Status.ShouldBe(SagaStatus.Completed, "saga should complete successfully after retries");
 	}
 
 	[Fact(DisplayName = "Saga skips permanent processing errors and continues")]
@@ -325,8 +325,8 @@ public class RecipeProcessingErrorHandlingTests : IAsyncLifetime
 
 		// Assert
 		SagaState? sagaState = await _sagaRepository!.GetByCorrelationIdAsync(batchId, CancellationToken.None);
-		sagaState.Should().NotBeNull();
-		sagaState!.Status.Should().Be(SagaStatus.Completed, "saga should complete despite permanent errors");
+		sagaState.ShouldNotBeNull();
+		sagaState!.Status.ShouldBe(SagaStatus.Completed, "saga should complete despite permanent errors");
 
 		// In Phase 5 implementation, we'll verify:
 		// - Failed URLs are tracked in sagaState.StateData["FailedUrls"]

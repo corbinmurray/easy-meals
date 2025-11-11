@@ -3,7 +3,7 @@ using EasyMeals.RecipeEngine.Domain.Entities;
 using EasyMeals.RecipeEngine.Domain.Events;
 using EasyMeals.RecipeEngine.Domain.Repositories;
 using EasyMeals.RecipeEngine.Infrastructure.Normalization;
-using FluentAssertions;
+using Shouldly;
 using Microsoft.Extensions.Logging;
 using Moq;
 
@@ -45,7 +45,7 @@ public class IngredientNormalizationServiceTests
 		string? result = await _sut.NormalizeAsync(providerId, providerCode);
 
 		// Assert
-		result.Should().Be(expectedCanonical);
+		result.ShouldBe(expectedCanonical);
 		_mockRepository.Verify(
 			r => r.GetByCodeAsync(providerId, providerCode, It.IsAny<CancellationToken>()),
 			Times.Once);
@@ -62,8 +62,8 @@ public class IngredientNormalizationServiceTests
 		Func<Task> act = async () => await _sut.NormalizeAsync(providerId, providerCode!);
 
 		// Assert
-		await act.Should().ThrowAsync<ArgumentException>()
-			.WithParameterName("providerCode");
+		var exception = await Should.ThrowAsync<ArgumentException>(act);
+		exception.ParamName.ShouldBe("providerCode");
 	}
 
 	[Fact(DisplayName = "NormalizeAsync with null provider ID throws ArgumentException")]
@@ -77,8 +77,8 @@ public class IngredientNormalizationServiceTests
 		Func<Task> act = async () => await _sut.NormalizeAsync(providerId!, providerCode);
 
 		// Assert
-		await act.Should().ThrowAsync<ArgumentException>()
-			.WithParameterName("providerId");
+		var exception = await Should.ThrowAsync<ArgumentException>(act);
+		exception.ParamName.ShouldBe("providerId");
 	}
 
 	[Fact(DisplayName = "NormalizeAsync uses cache for repeated lookups")]
@@ -99,8 +99,8 @@ public class IngredientNormalizationServiceTests
 		string? result2 = await _sut.NormalizeAsync(providerId, providerCode);
 
 		// Assert
-		result1.Should().Be(canonicalForm);
-		result2.Should().Be(canonicalForm);
+		result1.ShouldBe(canonicalForm);
+		result2.ShouldBe(canonicalForm);
 
 		_mockRepository.Verify(
 			r => r.GetByCodeAsync(providerId, providerCode, It.IsAny<CancellationToken>()),
@@ -122,7 +122,7 @@ public class IngredientNormalizationServiceTests
 		string? result = await _sut.NormalizeAsync(providerId, providerCode);
 
 		// Assert
-		result.Should().BeNull();
+		result.ShouldBeNull();
 		_mockRepository.Verify(
 			r => r.GetByCodeAsync(providerId, providerCode, It.IsAny<CancellationToken>()),
 			Times.Once);
@@ -175,8 +175,8 @@ public class IngredientNormalizationServiceTests
 		IDictionary<string, string?> result = await _sut.NormalizeBatchAsync(providerId, providerCodes);
 
 		// Assert
-		result.Should().HaveCount(1);
-		result["HF-BROCCOLI-012"].Should().Be("broccoli");
+		result!.Count.ShouldBe(1);
+		result["HF-BROCCOLI-012"].ShouldBe("broccoli");
 
 		_mockRepository.Verify(
 			r => r.GetByCodeAsync(providerId, "HF-BROCCOLI-012", It.IsAny<CancellationToken>()),
@@ -194,7 +194,7 @@ public class IngredientNormalizationServiceTests
 		IDictionary<string, string?> result = await _sut.NormalizeBatchAsync(providerId, providerCodes);
 
 		// Assert
-		result.Should().BeEmpty();
+		result.ShouldBeEmpty();
 		_mockRepository.Verify(
 			r => r.GetByCodeAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
 			Times.Never);
@@ -224,10 +224,10 @@ public class IngredientNormalizationServiceTests
 		IDictionary<string, string?> result = await _sut.NormalizeBatchAsync(providerId, providerCodes);
 
 		// Assert
-		result.Should().HaveCount(3);
-		result["HF-BROCCOLI-012"].Should().Be("broccoli");
-		result["HF-GARLIC-015"].Should().Be("garlic");
-		result["UNKNOWN-999"].Should().BeNull();
+		result!.Count.ShouldBe(3);
+		result["HF-BROCCOLI-012"].ShouldBe("broccoli");
+		result["HF-GARLIC-015"].ShouldBe("garlic");
+		result["UNKNOWN-999"].ShouldBeNull();
 	}
 
 	[Fact(DisplayName = "NormalizeBatchAsync logs unmapped ingredients")]

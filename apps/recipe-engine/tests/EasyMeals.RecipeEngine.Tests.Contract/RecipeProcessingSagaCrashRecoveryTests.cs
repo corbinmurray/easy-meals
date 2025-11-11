@@ -1,5 +1,5 @@
 using EasyMeals.RecipeEngine.Domain.Entities;
-using FluentAssertions;
+using Shouldly;
 
 namespace EasyMeals.RecipeEngine.Tests.Contract;
 
@@ -50,15 +50,15 @@ public class RecipeProcessingSagaCrashRecoveryTests
 		);
 
 		// Assert
-		reconstitutedState.Should().NotBeNull();
-		reconstitutedState.Id.Should().Be(originalId);
-		reconstitutedState.CorrelationId.Should().Be(correlationId);
-		reconstitutedState.Status.Should().Be(SagaStatus.Running);
-		reconstitutedState.CurrentPhase.Should().Be("Processing");
-		reconstitutedState.PhaseProgress.Should().Be(50);
-		reconstitutedState.StateData["CurrentIndex"].Should().Be(0);
-		reconstitutedState.Metrics.ItemsProcessed.Should().Be(5);
-		reconstitutedState.Metrics.ItemsFailed.Should().Be(1);
+		reconstitutedState.ShouldNotBeNull();
+		reconstitutedState.Id.ShouldBe(originalId);
+		reconstitutedState.CorrelationId.ShouldBe(correlationId);
+		reconstitutedState.Status.ShouldBe(SagaStatus.Running);
+		reconstitutedState.CurrentPhase.ShouldBe("Processing");
+		reconstitutedState.PhaseProgress.ShouldBe(50);
+		reconstitutedState.StateData["CurrentIndex"].ShouldBe(0);
+		reconstitutedState.Metrics.ItemsProcessed.ShouldBe(5);
+		reconstitutedState.Metrics.ItemsFailed.ShouldBe(1);
 	}
 
 	[Fact(DisplayName = "Saga handles crash during Discovering phase")]
@@ -85,13 +85,13 @@ public class RecipeProcessingSagaCrashRecoveryTests
 		sagaState.CreateCheckpoint("DiscoveryCheckpoint", checkpointData);
 
 		// Assert
-		sagaState.CurrentPhase.Should().Be("Discovering");
-		sagaState.HasCheckpoint.Should().BeTrue();
+		sagaState.CurrentPhase.ShouldBe("Discovering");
+		sagaState.HasCheckpoint.ShouldBeTrue();
 		Dictionary<string, object>? checkpoint = sagaState.GetCheckpoint("DiscoveryCheckpoint");
-		checkpoint!["PartialDiscovery"].Should().Be(true);
+		checkpoint!["PartialDiscovery"].ShouldBe(true);
 
 		var discoveredUrls = checkpoint["DiscoveredUrls"] as List<string>;
-		discoveredUrls.Should().HaveCount(2);
+		discoveredUrls!.Count.ShouldBe(2);
 	}
 
 	[Fact(DisplayName = "Saga handles crash during Processing phase")]
@@ -128,16 +128,16 @@ public class RecipeProcessingSagaCrashRecoveryTests
 		sagaState.CreateCheckpoint("ProcessingCheckpoint", checkpointData);
 
 		// Assert
-		sagaState.CurrentPhase.Should().Be("Processing");
+		sagaState.CurrentPhase.ShouldBe("Processing");
 		Dictionary<string, object>? checkpoint = sagaState.GetCheckpoint("ProcessingCheckpoint");
-		checkpoint!["CurrentIndex"].Should().Be(3);
+		checkpoint!["CurrentIndex"].ShouldBe(3);
 
 		var processedUrls = checkpoint["ProcessedUrls"] as List<string>;
-		processedUrls.Should().HaveCount(3);
+		processedUrls!.Count.ShouldBe(3);
 
 		var fingerprintedUrls = checkpoint["FingerprintedUrls"] as List<string>;
 		int remainingCount = fingerprintedUrls!.Count - (int)checkpoint["CurrentIndex"];
-		remainingCount.Should().Be(2); // 2 URLs remaining to process
+		remainingCount.ShouldBe(2); // 2 URLs remaining to process
 	}
 
 	[Fact(DisplayName = "Saga state persists after each recipe for crash recovery")]
@@ -169,11 +169,11 @@ public class RecipeProcessingSagaCrashRecoveryTests
 		sagaState.CreateCheckpoint("RecipeProcessed", checkpointData);
 
 		// Assert
-		sagaState.HasCheckpoint.Should().BeTrue();
+		sagaState.HasCheckpoint.ShouldBeTrue();
 		Dictionary<string, object>? checkpoint = sagaState.GetCheckpoint("RecipeProcessed");
-		checkpoint.Should().NotBeNull();
-		checkpoint!["CurrentIndex"].Should().Be(1);
-		checkpoint["Phase"].Should().Be("Processing");
+		checkpoint.ShouldNotBeNull();
+		checkpoint!["CurrentIndex"].ShouldBe(1);
+		checkpoint["Phase"].ShouldBe("Processing");
 	}
 
 	[Fact(DisplayName = "Saga preserves metrics across crash recovery")]
@@ -211,10 +211,10 @@ public class RecipeProcessingSagaCrashRecoveryTests
 		);
 
 		// Assert - Metrics should be preserved
-		reconstitutedState.Metrics.ItemsProcessed.Should().Be(42);
-		reconstitutedState.Metrics.ItemsFailed.Should().Be(3);
-		reconstitutedState.Metrics.TotalProcessingTime.Should().Be(TimeSpan.FromMinutes(15));
-		reconstitutedState.Metrics.TotalUpdates.Should().Be(45);
+		reconstitutedState.Metrics.ItemsProcessed.ShouldBe(42);
+		reconstitutedState.Metrics.ItemsFailed.ShouldBe(3);
+		reconstitutedState.Metrics.TotalProcessingTime.ShouldBe(TimeSpan.FromMinutes(15));
+		reconstitutedState.Metrics.TotalUpdates.ShouldBe(45);
 	}
 
 	[Fact(DisplayName = "Saga resumes from CurrentIndex after crash")]
@@ -248,13 +248,13 @@ public class RecipeProcessingSagaCrashRecoveryTests
 		sagaState.UpdateProgress("Processing", 40, stateData);
 
 		// Assert - After restart, should resume from index 2
-		sagaState.StateData["CurrentIndex"].Should().Be(2);
+		sagaState.StateData["CurrentIndex"].ShouldBe(2);
 		var processedUrls = sagaState.StateData["ProcessedUrls"] as List<string>;
-		processedUrls.Should().HaveCount(2);
+		processedUrls!.Count.ShouldBe(2);
 
 		var fingerprintedUrls = sagaState.StateData["FingerprintedUrls"] as List<string>;
 		List<string> remainingUrls = fingerprintedUrls!.Skip(2).ToList();
-		remainingUrls.Should().HaveCount(3); // 3 URLs remaining to process
+		remainingUrls!.Count.ShouldBe(3); // 3 URLs remaining to process
 	}
 
 	[Fact(DisplayName = "Saga skips already processed URLs on recovery")]
@@ -281,10 +281,10 @@ public class RecipeProcessingSagaCrashRecoveryTests
 			.ToList();
 
 		// Assert
-		urlsToProcess.Should().HaveCount(2);
-		urlsToProcess.Should().Contain("https://example.com/recipe3");
-		urlsToProcess.Should().Contain("https://example.com/recipe4");
-		urlsToProcess.Should().NotContain("https://example.com/recipe1");
-		urlsToProcess.Should().NotContain("https://example.com/recipe2");
+		urlsToProcess!.Count.ShouldBe(2);
+		urlsToProcess.ShouldContain("https://example.com/recipe3");
+		urlsToProcess.ShouldContain("https://example.com/recipe4");
+		urlsToProcess.ShouldNotContain("https://example.com/recipe1");
+		urlsToProcess.ShouldNotContain("https://example.com/recipe2");
 	}
 }

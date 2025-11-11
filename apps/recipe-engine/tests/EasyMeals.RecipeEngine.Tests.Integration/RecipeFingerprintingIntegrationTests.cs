@@ -4,7 +4,7 @@ using EasyMeals.RecipeEngine.Domain.Repositories;
 using EasyMeals.RecipeEngine.Infrastructure.Documents;
 using EasyMeals.RecipeEngine.Infrastructure.Fingerprinting;
 using EasyMeals.RecipeEngine.Infrastructure.Repositories;
-using FluentAssertions;
+using Shouldly;
 using MongoDB.Driver;
 using Testcontainers.MongoDb;
 
@@ -87,8 +87,8 @@ public class RecipeFingerprintingIntegrationTests : IAsyncLifetime
 		int count2 = await _repository.CountByProviderAsync(provider2);
 
 		// Assert
-		count1.Should().Be(3, "Provider 001 should have 3 fingerprints");
-		count2.Should().Be(2, "Provider 002 should have 2 fingerprints");
+		count1.ShouldBe(3, "Provider 001 should have 3 fingerprints");
+		count2.ShouldBe(2, "Provider 002 should have 2 fingerprints");
 	}
 
 	[Fact(DisplayName = "Different content generates different fingerprints")]
@@ -118,8 +118,8 @@ public class RecipeFingerprintingIntegrationTests : IAsyncLifetime
 		bool isDuplicate = await _fingerprintService.IsDuplicateAsync(fingerprint2);
 
 		// Assert
-		fingerprint1.Should().NotBe(fingerprint2, "Different URLs should produce different hashes");
-		isDuplicate.Should().BeFalse("Different fingerprint should not be detected as duplicate");
+		fingerprint1.ShouldNotBe(fingerprint2, "Different URLs should produce different hashes");
+		isDuplicate.ShouldBeFalse(); // "Different fingerprint should not be detected as duplicate";
 	}
 
 	[Fact(DisplayName = "Fast lookup with hash index verifies MongoDB performance")]
@@ -151,14 +151,14 @@ public class RecipeFingerprintingIntegrationTests : IAsyncLifetime
 		foreach (string fingerprint in fingerprints)
 		{
 			bool isDuplicate = await _fingerprintService!.IsDuplicateAsync(fingerprint);
-			isDuplicate.Should().BeTrue("All fingerprints were stored");
+			isDuplicate.ShouldBeTrue(); // "All fingerprints were stored";
 		}
 
 		TimeSpan duration = DateTime.UtcNow - startTime;
 
 		// Assert - Verify all lookups completed reasonably fast (with index)
 		// With proper indexing, 100 lookups should complete in well under 1 second
-		duration.Should().BeLessThan(TimeSpan.FromSeconds(2),
+		duration.ShouldBeLessThan(TimeSpan.FromSeconds(2),
 			"Hash index should enable fast duplicate detection");
 	}
 
@@ -185,12 +185,12 @@ public class RecipeFingerprintingIntegrationTests : IAsyncLifetime
 		// Assert - Verify it was saved to MongoDB
 		RecipeFingerprint? savedFingerprint = await _repository!.GetByUrlAsync(url, providerId);
 
-		savedFingerprint.Should().NotBeNull();
-		savedFingerprint!.FingerprintHash.Should().Be(fingerprint);
-		savedFingerprint.ProviderId.Should().Be(providerId);
-		savedFingerprint.RecipeUrl.Should().Be(url);
-		savedFingerprint.RecipeId.Should().Be(recipeId);
-		savedFingerprint.ProcessedAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(5));
+		savedFingerprint.ShouldNotBeNull();
+		savedFingerprint!.FingerprintHash.ShouldBe(fingerprint);
+		savedFingerprint.ProviderId.ShouldBe(providerId);
+		savedFingerprint.RecipeUrl.ShouldBe(url);
+		savedFingerprint.RecipeId.ShouldBe(recipeId);
+		savedFingerprint.ProcessedAt.ShouldBe(DateTime.UtcNow, TimeSpan.FromSeconds(5));
 	}
 
 	[Fact(DisplayName = "Is duplicate returns true for existing fingerprint")]
@@ -215,7 +215,7 @@ public class RecipeFingerprintingIntegrationTests : IAsyncLifetime
 		bool isDuplicate = await _fingerprintService.IsDuplicateAsync(fingerprint);
 
 		// Assert
-		isDuplicate.Should().BeTrue("Fingerprint was previously stored");
+		isDuplicate.ShouldBeTrue(); // "Fingerprint was previously stored";
 	}
 
 	[Fact(DisplayName = "Is duplicate returns false for new fingerprint")]
@@ -233,7 +233,7 @@ public class RecipeFingerprintingIntegrationTests : IAsyncLifetime
 		bool isDuplicate = await _fingerprintService.IsDuplicateAsync(fingerprint);
 
 		// Assert
-		isDuplicate.Should().BeFalse("Fingerprint has never been stored");
+		isDuplicate.ShouldBeFalse(); // "Fingerprint has never been stored";
 	}
 
 	[Fact(DisplayName = "Multiple providers can have different fingerprints for same URL")]
@@ -268,11 +268,11 @@ public class RecipeFingerprintingIntegrationTests : IAsyncLifetime
 		RecipeFingerprint? saved1 = await _repository!.GetByUrlAsync(url, provider1);
 		RecipeFingerprint? saved2 = await _repository.GetByUrlAsync(url, provider2);
 
-		saved1.Should().NotBeNull();
-		saved2.Should().NotBeNull();
-		saved1!.ProviderId.Should().Be(provider1);
-		saved2!.ProviderId.Should().Be(provider2);
-		saved1.FingerprintHash.Should().Be(saved2.FingerprintHash, "Same content produces same hash");
+		saved1.ShouldNotBeNull();
+		saved2.ShouldNotBeNull();
+		saved1!.ProviderId.ShouldBe(provider1);
+		saved2!.ProviderId.ShouldBe(provider2);
+		saved1.FingerprintHash.ShouldBe(saved2.FingerprintHash, "Same content produces same hash");
 	}
 
 	[Fact(DisplayName = "Same content generates same fingerprint and detects duplicate")]
@@ -301,7 +301,7 @@ public class RecipeFingerprintingIntegrationTests : IAsyncLifetime
 		bool isDuplicate = await _fingerprintService.IsDuplicateAsync(fingerprint2);
 
 		// Assert
-		fingerprint1.Should().Be(fingerprint2, "Same content should produce same hash");
-		isDuplicate.Should().BeTrue("Second fingerprint should be detected as duplicate");
+		fingerprint1.ShouldBe(fingerprint2, "Same content should produce same hash");
+		isDuplicate.ShouldBeTrue(); // "Second fingerprint should be detected as duplicate";
 	}
 }

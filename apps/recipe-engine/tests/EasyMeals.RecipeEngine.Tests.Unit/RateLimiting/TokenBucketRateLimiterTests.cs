@@ -1,6 +1,6 @@
 using EasyMeals.RecipeEngine.Application.Interfaces;
 using EasyMeals.RecipeEngine.Infrastructure.RateLimiting;
-using FluentAssertions;
+using Shouldly;
 
 namespace EasyMeals.RecipeEngine.Tests.Unit.RateLimiting;
 
@@ -23,9 +23,9 @@ public class TokenBucketRateLimiterTests
 		RateLimitStatus status = await rateLimiter.GetStatusAsync(key);
 
 		// Assert
-		status.Should().NotBeNull();
-		status.RemainingRequests.Should().Be(maxTokens);
-		status.IsLimited.Should().BeFalse();
+		status.ShouldNotBeNull();
+		status.RemainingRequests.ShouldBe(maxTokens);
+		status.IsLimited.ShouldBeFalse();
 	}
 
 	[Fact(DisplayName = "Status shows limited when bucket is empty")]
@@ -43,8 +43,8 @@ public class TokenBucketRateLimiterTests
 		RateLimitStatus status = await rateLimiter.GetStatusAsync(key);
 
 		// Assert
-		status.IsLimited.Should().BeTrue();
-		status.RemainingRequests.Should().Be(0);
+		status.IsLimited.ShouldBeTrue();
+		status.RemainingRequests.ShouldBe(0);
 	}
 
 	[Fact(DisplayName = "Reset clears rate limit for key")]
@@ -65,9 +65,9 @@ public class TokenBucketRateLimiterTests
 		RateLimitStatus statusAfter = await rateLimiter.GetStatusAsync(key);
 
 		// Assert
-		statusBefore.RemainingRequests.Should().Be(0);
-		statusAfter.RemainingRequests.Should().Be(maxTokens);
-		statusAfter.IsLimited.Should().BeFalse();
+		statusBefore.RemainingRequests.ShouldBe(0);
+		statusAfter.RemainingRequests.ShouldBe(maxTokens);
+		statusAfter.IsLimited.ShouldBeFalse();
 	}
 
 	[Fact(DisplayName = "Token consumption reduces remaining tokens")]
@@ -84,7 +84,7 @@ public class TokenBucketRateLimiterTests
 		RateLimitStatus status = await rateLimiter.GetStatusAsync(key);
 
 		// Assert
-		status.RemainingRequests.Should().Be(maxTokens - 1);
+		status.RemainingRequests.ShouldBe(maxTokens - 1);
 	}
 
 	[Fact(DisplayName = "Tokens refill over time")]
@@ -106,9 +106,9 @@ public class TokenBucketRateLimiterTests
 		RateLimitStatus statusAfter = await rateLimiter.GetStatusAsync(key);
 
 		// Assert
-		statusBefore.RemainingRequests.Should().Be(5);
-		statusAfter.RemainingRequests.Should().BeGreaterThan(5);
-		statusAfter.RemainingRequests.Should().BeLessThanOrEqualTo(maxTokens);
+		statusBefore.RemainingRequests.ShouldBe(5);
+		statusAfter.RemainingRequests.ShouldBeGreaterThan(5);
+		statusAfter.RemainingRequests.ShouldBeLessThanOrEqualTo(maxTokens);
 	}
 
 	[Fact(DisplayName = "Burst handling allows temporary excess")]
@@ -128,9 +128,9 @@ public class TokenBucketRateLimiterTests
 		}
 
 		// Assert
-		acquisitions.Should().AllSatisfy(result => result.Should().BeTrue());
+		acquisitions.ShouldAllBe(r => r);
 		RateLimitStatus status = await rateLimiter.GetStatusAsync(key);
-		status.RemainingRequests.Should().Be(0);
+		status.RemainingRequests.ShouldBe(0);
 	}
 
 	[Fact(DisplayName = "Different keys have independent buckets")]
@@ -149,8 +149,8 @@ public class TokenBucketRateLimiterTests
 		RateLimitStatus status2 = await rateLimiter.GetStatusAsync(key2);
 
 		// Assert
-		status1.RemainingRequests.Should().Be(0);
-		status2.RemainingRequests.Should().Be(maxTokens); // key2 unaffected
+		status1.RemainingRequests.ShouldBe(0);
+		status2.RemainingRequests.ShouldBe(maxTokens); // key2 unaffected
 	}
 
 	[Fact(DisplayName = "Cannot acquire more tokens than available")]
@@ -166,7 +166,7 @@ public class TokenBucketRateLimiterTests
 		bool acquired = await rateLimiter.TryAcquireAsync(key, 10);
 
 		// Assert
-		acquired.Should().BeFalse();
+		acquired.ShouldBeFalse();
 	}
 
 	[Fact(DisplayName = "Multiple token acquisition depletes bucket")]
@@ -185,7 +185,7 @@ public class TokenBucketRateLimiterTests
 		RateLimitStatus finalStatus = await rateLimiter.GetStatusAsync(key);
 
 		// Assert
-		finalStatus.RemainingRequests.Should().Be(0);
+		finalStatus.RemainingRequests.ShouldBe(0);
 	}
 
 	[Fact(DisplayName = "Acquire multiple tokens at once")]
@@ -202,7 +202,7 @@ public class TokenBucketRateLimiterTests
 		RateLimitStatus status = await rateLimiter.GetStatusAsync(key);
 
 		// Assert
-		status.RemainingRequests.Should().Be(maxTokens - 3);
+		status.RemainingRequests.ShouldBe(maxTokens - 3);
 	}
 
 	[Fact(DisplayName = "Acquisition fails when bucket is empty")]
@@ -220,7 +220,7 @@ public class TokenBucketRateLimiterTests
 		bool thirdAttempt = await rateLimiter.TryAcquireAsync(key);
 
 		// Assert
-		thirdAttempt.Should().BeFalse();
+		thirdAttempt.ShouldBeFalse();
 	}
 
 	[Fact(DisplayName = "Successfully acquire single token when tokens available")]
@@ -236,6 +236,6 @@ public class TokenBucketRateLimiterTests
 		bool acquired = await rateLimiter.TryAcquireAsync(key);
 
 		// Assert
-		acquired.Should().BeTrue();
+		acquired.ShouldBeTrue();
 	}
 }

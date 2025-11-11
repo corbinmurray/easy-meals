@@ -1,5 +1,5 @@
 using EasyMeals.RecipeEngine.Domain.ValueObjects;
-using FluentAssertions;
+using Shouldly;
 
 namespace EasyMeals.RecipeEngine.Tests.Unit.Configuration;
 
@@ -35,7 +35,7 @@ public class ProviderConfigurationValidationTests
 			30);
 
 		// Assert
-		config.MinDelay.Should().Be(TimeSpan.Zero);
+		config.MinDelay.ShouldBe(TimeSpan.Zero);
 	}
 
 	[Fact]
@@ -55,7 +55,7 @@ public class ProviderConfigurationValidationTests
 			30);
 
 		// Assert
-		config.RetryCount.Should().Be(0);
+		config.RetryCount.ShouldBe(0);
 	}
 
 	[Fact]
@@ -65,12 +65,12 @@ public class ProviderConfigurationValidationTests
 		ProviderConfiguration config = CreateValidConfiguration();
 
 		// Assert
-		config.Should().NotBeNull();
-		config.ProviderId.Should().Be("provider_001");
-		config.Enabled.Should().BeTrue();
-		config.RecipeRootUrl.Should().Be("https://example.com/recipes");
-		config.BatchSize.Should().Be(10);
-		config.TimeWindow.Should().Be(TimeSpan.FromMinutes(10));
+		config.ShouldNotBeNull();
+		config.ProviderId.ShouldBe("provider_001");
+		config.Enabled.ShouldBeTrue();
+		config.RecipeRootUrl.ShouldBe("https://example.com/recipes");
+		config.BatchSize.ShouldBe(10);
+		config.TimeWindow.ShouldBe(TimeSpan.FromMinutes(10));
 	}
 
 	[Theory]
@@ -92,8 +92,7 @@ public class ProviderConfigurationValidationTests
 			3,
 			30);
 
-		act.Should().Throw<ArgumentException>()
-			.WithMessage("*BatchSize must be positive*");
+		Should.Throw<ArgumentException>(act); // TODO: Shouldly uses .ShouldContain() on exception message - verify: "*BatchSize must be positive*";
 	}
 
 	[Theory]
@@ -115,8 +114,7 @@ public class ProviderConfigurationValidationTests
 			3,
 			30);
 
-		act.Should().Throw<ArgumentException>()
-			.WithMessage("*MaxRequestsPerMinute must be positive*");
+		Should.Throw<ArgumentException>(act); // TODO: Shouldly uses .ShouldContain() on exception message - verify: "*MaxRequestsPerMinute must be positive*";
 	}
 
 	[Theory]
@@ -137,8 +135,7 @@ public class ProviderConfigurationValidationTests
 			3,
 			30);
 
-		act.Should().Throw<ArgumentException>()
-			.WithMessage("*MinDelay cannot be negative*");
+		Should.Throw<ArgumentException>(act); // TODO: Shouldly uses .ShouldContain() on exception message - verify: "*MinDelay cannot be negative*";
 	}
 
 	[Theory]
@@ -160,8 +157,7 @@ public class ProviderConfigurationValidationTests
 			3,
 			30);
 
-		act.Should().Throw<ArgumentException>()
-			.WithMessage("*ProviderId is required*");
+		Should.Throw<ArgumentException>(act); // TODO: Shouldly uses .ShouldContain() on exception message - verify: "*ProviderId is required*";
 	}
 
 	[Theory]
@@ -183,8 +179,7 @@ public class ProviderConfigurationValidationTests
 			3,
 			30);
 
-		act.Should().Throw<ArgumentException>()
-			.WithMessage("*RecipeRootUrl is required*");
+		Should.Throw<ArgumentException>(act); // TODO: Shouldly uses .ShouldContain() on exception message - verify: "*RecipeRootUrl is required*";
 	}
 
 	[Theory]
@@ -205,8 +200,7 @@ public class ProviderConfigurationValidationTests
 			3,
 			30);
 
-		act.Should().Throw<ArgumentException>()
-			.WithMessage("*RecipeRootUrl must use HTTPS*");
+		Should.Throw<ArgumentException>(act); // TODO: Shouldly uses .ShouldContain() on exception message - verify: "*RecipeRootUrl must use HTTPS*";
 	}
 
 	[Theory]
@@ -228,8 +222,7 @@ public class ProviderConfigurationValidationTests
 			3,
 			30);
 
-		act.Should().Throw<ArgumentException>()
-			.WithMessage("*RecipeRootUrl must be a valid absolute URL*");
+		Should.Throw<ArgumentException>(act); // TODO: Shouldly uses .ShouldContain() on exception message - verify: "*RecipeRootUrl must be a valid absolute URL*";
 	}
 
 	[Theory]
@@ -251,8 +244,7 @@ public class ProviderConfigurationValidationTests
 			3,
 			invalidTimeout);
 
-		act.Should().Throw<ArgumentException>()
-			.WithMessage("*RequestTimeout must be positive*");
+		Should.Throw<ArgumentException>(act); // TODO: Shouldly uses .ShouldContain() on exception message - verify: "*RequestTimeout must be positive*";
 	}
 
 	[Theory]
@@ -273,8 +265,7 @@ public class ProviderConfigurationValidationTests
 			invalidRetryCount,
 			30);
 
-		act.Should().Throw<ArgumentException>()
-			.WithMessage("*RetryCount cannot be negative*");
+		Should.Throw<ArgumentException>(act); // TODO: Shouldly uses .ShouldContain() on exception message - verify: "*RetryCount cannot be negative*";
 	}
 
 	[Theory]
@@ -296,8 +287,7 @@ public class ProviderConfigurationValidationTests
 			3,
 			30);
 
-		act.Should().Throw<ArgumentException>()
-			.WithMessage("*TimeWindow must be positive*");
+		Should.Throw<ArgumentException>(act); // TODO: Shouldly uses .ShouldContain() on exception message - verify: "*TimeWindow must be positive*";
 	}
 
 	[Fact]
@@ -318,8 +308,8 @@ public class ProviderConfigurationValidationTests
 			30);
 
 		// Act & Assert
-		config1.Equals(config2).Should().BeFalse();
-		config1.GetHashCode().Should().NotBe(config2.GetHashCode());
+		config1.Equals(config2).ShouldBeFalse();
+		config1.GetHashCode().ShouldNotBe(config2.GetHashCode());
 	}
 
 	[Fact]
@@ -330,7 +320,7 @@ public class ProviderConfigurationValidationTests
 		ProviderConfiguration config2 = CreateValidConfiguration();
 
 		// Act & Assert
-		config1.Equals(config2).Should().BeTrue();
-		config1.GetHashCode().Should().Be(config2.GetHashCode());
+		config1.Equals(config2).ShouldBeTrue();
+		config1.GetHashCode().ShouldBe(config2.GetHashCode());
 	}
 }

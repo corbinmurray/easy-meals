@@ -6,7 +6,7 @@ using EasyMeals.RecipeEngine.Domain.Repositories;
 using EasyMeals.RecipeEngine.Domain.ValueObjects;
 using EasyMeals.RecipeEngine.Domain.ValueObjects.Discovery;
 using EasyMeals.RecipeEngine.Infrastructure.Repositories;
-using FluentAssertions;
+using Shouldly;
 using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
 using Moq;
@@ -113,12 +113,12 @@ public class RecipeProcessingWorkflowTests : IAsyncLifetime
 			CancellationToken.None);
 
 		// Assert
-		correlationId.Should().NotBeEmpty();
+		correlationId.ShouldNotBe(Guid.Empty);
 
 		// Verify saga state was persisted
 		SagaState? sagaState = await _sagaRepository.GetByCorrelationIdAsync(correlationId, CancellationToken.None);
-		sagaState.Should().NotBeNull();
-		sagaState!.Status.Should().BeOneOf(SagaStatus.Completed, SagaStatus.Failed);
+		sagaState.ShouldNotBeNull();
+		sagaState!.Status.ShouldBeOneOf(SagaStatus.Completed, SagaStatus.Failed);
 
 		// Verify discovery was called
 		mockDiscoveryService.Verify(d => d.DiscoverRecipeUrlsAsync(
@@ -201,7 +201,7 @@ public class RecipeProcessingWorkflowTests : IAsyncLifetime
 			CancellationToken.None);
 
 		// Assert - Should only process 2 (filtered out the duplicate)
-		processedCount.Should().Be(2, "one recipe should be filtered as duplicate");
+		processedCount.ShouldBe(2, "one recipe should be filtered as duplicate");
 	}
 
 	[Fact(DisplayName = "Workflow handles discovery errors gracefully")]
@@ -298,6 +298,6 @@ public class RecipeProcessingWorkflowTests : IAsyncLifetime
 			CancellationToken.None);
 
 		// Assert - Should process at most batchSize recipes
-		processedCount.Should().BeLessThanOrEqualTo(batchSize);
+		processedCount.ShouldBeLessThanOrEqualTo(batchSize);
 	}
 }

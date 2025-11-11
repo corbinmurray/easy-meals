@@ -1,7 +1,7 @@
 using System.Net.Sockets;
 using System.Text.Json;
 using EasyMeals.RecipeEngine.Domain.Entities;
-using FluentAssertions;
+using Shouldly;
 
 namespace EasyMeals.RecipeEngine.Tests.Contract;
 
@@ -55,12 +55,12 @@ public class RecipeProcessingSagaRetryTests
 		}
 
 		// Assert
-		delays.Should().HaveCount(maxRetries);
+		delays!.Count.ShouldBe(maxRetries);
 		for (var i = 0; i < maxRetries; i++)
 		{
 			// With jitter, delay should be between base and 1.5x base
-			delays[i].Should().BeGreaterThanOrEqualTo(expectedMinDelays[i]);
-			delays[i].Should().BeLessThan((int)(expectedMinDelays[i] * 1.5));
+			delays[i].ShouldBeGreaterThanOrEqualTo(expectedMinDelays[i]);
+			delays[i].ShouldBeLessThan((int)(expectedMinDelays[i] * 1.5));
 		}
 	}
 
@@ -82,7 +82,7 @@ public class RecipeProcessingSagaRetryTests
 		}
 
 		// Assert
-		failedUrl["RetryCount"].Should().Be(3);
+		failedUrl["RetryCount"].ShouldBe(3);
 	}
 
 	[Fact(DisplayName = "Saga gives up after max retries exceeded")]
@@ -96,7 +96,7 @@ public class RecipeProcessingSagaRetryTests
 		bool shouldRetry = currentRetryCount < maxRetries;
 
 		// Assert
-		shouldRetry.Should().BeFalse("should not retry after max attempts reached");
+		shouldRetry.ShouldBeFalse(); // "should not retry after max attempts reached";
 	}
 
 	[Fact(DisplayName = "Saga respects maximum retry limit")]
@@ -113,7 +113,7 @@ public class RecipeProcessingSagaRetryTests
 		}
 
 		// Assert
-		attemptCount.Should().Be(maxRetries, "should not exceed configured maximum retry count");
+		attemptCount.ShouldBe(maxRetries, "should not exceed configured maximum retry count");
 	}
 
 	[Fact(DisplayName = "Saga tracks retry attempts in failed URLs")]
@@ -143,12 +143,12 @@ public class RecipeProcessingSagaRetryTests
 		sagaState.UpdateProgress("Processing", 50, stateData);
 
 		// Assert
-		sagaState.StateData.Should().ContainKey("FailedUrls");
+		sagaState.StateData.ShouldContainKey("FailedUrls");
 		var failedUrls = sagaState.StateData["FailedUrls"] as List<Dictionary<string, object>>;
-		failedUrls.Should().NotBeNull();
-		failedUrls.Should().HaveCount(1);
-		failedUrls![0]["RetryCount"].Should().Be(retryCount);
-		failedUrls[0]["IsTransient"].Should().Be(true);
+		failedUrls.ShouldNotBeNull();
+		failedUrls!.Count.ShouldBe(1);
+		failedUrls![0]["RetryCount"].ShouldBe(retryCount);
+		failedUrls[0]["IsTransient"].ShouldBe(true);
 	}
 
 	[Fact(DisplayName = "Saga identifies HttpRequestException as transient")]
@@ -161,7 +161,7 @@ public class RecipeProcessingSagaRetryTests
 		bool isTransient = IsTransientError(error);
 
 		// Assert
-		isTransient.Should().BeTrue("HttpRequestException indicates network issues and should be retried");
+		isTransient.ShouldBeTrue(); // "HttpRequestException indicates network issues and should be retried";
 	}
 
 	[Fact(DisplayName = "Saga identifies JsonException as permanent")]
@@ -174,7 +174,7 @@ public class RecipeProcessingSagaRetryTests
 		bool isTransient = IsTransientError(error);
 
 		// Assert
-		isTransient.Should().BeFalse("JsonException indicates data validation failure and should not be retried");
+		isTransient.ShouldBeFalse(); // "JsonException indicates data validation failure and should not be retried";
 	}
 
 	[Fact(DisplayName = "Saga identifies SocketException as transient")]
@@ -187,7 +187,7 @@ public class RecipeProcessingSagaRetryTests
 		bool isTransient = IsTransientError(error);
 
 		// Assert
-		isTransient.Should().BeTrue("SocketException indicates network issues and should be retried");
+		isTransient.ShouldBeTrue(); // "SocketException indicates network issues and should be retried";
 	}
 
 	[Fact(DisplayName = "Saga identifies TaskCanceledException as transient")]
@@ -200,6 +200,6 @@ public class RecipeProcessingSagaRetryTests
 		bool isTransient = IsTransientError(error);
 
 		// Assert
-		isTransient.Should().BeTrue("TaskCanceledException indicates timeout and should be retried");
+		isTransient.ShouldBeTrue(); // "TaskCanceledException indicates timeout and should be retried";
 	}
 }
