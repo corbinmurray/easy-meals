@@ -1,7 +1,7 @@
 using EasyMeals.RecipeEngine.Application.Interfaces;
 using EasyMeals.RecipeEngine.Application.Sagas;
 using EasyMeals.RecipeEngine.Domain.Events;
-using EasyMeals.RecipeEngine.Domain.Interfaces;
+using DomainInterfaces = EasyMeals.RecipeEngine.Domain.Interfaces;
 using EasyMeals.RecipeEngine.Domain.Repositories;
 using EasyMeals.RecipeEngine.Domain.ValueObjects;
 using Shouldly;
@@ -19,13 +19,13 @@ public class RecipeProcessingSagaIngredientTests
     private readonly Mock<IEventBus> _mockEventBus;
     private readonly Mock<IIngredientNormalizer> _mockIngredientNormalizer;
     private readonly Mock<ILogger<RecipeProcessingSaga>> _mockLogger;
-    private readonly Mock<ISagaStateRepository> _mockSagaStateRepository;
+    private readonly Mock<DomainInterfaces.ISagaStateRepository> _mockSagaStateRepository;
     private readonly RecipeProcessingSaga _sut;
 
     public RecipeProcessingSagaIngredientTests()
     {
         _mockLogger = new Mock<ILogger<RecipeProcessingSaga>>();
-        _mockSagaStateRepository = new Mock<ISagaStateRepository>();
+        _mockSagaStateRepository = new Mock<DomainInterfaces.ISagaStateRepository>();
         _mockIngredientNormalizer = new Mock<IIngredientNormalizer>();
         _mockEventBus = new Mock<IEventBus>();
 
@@ -38,7 +38,11 @@ public class RecipeProcessingSagaIngredientTests
             _mockIngredientNormalizer.Object,
             Mock.Of<IRateLimiter>(),
             Mock.Of<IRecipeBatchRepository>(),
-            _mockEventBus.Object);
+            _mockEventBus.Object,
+            Mock.Of<DomainInterfaces.IStealthyHttpClient>(),
+            Mock.Of<DomainInterfaces.IRecipeExtractor>(),
+            Mock.Of<IRecipeRepository>(),
+            Mock.Of<DomainInterfaces.IFingerprintRepository>());
     }
 
     [Fact(DisplayName = "ProcessIngredientsAsync with all mapped ingredients creates IngredientReferences with canonical forms")]

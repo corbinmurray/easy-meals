@@ -1,7 +1,7 @@
 using EasyMeals.RecipeEngine.Application.Interfaces;
 using EasyMeals.RecipeEngine.Application.Sagas;
 using EasyMeals.RecipeEngine.Domain.Entities;
-using EasyMeals.RecipeEngine.Domain.Interfaces;
+using DomainInterfaces = EasyMeals.RecipeEngine.Domain.Interfaces;
 using EasyMeals.RecipeEngine.Domain.Repositories;
 using EasyMeals.RecipeEngine.Domain.ValueObjects;
 using EasyMeals.RecipeEngine.Domain.ValueObjects.Discovery;
@@ -22,7 +22,7 @@ public class RecipeProcessingWorkflowTests : IAsyncLifetime
 {
     private MongoDbContainer? _mongoContainer;
     private IMongoDatabase? _mongoDatabase;
-    private ISagaStateRepository? _sagaRepository;
+    private DomainInterfaces.ISagaStateRepository? _sagaRepository;
 
     public async Task DisposeAsync()
     {
@@ -65,7 +65,7 @@ public class RecipeProcessingWorkflowTests : IAsyncLifetime
         mockConfigLoader.Setup(c => c.GetByProviderIdAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(mockConfig);
 
-        var mockDiscoveryService = new Mock<IDiscoveryService>();
+        var mockDiscoveryService = new Mock<DomainInterfaces.IDiscoveryService>();
         var discoveredUrls = new List<DiscoveredUrl>
         {
             new("https://test.com/recipe1", "test-provider", DateTime.UtcNow),
@@ -102,7 +102,11 @@ public class RecipeProcessingWorkflowTests : IAsyncLifetime
             Mock.Of<IIngredientNormalizer>(),
             mockRateLimiter.Object,
             mockBatchRepo.Object,
-            Mock.Of<IEventBus>()
+            Mock.Of<IEventBus>(),
+            Mock.Of<DomainInterfaces.IStealthyHttpClient>(),
+            Mock.Of<DomainInterfaces.IRecipeExtractor>(),
+            Mock.Of<IRecipeRepository>(),
+            Mock.Of<DomainInterfaces.IFingerprintRepository>()
         );
 
         // Act
@@ -150,7 +154,7 @@ public class RecipeProcessingWorkflowTests : IAsyncLifetime
         mockConfigLoader.Setup(c => c.GetByProviderIdAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(mockConfig);
 
-        var mockDiscoveryService = new Mock<IDiscoveryService>();
+        var mockDiscoveryService = new Mock<DomainInterfaces.IDiscoveryService>();
         var discoveredUrls = new List<DiscoveredUrl>
         {
             new("https://test.com/recipe1", "test-provider", DateTime.UtcNow),
@@ -190,7 +194,11 @@ public class RecipeProcessingWorkflowTests : IAsyncLifetime
             Mock.Of<IIngredientNormalizer>(),
             mockRateLimiter.Object,
             Mock.Of<IRecipeBatchRepository>(),
-            Mock.Of<IEventBus>()
+            Mock.Of<IEventBus>(),
+            Mock.Of<DomainInterfaces.IStealthyHttpClient>(),
+            Mock.Of<DomainInterfaces.IRecipeExtractor>(),
+            Mock.Of<IRecipeRepository>(),
+            Mock.Of<DomainInterfaces.IFingerprintRepository>()
         );
 
         // Act
@@ -214,7 +222,7 @@ public class RecipeProcessingWorkflowTests : IAsyncLifetime
 
         var mockFactory = new Mock<IDiscoveryServiceFactory>();
         mockFactory.Setup(f => f.CreateDiscoveryService(It.IsAny<DiscoveryStrategy>()))
-            .Returns(Mock.Of<IDiscoveryService>());
+            .Returns(Mock.Of<DomainInterfaces.IDiscoveryService>());
         var saga = new RecipeProcessingSaga(
             Mock.Of<ILogger<RecipeProcessingSaga>>(),
             _sagaRepository!,
@@ -224,7 +232,11 @@ public class RecipeProcessingWorkflowTests : IAsyncLifetime
             Mock.Of<IIngredientNormalizer>(),
             Mock.Of<IRateLimiter>(),
             Mock.Of<IRecipeBatchRepository>(),
-            Mock.Of<IEventBus>()
+            Mock.Of<IEventBus>(),
+            Mock.Of<DomainInterfaces.IStealthyHttpClient>(),
+            Mock.Of<DomainInterfaces.IRecipeExtractor>(),
+            Mock.Of<IRecipeRepository>(),
+            Mock.Of<DomainInterfaces.IFingerprintRepository>()
         );
 
         // Act & Assert
@@ -255,7 +267,7 @@ public class RecipeProcessingWorkflowTests : IAsyncLifetime
         mockConfigLoader.Setup(c => c.GetByProviderIdAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(mockConfig);
 
-        var mockDiscoveryService = new Mock<IDiscoveryService>();
+        var mockDiscoveryService = new Mock<DomainInterfaces.IDiscoveryService>();
         List<DiscoveredUrl> discoveredUrls = Enumerable.Range(1, 10)
             .Select(i => new DiscoveredUrl($"https://test.com/recipe{i}", "test-provider", DateTime.UtcNow))
             .ToList();
@@ -287,7 +299,11 @@ public class RecipeProcessingWorkflowTests : IAsyncLifetime
             Mock.Of<IIngredientNormalizer>(),
             mockRateLimiter.Object,
             Mock.Of<IRecipeBatchRepository>(),
-            Mock.Of<IEventBus>()
+            Mock.Of<IEventBus>(),
+            Mock.Of<DomainInterfaces.IStealthyHttpClient>(),
+            Mock.Of<DomainInterfaces.IRecipeExtractor>(),
+            Mock.Of<IRecipeRepository>(),
+            Mock.Of<DomainInterfaces.IFingerprintRepository>()
         );
 
         // Act

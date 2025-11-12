@@ -2,10 +2,11 @@ using EasyMeals.RecipeEngine.Application.Helpers;
 using EasyMeals.RecipeEngine.Application.Interfaces;
 using EasyMeals.RecipeEngine.Domain.Entities;
 using EasyMeals.RecipeEngine.Domain.Events;
-using EasyMeals.RecipeEngine.Domain.Interfaces;
+using DomainInterfaces = EasyMeals.RecipeEngine.Domain.Interfaces;
 using EasyMeals.RecipeEngine.Domain.Repositories;
 using EasyMeals.RecipeEngine.Domain.ValueObjects;
 using EasyMeals.RecipeEngine.Domain.ValueObjects.Discovery;
+using EasyMeals.RecipeEngine.Domain.ValueObjects.Fingerprint;
 using Microsoft.Extensions.Logging;
 
 namespace EasyMeals.RecipeEngine.Application.Sagas;
@@ -29,20 +30,31 @@ namespace EasyMeals.RecipeEngine.Application.Sagas;
 /// </summary>
 public class RecipeProcessingSaga(
 	ILogger<RecipeProcessingSaga> logger,
-	ISagaStateRepository sagaStateRepository,
+	DomainInterfaces.ISagaStateRepository sagaStateRepository,
 	IProviderConfigurationLoader configurationLoader,
 	IDiscoveryServiceFactory discoveryServiceFactory,
 	IRecipeFingerprinter recipeFingerprinter,
 	IIngredientNormalizer ingredientNormalizer,
 	IRateLimiter rateLimiter,
 	IRecipeBatchRepository batchRepository,
-	IEventBus eventBus) : IRecipeProcessingSaga
+	IEventBus eventBus,
+	DomainInterfaces.IStealthyHttpClient stealthyHttpClient,
+	DomainInterfaces.IRecipeExtractor recipeExtractor,
+	IRecipeRepository recipeRepository,
+	DomainInterfaces.IFingerprintRepository fingerprintRepository) : IRecipeProcessingSaga
 {
 	private const string PhaseDiscovering = "Discovering";
 	private const string PhaseFingerprinting = "Fingerprinting";
 	private const string PhaseProcessing = "Processing";
 	private const string PhasePersisting = "Persisting";
 	private const string PhaseCompleted = "Completed";
+
+	// Fingerprint metadata keys for structured tracking
+	private const string MetadataKeyTitle = "title";
+	private const string MetadataKeyDescription = "description";
+	private const string MetadataKeyResponseTime = "responseTimeMs";
+	private const string MetadataKeyStatusCode = "statusCode";
+	private const string MetadataKeyContentLength = "contentLength";
 
     /// <summary>
     ///     Starts processing a new recipe batch for the specified provider.
@@ -266,7 +278,7 @@ public class RecipeProcessingSaga(
 				// Discover recipe URLs with retry for transient errors
 				// Resolve discovery service by provider strategy at runtime via factory
 				// Safety: ensure strategy maps to a supported implementation
-				IDiscoveryService discoveryService = discoveryServiceFactory.CreateDiscoveryService(config.DiscoveryStrategy);
+				DomainInterfaces.IDiscoveryService discoveryService = discoveryServiceFactory.CreateDiscoveryService(config.DiscoveryStrategy);
 
 				IEnumerable<DiscoveredUrl> discoveredUrlsResult = await RetryPolicyHelper.ExecuteWithRetryAsync(
 					async () => await discoveryService.DiscoverRecipeUrlsAsync(
@@ -441,16 +453,110 @@ public class RecipeProcessingSaga(
 						acquired = await rateLimiter.TryAcquireAsync(providerId, cancellationToken);
 					}
 					
-					// TODO: In full implementation, we would:
-					// 1. Fetch the recipe page
-					// 2. Parse the recipe data using recipe scraper
-					// 3. Normalize ingredients using ProcessIngredientsAsync
-					// 4. Create Recipe entity with all extracted data
-					// 5. Persist to recipe repository
-					// For now, we'll just mark as processed to test the workflow
+					// Step 1: Fetch recipe page HTML using stealth HTTP client with retry
+					var fetchStartTime = DateTime.UtcNow;
+					string htmlContent = await RetryPolicyHelper.ExecuteWithRetryAsync(
+						async () => await stealthyHttpClient.GetStringAsync(url, providerId, cancellationToken),
+						config.RetryCount,
+						1000,
+						logger,
+						$"Fetch-{url}");
+					var responseTime = (DateTime.UtcNow - fetchStartTime).TotalMilliseconds;
 
+					// Step 2: Create Fingerprint entity with scraped content
+					var fingerprintId = Guid.NewGuid();
+					var fingerprintMetadata = new Dictionary<string, object>
+					{
+						[MetadataKeyResponseTime] = responseTime,
+						[MetadataKeyStatusCode] = 200,
+						[MetadataKeyContentLength] = htmlContent.Length
+					};
+					
+					var fingerprint = new Fingerprint(
+						fingerprintId,
+						url,
+						htmlContent,
+						providerId,
+						ScrapingQuality.Good,
+						fingerprintMetadata);
+
+					// Step 3: Extract recipe data using recipe extractor
+					Recipe? recipe = await recipeExtractor.ExtractRecipeAsync(fingerprint, cancellationToken);
+					
+					if (recipe == null)
+					{
+						logger.LogWarning(
+							"Failed to extract recipe from URL {Url}. Skipping.",
+							url);
+						
+						failedUrlsList.Add(new Dictionary<string, object>
+						{
+							["Url"] = url,
+							["Error"] = "Recipe extraction failed - no structured data found",
+							["ErrorType"] = "ExtractionFailure",
+							["IsPermanent"] = true,
+							["IsTransient"] = false,
+							["Timestamp"] = DateTime.UtcNow,
+							["RetryCount"] = 0,
+							["StackTrace"] = ""
+						});
+						
+						continue;
+					}
+
+					// Step 4: Normalize ingredients using ProcessIngredientsAsync
+					// Extract raw ingredient codes from the recipe (assuming Recipe has ingredients as strings)
+					var rawIngredientCodes = recipe.Ingredients
+						.Select(ing => ing.Name)
+						.ToList();
+					
+					IReadOnlyList<IngredientReference> normalizedIngredients = 
+						await ProcessIngredientsAsync(providerId, url, rawIngredientCodes, cancellationToken);
+
+					// Step 5: Attach normalized ingredient references to recipe
+					foreach (var ingredientRef in normalizedIngredients)
+					{
+						recipe.AddIngredientReference(ingredientRef);
+					}
+
+					// Step 6: Set provider metadata and fingerprint on recipe
+					recipe.SetProviderMetadata(providerId, null, DateTime.UtcNow);
+					recipe.UpdateFingerprint(fingerprint.ContentHash);
+
+					// Update fingerprint metadata with extracted title and description
+					fingerprint.AddMetadata(MetadataKeyTitle, recipe.Title);
+					fingerprint.AddMetadata(MetadataKeyDescription, recipe.Description);
+
+					// Step 7: Persist fingerprint to repository
+					await fingerprintRepository.AddAsync(fingerprint);
+
+					// Step 8: Persist recipe to repository
+					await recipeRepository.SaveAsync(recipe, cancellationToken);
+
+					// Mark fingerprint as processed with recipe ID
+					fingerprint.MarkAsProcessed(recipe.Id);
+					await fingerprintRepository.UpdateAsync(fingerprint);
+
+					// Step 9: Publish RecipeProcessedEvent for monitoring and downstream systems
+					var recipeProcessedEvent = new RecipeProcessedEvent(
+						recipe.Id,
+						url,
+						providerId,
+						DateTime.UtcNow);
+					eventBus.Publish(recipeProcessedEvent);
+
+					// Step 10: Mark as successfully processed
 					processedUrls.Add(url);
-					logger.LogDebug("Processed URL {Url} ({Index}/{Total})", url, i + 1, totalUrls);
+					
+					logger.LogInformation(
+						"Successfully processed recipe '{Title}' from {Url} ({Index}/{Total}). " +
+						"Ingredients: {IngredientCount}, Normalized: {NormalizedCount}",
+						recipe.Title,
+						url,
+						i + 1,
+						totalUrls,
+						recipe.Ingredients.Count,
+						normalizedIngredients.Count);
 				}
 				catch (Exception ex)
 				{

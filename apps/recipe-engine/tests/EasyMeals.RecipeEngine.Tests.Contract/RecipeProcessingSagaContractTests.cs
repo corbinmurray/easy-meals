@@ -1,7 +1,7 @@
 using EasyMeals.RecipeEngine.Application.Interfaces;
 using EasyMeals.RecipeEngine.Application.Sagas;
 using EasyMeals.RecipeEngine.Domain.Entities;
-using EasyMeals.RecipeEngine.Domain.Interfaces;
+using DomainInterfaces = EasyMeals.RecipeEngine.Domain.Interfaces;
 using EasyMeals.RecipeEngine.Domain.Repositories;
 using EasyMeals.RecipeEngine.Domain.ValueObjects;
 using Shouldly;
@@ -131,7 +131,7 @@ public class RecipeProcessingSagaContractTests
     public async Task StartProcessingAsync_CreatesState_WithRequiredProperties()
     {
         // Arrange
-        var mockSagaRepo = new Mock<ISagaStateRepository>();
+        var mockSagaRepo = new Mock<DomainInterfaces.ISagaStateRepository>();
         SagaState? capturedState = null;
 
         mockSagaRepo.Setup(r => r.AddAsync(It.IsAny<SagaState>(), It.IsAny<CancellationToken>()))
@@ -156,7 +156,11 @@ public class RecipeProcessingSagaContractTests
             Mock.Of<IIngredientNormalizer>(),
             Mock.Of<IRateLimiter>(),
             Mock.Of<IRecipeBatchRepository>(),
-            Mock.Of<IEventBus>()
+            Mock.Of<IEventBus>(),
+            Mock.Of<DomainInterfaces.IStealthyHttpClient>(),
+            Mock.Of<DomainInterfaces.IRecipeExtractor>(),
+            Mock.Of<IRecipeRepository>(),
+            Mock.Of<DomainInterfaces.IFingerprintRepository>()
         );
 
         // Act
@@ -181,7 +185,7 @@ public class RecipeProcessingSagaContractTests
     public async Task StartProcessingAsync_InitialState_SagaCreated()
     {
         // Arrange
-        var mockSagaRepo = new Mock<ISagaStateRepository>();
+        var mockSagaRepo = new Mock<DomainInterfaces.ISagaStateRepository>();
         SagaState? addedState = null;
 
         mockSagaRepo.Setup(r => r.AddAsync(It.IsAny<SagaState>(), It.IsAny<CancellationToken>()))
@@ -208,7 +212,11 @@ public class RecipeProcessingSagaContractTests
             Mock.Of<IIngredientNormalizer>(),
             Mock.Of<IRateLimiter>(),
             Mock.Of<IRecipeBatchRepository>(),
-            Mock.Of<IEventBus>()
+            Mock.Of<IEventBus>(),
+            Mock.Of<DomainInterfaces.IStealthyHttpClient>(),
+            Mock.Of<DomainInterfaces.IRecipeExtractor>(),
+            Mock.Of<IRecipeRepository>(),
+            Mock.Of<DomainInterfaces.IFingerprintRepository>()
         );
 
         // Act & Assert - Expect exception due to null config
@@ -229,7 +237,7 @@ public class RecipeProcessingSagaContractTests
     public async Task StartProcessingAsync_WhenCalled_TransitionsToDiscovering()
     {
         // Arrange
-        var mockSagaRepo = new Mock<ISagaStateRepository>();
+        var mockSagaRepo = new Mock<DomainInterfaces.ISagaStateRepository>();
         SagaState? capturedState = null;
 
         mockSagaRepo.Setup(r => r.AddAsync(It.IsAny<SagaState>(), It.IsAny<CancellationToken>()))
@@ -254,7 +262,11 @@ public class RecipeProcessingSagaContractTests
             Mock.Of<IIngredientNormalizer>(),
             Mock.Of<IRateLimiter>(),
             Mock.Of<IRecipeBatchRepository>(),
-            Mock.Of<IEventBus>()
+            Mock.Of<IEventBus>(),
+            Mock.Of<DomainInterfaces.IStealthyHttpClient>(),
+            Mock.Of<DomainInterfaces.IRecipeExtractor>(),
+            Mock.Of<IRecipeRepository>(),
+            Mock.Of<DomainInterfaces.IFingerprintRepository>()
         );
 
         // Act & Assert - Expect exception when config is null

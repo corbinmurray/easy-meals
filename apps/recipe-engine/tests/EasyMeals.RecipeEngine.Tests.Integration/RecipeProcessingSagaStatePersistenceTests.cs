@@ -1,7 +1,7 @@
 using EasyMeals.RecipeEngine.Application.Interfaces;
 using EasyMeals.RecipeEngine.Application.Sagas;
 using EasyMeals.RecipeEngine.Domain.Entities;
-using EasyMeals.RecipeEngine.Domain.Interfaces;
+using DomainInterfaces = EasyMeals.RecipeEngine.Domain.Interfaces;
 using EasyMeals.RecipeEngine.Domain.Repositories;
 using EasyMeals.RecipeEngine.Domain.ValueObjects;
 using EasyMeals.RecipeEngine.Domain.ValueObjects.Discovery;
@@ -23,7 +23,7 @@ public class RecipeProcessingSagaStatePersistenceTests : IAsyncLifetime
 {
     private MongoDbContainer? _mongoContainer;
     private IMongoDatabase? _mongoDatabase;
-    private ISagaStateRepository? _sagaRepository;
+    private DomainInterfaces.ISagaStateRepository? _sagaRepository;
 
     public async Task DisposeAsync()
     {
@@ -66,9 +66,9 @@ public class RecipeProcessingSagaStatePersistenceTests : IAsyncLifetime
         return mock;
     }
 
-    private static Mock<IDiscoveryService> CreateMockDiscoveryService(string[] urls)
+    private static Mock<DomainInterfaces.IDiscoveryService> CreateMockDiscoveryService(string[] urls)
     {
-        var mock = new Mock<IDiscoveryService>();
+        var mock = new Mock<DomainInterfaces.IDiscoveryService>();
         List<DiscoveredUrl> discoveredUrls = urls.Select(url =>
             new DiscoveredUrl(url, "test-provider", DateTime.UtcNow)).ToList();
 
@@ -114,7 +114,7 @@ public class RecipeProcessingSagaStatePersistenceTests : IAsyncLifetime
         // Arrange - First run
         var mockLogger = new Mock<ILogger<RecipeProcessingSaga>>();
         Mock<IProviderConfigurationLoader> mockConfigLoader = CreateMockConfigLoader();
-        Mock<IDiscoveryService> mockDiscoveryService = CreateMockDiscoveryService(new[]
+        Mock<DomainInterfaces.IDiscoveryService> mockDiscoveryService = CreateMockDiscoveryService(new[]
         {
             "https://test.com/recipe1",
             "https://test.com/recipe2",
@@ -140,7 +140,11 @@ public class RecipeProcessingSagaStatePersistenceTests : IAsyncLifetime
             mockNormalizer.Object,
             mockRateLimiter.Object,
             mockBatchRepository.Object,
-            mockEventBus.Object);
+            mockEventBus.Object,
+            Mock.Of<DomainInterfaces.IStealthyHttpClient>(),
+            Mock.Of<DomainInterfaces.IRecipeExtractor>(),
+            Mock.Of<IRecipeRepository>(),
+            Mock.Of<DomainInterfaces.IFingerprintRepository>());
 
         Guid batchId = await saga.StartProcessingAsync(
             "test-provider",
@@ -193,7 +197,7 @@ public class RecipeProcessingSagaStatePersistenceTests : IAsyncLifetime
             "https://test.com/recipe3"
         };
 
-        Mock<IDiscoveryService> mockDiscoveryService = CreateMockDiscoveryService(expectedUrls);
+        Mock<DomainInterfaces.IDiscoveryService> mockDiscoveryService = CreateMockDiscoveryService(expectedUrls);
         Mock<IRecipeFingerprinter> mockFingerprinter = CreateMockFingerprinter();
         Mock<IIngredientNormalizer> mockNormalizer = CreateMockNormalizer();
         Mock<IRateLimiter> mockRateLimiter = CreateMockRateLimiter();
@@ -213,7 +217,11 @@ public class RecipeProcessingSagaStatePersistenceTests : IAsyncLifetime
             mockNormalizer.Object,
             mockRateLimiter.Object,
             mockBatchRepository.Object,
-            mockEventBus.Object);
+            mockEventBus.Object,
+            Mock.Of<DomainInterfaces.IStealthyHttpClient>(),
+            Mock.Of<DomainInterfaces.IRecipeExtractor>(),
+            Mock.Of<IRecipeRepository>(),
+            Mock.Of<DomainInterfaces.IFingerprintRepository>());
 
         // Act
         Guid batchId = await saga.StartProcessingAsync(
@@ -239,7 +247,7 @@ public class RecipeProcessingSagaStatePersistenceTests : IAsyncLifetime
         // Arrange
         var mockLogger = new Mock<ILogger<RecipeProcessingSaga>>();
         Mock<IProviderConfigurationLoader> mockConfigLoader = CreateMockConfigLoader();
-        Mock<IDiscoveryService> mockDiscoveryService = CreateMockDiscoveryService(new[]
+        Mock<DomainInterfaces.IDiscoveryService> mockDiscoveryService = CreateMockDiscoveryService(new[]
         {
             "https://test.com/recipe1"
         });
@@ -263,7 +271,11 @@ public class RecipeProcessingSagaStatePersistenceTests : IAsyncLifetime
             mockNormalizer.Object,
             mockRateLimiter.Object,
             mockBatchRepository.Object,
-            mockEventBus.Object);
+            mockEventBus.Object,
+            Mock.Of<DomainInterfaces.IStealthyHttpClient>(),
+            Mock.Of<DomainInterfaces.IRecipeExtractor>(),
+            Mock.Of<IRecipeRepository>(),
+            Mock.Of<DomainInterfaces.IFingerprintRepository>());
 
         // Act
         Guid batchId = await saga.StartProcessingAsync(
@@ -294,7 +306,7 @@ public class RecipeProcessingSagaStatePersistenceTests : IAsyncLifetime
         // Arrange
         var mockLogger = new Mock<ILogger<RecipeProcessingSaga>>();
         Mock<IProviderConfigurationLoader> mockConfigLoader = CreateMockConfigLoader();
-        Mock<IDiscoveryService> mockDiscoveryService = CreateMockDiscoveryService(new[]
+        Mock<DomainInterfaces.IDiscoveryService> mockDiscoveryService = CreateMockDiscoveryService(new[]
         {
             "https://test.com/recipe1",
             "https://test.com/recipe2-duplicate", // Will be filtered out
@@ -329,7 +341,11 @@ public class RecipeProcessingSagaStatePersistenceTests : IAsyncLifetime
             mockNormalizer.Object,
             mockRateLimiter.Object,
             mockBatchRepository.Object,
-            mockEventBus.Object);
+            mockEventBus.Object,
+            Mock.Of<DomainInterfaces.IStealthyHttpClient>(),
+            Mock.Of<DomainInterfaces.IRecipeExtractor>(),
+            Mock.Of<IRecipeRepository>(),
+            Mock.Of<DomainInterfaces.IFingerprintRepository>());
 
         // Act
         Guid batchId = await saga.StartProcessingAsync(
@@ -356,7 +372,7 @@ public class RecipeProcessingSagaStatePersistenceTests : IAsyncLifetime
         // Arrange
         var mockLogger = new Mock<ILogger<RecipeProcessingSaga>>();
         Mock<IProviderConfigurationLoader> mockConfigLoader = CreateMockConfigLoader();
-        Mock<IDiscoveryService> mockDiscoveryService = CreateMockDiscoveryService(new[]
+        Mock<DomainInterfaces.IDiscoveryService> mockDiscoveryService = CreateMockDiscoveryService(new[]
         {
             "https://test.com/recipe1",
             "https://test.com/recipe2",
@@ -382,7 +398,11 @@ public class RecipeProcessingSagaStatePersistenceTests : IAsyncLifetime
             mockNormalizer.Object,
             mockRateLimiter.Object,
             mockBatchRepository.Object,
-            mockEventBus.Object);
+            mockEventBus.Object,
+            Mock.Of<DomainInterfaces.IStealthyHttpClient>(),
+            Mock.Of<DomainInterfaces.IRecipeExtractor>(),
+            Mock.Of<IRecipeRepository>(),
+            Mock.Of<DomainInterfaces.IFingerprintRepository>());
 
         // Act
         Guid batchId = await saga.StartProcessingAsync(
