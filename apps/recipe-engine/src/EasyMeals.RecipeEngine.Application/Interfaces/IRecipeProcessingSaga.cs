@@ -28,25 +28,4 @@ public interface IRecipeProcessingSaga
         int batchSize,
         TimeSpan timeWindow,
         CancellationToken cancellationToken = default);
-
-    /// <summary>
-    ///     Resumes processing from a saved saga state after application restart.
-    ///     Loads saga state from MongoDB and continues from the last processed URL.
-    /// </summary>
-    /// <param name="batchId">Batch ID (saga correlation ID)</param>
-    /// <param name="cancellationToken">Cancellation token</param>
-    Task ResumeProcessingAsync(
-        Guid batchId,
-        CancellationToken cancellationToken = default);
-
-    /// <summary>
-    ///     Gets the current status of a processing batch.
-    ///     Queries saga state from MongoDB.
-    /// </summary>
-    /// <param name="batchId">Batch ID (saga correlation ID)</param>
-    /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>Batch entity with current status and counts</returns>
-    Task<RecipeBatch?> GetBatchStatusAsync(
-        Guid batchId,
-        CancellationToken cancellationToken = default);
 }
