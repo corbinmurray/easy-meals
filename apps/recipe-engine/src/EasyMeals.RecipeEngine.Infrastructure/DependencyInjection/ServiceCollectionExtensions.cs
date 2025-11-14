@@ -70,11 +70,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IIngredientMappingRepository, IngredientMappingRepository>();
         services.AddScoped<IRecipeFingerprintRepository, RecipeFingerprintRepository>();
         services.AddScoped<IRecipeRepository, RecipeRepository>();
-
-        // Register domain services
-        services.AddScoped<IRecipeDuplicationChecker, RecipeDuplicationChecker>();
-        services.AddScoped<IBatchCompletionPolicy, BatchCompletionPolicy>();
-
+        
         // Register application services
         services.AddScoped<IProviderConfigurationLoader, ProviderConfigurationLoader>();
         services.AddScoped<IIngredientNormalizer, IngredientNormalizationService>();
