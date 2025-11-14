@@ -56,10 +56,10 @@ public class RecipeProcessingSaga(
 	private const string MetadataKeyStatusCode = "statusCode";
 	private const string MetadataKeyContentLength = "contentLength";
 
-    /// <summary>
-    ///     Starts processing a new recipe batch for the specified provider.
-    /// </summary>
-    public async Task<Guid> StartProcessingAsync(
+	/// <summary>
+	///     Starts processing a new recipe batch for the specified provider.
+	/// </summary>
+	public async Task<Guid> StartProcessingAsync(
 		string providerId,
 		int batchSize,
 		TimeSpan timeWindow,
@@ -87,12 +87,12 @@ public class RecipeProcessingSaga(
 		await sagaStateRepository.AddAsync(sagaState, cancellationToken);
 
 		using (logger.BeginScope(new Dictionary<string, object>
-		       {
-			       ["CorrelationId"] = correlationId,
-			       ["SagaId"] = sagaState.Id,
-			       ["ProviderId"] = providerId,
-			       ["BatchSize"] = batchSize
-		       }))
+		{
+			["CorrelationId"] = correlationId,
+			["SagaId"] = sagaState.Id,
+			["ProviderId"] = providerId,
+			["BatchSize"] = batchSize
+		}))
 		{
 			logger.LogInformation(
 				"Starting Recipe Processing Saga {SagaId} for provider {ProviderId} with batch size {BatchSize}",
@@ -165,107 +165,17 @@ public class RecipeProcessingSaga(
 		return correlationId;
 	}
 
-    /// <summary>
-    ///     Resumes processing from a saved saga state after application restart.
-    /// </summary>
-    public async Task ResumeProcessingAsync(Guid batchId, CancellationToken cancellationToken)
-	{
-		SagaState? sagaState = await sagaStateRepository.GetByCorrelationIdAsync(batchId, cancellationToken);
-		if (sagaState == null) throw new InvalidOperationException($"Saga state not found for batch {batchId}");
-
-		if (sagaState.IsCompleted || sagaState.IsFailed)
-		{
-			logger.LogInformation("Saga {SagaId} is already {Status}, skipping resume", sagaState.Id, sagaState.Status);
-			return;
-		}
-
-		string providerId = sagaState.StateData["ProviderId"] as string ?? throw new InvalidOperationException("ProviderId not found in state");
-		string timeWindowStr = sagaState.StateData["TimeWindow"] as string ?? throw new InvalidOperationException("TimeWindow not found in state");
-		TimeSpan timeWindow = TimeSpan.Parse(timeWindowStr);
-
-		using (logger.BeginScope(new Dictionary<string, object>
-		       {
-			       ["CorrelationId"] = sagaState.CorrelationId,
-			       ["SagaId"] = sagaState.Id,
-			       ["ProviderId"] = providerId,
-			       ["CurrentPhase"] = sagaState.CurrentPhase
-		       }))
-		{
-			logger.LogInformation("Resuming Saga {SagaId} from phase {CurrentPhase}", sagaState.Id, sagaState.CurrentPhase);
-
-			try
-			{
-				// Resume from the current phase
-				switch (sagaState.CurrentPhase)
-				{
-					case PhaseDiscovering:
-						await ExecuteDiscoveryPhaseAsync(sagaState, cancellationToken);
-						goto case PhaseFingerprinting;
-
-					case PhaseFingerprinting:
-						await ExecuteFingerprintingPhaseAsync(sagaState, cancellationToken);
-						goto case PhaseProcessing;
-
-					case PhaseProcessing:
-						await ExecuteProcessingPhaseAsync(sagaState, timeWindow, cancellationToken);
-						goto case PhasePersisting;
-
-					case PhasePersisting:
-						await ExecutePersistingPhaseAsync(sagaState, cancellationToken);
-						break;
-				}
-
-				sagaState.Complete();
-				sagaState.UpdateProgress(PhaseCompleted, 100);
-				await sagaStateRepository.UpdateAsync(sagaState, cancellationToken);
-			}
-			catch (Exception ex)
-			{
-				logger.LogError(ex, "Saga {SagaId} failed during resume: {ErrorMessage}", sagaState.Id, ex.Message);
-				sagaState.Fail(ex.Message, ex.StackTrace);
-				await sagaStateRepository.UpdateAsync(sagaState, cancellationToken);
-				throw;
-			}
-		}
-	}
-
-    /// <summary>
-    ///     Gets the current status of a processing batch.
-    /// </summary>
-    public async Task<RecipeBatch?> GetBatchStatusAsync(Guid batchId, CancellationToken cancellationToken)
-	{
-		SagaState? sagaState = await sagaStateRepository.GetByCorrelationIdAsync(batchId, cancellationToken);
-		if (sagaState == null) return null;
-
-		string providerId = sagaState.StateData["ProviderId"] as string ?? "";
-		object batchSizeObj = sagaState.StateData["BatchSize"];
-		int batchSize = batchSizeObj switch
-		{
-			int i => i,
-			long l => (int)l,
-			_ => 100
-		};
-
-		// Create a RecipeBatch entity from saga state
-		var batch = RecipeBatch.CreateBatch(
-			providerId,
-			batchSize,
-			TimeSpan.FromHours(1)); // Default time window
-
-		return batch;
-	}
-
 	private async Task ExecuteDiscoveryPhaseAsync(SagaState sagaState, CancellationToken cancellationToken)
 	{
 		string providerId = sagaState.StateData["ProviderId"] as string ?? throw new InvalidOperationException("ProviderId not found");
 
 		using (logger.BeginScope(new Dictionary<string, object>
-		       {
-			       ["SagaId"] = sagaState.Id,
-			       ["CorrelationId"] = sagaState.CorrelationId,
-			       ["ProviderId"] = providerId,
-			       ["Phase"] = PhaseDiscovering
-		       }))
+		{
+			["SagaId"] = sagaState.Id,
+			["CorrelationId"] = sagaState.CorrelationId,
+			["ProviderId"] = providerId,
+			["Phase"] = PhaseDiscovering
+		}))
 		{
 			logger.LogInformation("Executing Discovery phase for saga {SagaId}", sagaState.Id);
 
@@ -386,12 +296,12 @@ public class RecipeProcessingSaga(
 		string providerId = sagaState.StateData["ProviderId"] as string ?? "";
 
 		using (logger.BeginScope(new Dictionary<string, object>
-		       {
-			       ["SagaId"] = sagaState.Id,
-			       ["CorrelationId"] = sagaState.CorrelationId,
-			       ["ProviderId"] = providerId,
-			       ["Phase"] = PhaseProcessing
-		       }))
+		{
+			["SagaId"] = sagaState.Id,
+			["CorrelationId"] = sagaState.CorrelationId,
+			["ProviderId"] = providerId,
+			["Phase"] = PhaseProcessing
+		}))
 		{
 			logger.LogInformation("Executing Processing phase for saga {SagaId}", sagaState.Id);
 
@@ -424,8 +334,9 @@ public class RecipeProcessingSaga(
 			// Process URLs from CurrentIndex
 			for (int i = currentIndex; i < fingerprintedUrls.Count; i++)
 			{
-				// Check batch size limit
-				if (processedUrls.Count >= batchSize)
+				// Check batch size limit (count both successful and failed attempts)
+				int processedOrFailed = processedUrls.Count + failedUrlsList.Count;
+				if (processedOrFailed >= batchSize)
 				{
 					logger.LogInformation("Batch size limit reached ({BatchSize}), stopping processing", batchSize);
 					break;
@@ -440,8 +351,8 @@ public class RecipeProcessingSaga(
 				}
 
 				string url = fingerprintedUrls[i];
-				var retryCount = 0;
-				
+				var failureRecorded = false;
+
 				try
 				{
 					// Wait for rate limit token
@@ -452,16 +363,16 @@ public class RecipeProcessingSaga(
 						await Task.Delay(TimeSpan.FromSeconds(1), cancellationToken);
 						acquired = await rateLimiter.TryAcquireAsync(providerId, cancellationToken);
 					}
-					
+
 					// Step 1: Fetch recipe page HTML using stealth HTTP client with retry
-					var fetchStartTime = DateTime.UtcNow;
+					DateTime fetchStartTime = DateTime.UtcNow;
 					string htmlContent = await RetryPolicyHelper.ExecuteWithRetryAsync(
 						async () => await stealthyHttpClient.GetStringAsync(url, providerId, cancellationToken),
 						config.RetryCount,
 						1000,
 						logger,
 						$"Fetch-{url}");
-					var responseTime = (DateTime.UtcNow - fetchStartTime).TotalMilliseconds;
+					double responseTime = (DateTime.UtcNow - fetchStartTime).TotalMilliseconds;
 
 					// Step 2: Create Fingerprint entity with scraped content
 					var fingerprintId = Guid.NewGuid();
@@ -471,7 +382,7 @@ public class RecipeProcessingSaga(
 						[MetadataKeyStatusCode] = 200,
 						[MetadataKeyContentLength] = htmlContent.Length
 					};
-					
+
 					var fingerprint = new Fingerprint(
 						fingerprintId,
 						url,
@@ -482,13 +393,13 @@ public class RecipeProcessingSaga(
 
 					// Step 3: Extract recipe data using recipe extractor
 					Recipe? recipe = await recipeExtractor.ExtractRecipeAsync(fingerprint, cancellationToken);
-					
+
 					if (recipe == null)
 					{
 						logger.LogWarning(
 							"Failed to extract recipe from URL {Url}. Skipping.",
 							url);
-						
+
 						failedUrlsList.Add(new Dictionary<string, object>
 						{
 							["Url"] = url,
@@ -497,24 +408,24 @@ public class RecipeProcessingSaga(
 							["IsPermanent"] = true,
 							["IsTransient"] = false,
 							["Timestamp"] = DateTime.UtcNow,
-							["RetryCount"] = 0,
-							["StackTrace"] = ""
+							["StackTrace"] = string.Empty
 						});
-						
-						continue;
+						failureRecorded = true;
+						eventBus.Publish(new ProcessingErrorEvent(url, providerId, "Recipe extraction failed - no structured data found", DateTime.UtcNow));
+						goto EndOfIteration;
 					}
 
 					// Step 4: Normalize ingredients using ProcessIngredientsAsync
 					// Extract raw ingredient codes from the recipe (assuming Recipe has ingredients as strings)
-					var rawIngredientCodes = recipe.Ingredients
+					List<string> rawIngredientCodes = recipe.Ingredients
 						.Select(ing => ing.Name)
 						.ToList();
-					
-					IReadOnlyList<IngredientReference> normalizedIngredients = 
+
+					IReadOnlyList<IngredientReference> normalizedIngredients =
 						await ProcessIngredientsAsync(providerId, url, rawIngredientCodes, cancellationToken);
 
 					// Step 5: Attach normalized ingredient references to recipe
-					foreach (var ingredientRef in normalizedIngredients)
+					foreach (IngredientReference ingredientRef in normalizedIngredients)
 					{
 						recipe.AddIngredientReference(ingredientRef);
 					}
@@ -547,7 +458,7 @@ public class RecipeProcessingSaga(
 
 					// Step 10: Mark as successfully processed
 					processedUrls.Add(url);
-					
+
 					logger.LogInformation(
 						"Successfully processed recipe '{Title}' from {Url} ({Index}/{Total}). " +
 						"Ingredients: {IngredientCount}, Normalized: {NormalizedCount}",
@@ -567,13 +478,12 @@ public class RecipeProcessingSaga(
 
 					// Log with structured context
 					using (logger.BeginScope(new Dictionary<string, object>
-					       {
-						       ["Url"] = url,
-						       ["ErrorType"] = errorType,
-						       ["IsTransient"] = isTransient,
-						       ["IsPermanent"] = isPermanent,
-						       ["RetryCount"] = retryCount
-					       }))
+					{
+						["Url"] = url,
+						["ErrorType"] = errorType,
+						["IsTransient"] = isTransient,
+						["IsPermanent"] = isPermanent,
+					}))
 					{
 						if (isPermanent)
 						{
@@ -585,17 +495,20 @@ public class RecipeProcessingSaga(
 								ex.Message);
 
 							// Add to failed URLs with permanent flag
-							failedUrlsList.Add(new Dictionary<string, object>
+							if (!failureRecorded)
 							{
-								["Url"] = url,
-								["Error"] = ex.Message,
-								["ErrorType"] = errorType,
-								["IsPermanent"] = true,
-								["IsTransient"] = false,
-								["Timestamp"] = DateTime.UtcNow,
-								["RetryCount"] = 0,
-								["StackTrace"] = ex.StackTrace ?? ""
-							});
+								failedUrlsList.Add(new Dictionary<string, object>
+								{
+									["Url"] = url,
+									["Error"] = ex.Message,
+									["ErrorType"] = errorType,
+									["IsPermanent"] = true,
+									["IsTransient"] = false,
+									["Timestamp"] = DateTime.UtcNow,
+									["StackTrace"] = ex.StackTrace ?? string.Empty
+								});
+								failureRecorded = true;
+							}
 
 							// Emit ProcessingErrorEvent for monitoring and alerting
 							// NOTE: Event bus is used here for cross-cutting concerns (monitoring, alerting)
@@ -610,17 +523,20 @@ public class RecipeProcessingSaga(
 								url,
 								ex.Message);
 
-							failedUrlsList.Add(new Dictionary<string, object>
+							if (!failureRecorded)
 							{
-								["Url"] = url,
-								["Error"] = ex.Message,
-								["ErrorType"] = errorType,
-								["IsPermanent"] = false,
-								["IsTransient"] = true,
-								["Timestamp"] = DateTime.UtcNow,
-								["RetryCount"] = retryCount,
-								["StackTrace"] = ex.StackTrace ?? ""
-							});
+								failedUrlsList.Add(new Dictionary<string, object>
+								{
+									["Url"] = url,
+									["Error"] = ex.Message,
+									["ErrorType"] = errorType,
+									["IsPermanent"] = false,
+									["IsTransient"] = true,
+									["Timestamp"] = DateTime.UtcNow,
+									["StackTrace"] = ex.StackTrace ?? string.Empty
+								});
+								failureRecorded = true;
+							}
 						}
 						else
 						{
@@ -631,34 +547,63 @@ public class RecipeProcessingSaga(
 								url,
 								ex.Message);
 
-							failedUrlsList.Add(new Dictionary<string, object>
+							if (!failureRecorded)
 							{
-								["Url"] = url,
-								["Error"] = ex.Message,
-								["ErrorType"] = "Unknown",
-								["IsPermanent"] = true,
-								["IsTransient"] = false,
-								["Timestamp"] = DateTime.UtcNow,
-								["RetryCount"] = 0,
-								["StackTrace"] = ex.StackTrace ?? ""
-							});
+								failedUrlsList.Add(new Dictionary<string, object>
+								{
+									["Url"] = url,
+									["Error"] = ex.Message,
+									["ErrorType"] = "Unknown",
+									["IsPermanent"] = true,
+									["IsTransient"] = false,
+									["Timestamp"] = DateTime.UtcNow,
+									["StackTrace"] = ex.StackTrace ?? string.Empty
+								});
+								failureRecorded = true;
+							}
 						}
 
 						eventBus.Publish(new ProcessingErrorEvent(url, providerId, ex.Message, DateTime.UtcNow));
 					}
 				}
 
-				// Update current index and save state for crash recovery
+			EndOfIteration:
+				processedOrFailed = processedUrls.Count + failedUrlsList.Count;
 				sagaState.StateData["CurrentIndex"] = i + 1;
 				sagaState.StateData["ProcessedUrls"] = processedUrls;
 				sagaState.StateData["FailedUrls"] = failedUrlsList;
 
-				var progress = (int)((double)(i + 1) / totalUrls * 100);
+				var progress = totalUrls == 0
+					? 100
+					: (int)((double)(i + 1) / totalUrls * 100);
 				sagaState.UpdateProgress(PhaseProcessing, progress);
 
 				// Checkpoint every 10 recipes for crash recovery
-				if ((i + 1) % 10 != 0) continue;
-				
+				if ((i + 1) % 10 == 0)
+				{
+					sagaState.CreateCheckpoint($"Processing_{i + 1}", new Dictionary<string, object>
+					{
+						["ProcessedCount"] = processedUrls.Count,
+						["FailedCount"] = failedUrlsList.Count,
+						["CurrentIndex"] = i + 1,
+						["Phase"] = PhaseProcessing,
+						["ElapsedTime"] = (DateTime.UtcNow - startTime).ToString()
+					});
+					await sagaStateRepository.UpdateAsync(sagaState, cancellationToken);
+
+					logger.LogDebug(
+						"Checkpoint saved at {Index}/{Total}. Processed: {Processed}, Failed: {Failed}",
+						i + 1,
+						totalUrls,
+						processedUrls.Count,
+						failedUrlsList.Count);
+				}
+
+				if ((i + 1) % 10 != 0)
+				{
+					continue;
+				}
+
 				sagaState.CreateCheckpoint($"Processing_{i + 1}", new Dictionary<string, object>
 				{
 					["ProcessedCount"] = processedUrls.Count,
@@ -693,12 +638,12 @@ public class RecipeProcessingSaga(
 		string providerId = sagaState.StateData["ProviderId"] as string ?? "";
 
 		using (logger.BeginScope(new Dictionary<string, object>
-		       {
-			       ["SagaId"] = sagaState.Id,
-			       ["CorrelationId"] = sagaState.CorrelationId,
-			       ["ProviderId"] = providerId,
-			       ["Phase"] = PhasePersisting
-		       }))
+		{
+			["SagaId"] = sagaState.Id,
+			["CorrelationId"] = sagaState.CorrelationId,
+			["ProviderId"] = providerId,
+			["Phase"] = PhasePersisting
+		}))
 		{
 			logger.LogInformation("Executing Persisting phase for saga {SagaId}", sagaState.Id);
 
@@ -735,10 +680,9 @@ public class RecipeProcessingSaga(
 				batch.MarkRecipeSkipped(discoveredUrls[i]);
 			}
 
-			foreach (Dictionary<string, object> failedUrlEntry in failedUrlsList)
+			foreach (string url in failedUrlsList.Select(failedUrlEntry => failedUrlEntry["Url"] as string ?? "").Where(url => !string.IsNullOrEmpty(url)))
 			{
-				string url = failedUrlEntry["Url"] as string ?? "";
-				if (!string.IsNullOrEmpty(url)) batch.MarkRecipeFailed(url);
+				batch.MarkRecipeFailed(url);
 			}
 
 			// Complete the batch
@@ -774,23 +718,23 @@ public class RecipeProcessingSaga(
 		}
 	}
 
-    /// <summary>
-    ///     Processes ingredients for a recipe, normalizing provider-specific codes to canonical forms.
-    ///     This method demonstrates Phase 4 (T069) integration of ingredient normalization service.
-    ///     Implementation Details:
-    ///     - Calls IIngredientNormalizer.NormalizeBatchAsync for all ingredient codes in recipe
-    ///     - Creates IngredientReference value objects with both ProviderCode and CanonicalForm
-    ///     - Emits IngredientMappingMissingEvent for unmapped ingredients (non-blocking)
-    ///     - Continues processing even if some ingredients cannot be mapped
-    ///     NOTE: This method is called from ExecuteProcessingPhaseAsync during the Processing state
-    ///     to normalize recipe ingredients as part of the complete recipe processing workflow.
-    /// </summary>
-    /// <param name="providerId">Provider identifier (e.g., "provider_001")</param>
-    /// <param name="recipeUrl">URL of the recipe being processed (for event context)</param>
-    /// <param name="rawIngredientCodes">Raw provider-specific ingredient codes from scraped recipe</param>
-    /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>List of IngredientReference value objects with normalized canonical forms</returns>
-    public async Task<IReadOnlyList<IngredientReference>> ProcessIngredientsAsync(
+	/// <summary>
+	///     Processes ingredients for a recipe, normalizing provider-specific codes to canonical forms.
+	///     This method demonstrates Phase 4 (T069) integration of ingredient normalization service.
+	///     Implementation Details:
+	///     - Calls IIngredientNormalizer.NormalizeBatchAsync for all ingredient codes in recipe
+	///     - Creates IngredientReference value objects with both ProviderCode and CanonicalForm
+	///     - Emits IngredientMappingMissingEvent for unmapped ingredients (non-blocking)
+	///     - Continues processing even if some ingredients cannot be mapped
+	///     NOTE: This method is called from ExecuteProcessingPhaseAsync during the Processing state
+	///     to normalize recipe ingredients as part of the complete recipe processing workflow.
+	/// </summary>
+	/// <param name="providerId">Provider identifier (e.g., "provider_001")</param>
+	/// <param name="recipeUrl">URL of the recipe being processed (for event context)</param>
+	/// <param name="rawIngredientCodes">Raw provider-specific ingredient codes from scraped recipe</param>
+	/// <param name="cancellationToken">Cancellation token</param>
+	/// <returns>List of IngredientReference value objects with normalized canonical forms</returns>
+	public async Task<IReadOnlyList<IngredientReference>> ProcessIngredientsAsync(
 		string providerId,
 		string recipeUrl,
 		IEnumerable<string> rawIngredientCodes,
