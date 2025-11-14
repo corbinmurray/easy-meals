@@ -2,7 +2,6 @@
 using EasyMeals.RecipeEngine.Application.EventHandlers.DiscoveryEvents;
 using EasyMeals.RecipeEngine.Application.Interfaces;
 using EasyMeals.RecipeEngine.Application.Sagas;
-using EasyMeals.RecipeEngine.Application.Services;
 using EasyMeals.RecipeEngine.Domain.Events;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -15,9 +14,6 @@ public static class ServiceCollectionExtensions
     {
         // Register saga
         services.AddScoped<IRecipeProcessingSaga, RecipeProcessingSaga>();
-
-        // Register application services
-        services.AddScoped<RecipeProcessingApplicationService>();
 
         // Register event bus and handlers
         services.AddEventBus();
