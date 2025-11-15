@@ -99,7 +99,7 @@ public class RecipeExtractorServiceTests
         recipe.Title.ShouldBe("Chocolate Chip Cookies");
         recipe.Description.ShouldBe("Delicious homemade chocolate chip cookies");
         recipe.SourceUrl.ShouldBe("https://example.com/cookies");
-        recipe.SourceProvider.ShouldBe("test-provider");
+        recipe.ProviderName.ShouldBe("test-provider");
         recipe.PrepTimeMinutes.ShouldBe(15);
         recipe.CookTimeMinutes.ShouldBe(12);
         recipe.Servings.ShouldBe(24);

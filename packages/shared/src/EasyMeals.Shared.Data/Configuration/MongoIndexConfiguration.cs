@@ -279,7 +279,7 @@ public static class MongoIndexConfiguration
 
 			// 8. Index for source provider queries
 			new CreateIndexModel<RecipeDocument>(
-                Builders<RecipeDocument>.IndexKeys.Ascending(r => r.SourceProvider),
+                Builders<RecipeDocument>.IndexKeys.Ascending(r => r.ProviderName),
                 new CreateIndexOptions
                 {
                     Name = "idx_recipe_source_provider",

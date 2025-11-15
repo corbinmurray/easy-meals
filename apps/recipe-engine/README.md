@@ -28,7 +28,7 @@ Update your `appsettings.json` to specify the source provider:
 ```json
 {
   "RecipeEngine": {
-    "SourceProvider": "SourceProvider",
+    "ProviderName": "ProviderName",
     "DefaultPriority": 1,
     "DelayBetweenRequestsSeconds": 2,
     "RequestTimeoutSeconds": 30,
@@ -46,7 +46,7 @@ To add support for a new provider (e.g., "BlueApron"):
    ```json
    {
      "RecipeEngine": {
-       "SourceProvider": "BlueApron",
+       "ProviderName": "BlueApron",
        "DefaultPriority": 2,
        "DelayBetweenRequestsSeconds": 3,
        "RequestTimeoutSeconds": 45,

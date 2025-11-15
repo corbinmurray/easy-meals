@@ -20,7 +20,7 @@ public class RecipeRepository(IMongoDatabase database, IClientSessionHandle? ses
     public async Task<Recipe?> GetByUrlAsync(string recipeUrl, string providerId, CancellationToken cancellationToken = default)
     {
         RecipeDocument? document = await GetFirstOrDefaultAsync(
-            d => d.SourceUrl == recipeUrl && d.SourceProvider == providerId,
+            d => d.SourceUrl == recipeUrl && d.ProviderName == providerId,
             cancellationToken);
 
         return document == null ? null : ToDomain(document);
@@ -43,7 +43,7 @@ public class RecipeRepository(IMongoDatabase database, IClientSessionHandle? ses
 
     public async Task<int> CountByProviderAsync(string providerId, CancellationToken cancellationToken = default)
     {
-        long count = await CountAsync(d => d.SourceProvider == providerId, cancellationToken);
+        long count = await CountAsync(d => d.ProviderName == providerId, cancellationToken);
         return (int)count;
     }
 
@@ -105,7 +105,7 @@ public class RecipeRepository(IMongoDatabase database, IClientSessionHandle? ses
             nutritionalInfo,
             document.Tags,
             document.SourceUrl,
-            document.SourceProvider,
+            document.ProviderName,
             document.IsActive,
             document.Cuisine,
             document.Difficulty,
@@ -172,7 +172,7 @@ public class RecipeRepository(IMongoDatabase database, IClientSessionHandle? ses
                 },
             Tags = recipe.Tags.ToList(),
             SourceUrl = recipe.SourceUrl,
-            SourceProvider = recipe.SourceProvider,
+            ProviderName = recipe.ProviderName,
             IsActive = recipe.IsActive,
             Cuisine = recipe.Cuisine,
             Difficulty = recipe.Difficulty,

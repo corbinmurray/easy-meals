@@ -8,14 +8,14 @@ namespace EasyMeals.RecipeEngine.Domain.Events;
 /// </summary>
 /// <param name="RecipeId">ID of the created recipe</param>
 /// <param name="Title">Title of the recipe</param>
-/// <param name="SourceProvider">Source provider of the recipe</param>
+/// <param name="ProviderName">Source provider of the recipe</param>
 public sealed record RecipeCreatedEvent(
     Guid RecipeId,
     string Title,
-    string SourceProvider) : BaseDomainEvent
+    string ProviderName) : BaseDomainEvent
 {
     public RecipeCreatedEvent(Recipe recipe)
-        : this(recipe.Id, recipe.Title, recipe.SourceProvider)
+        : this(recipe.Id, recipe.Title, recipe.ProviderName)
     {
     }
 }

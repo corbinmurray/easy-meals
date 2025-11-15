@@ -37,7 +37,7 @@ public sealed class Fingerprint
         Url = ValidateUrl(url);
         RawContent = ValidateRawContent(rawContent);
         ContentHash = ComputeContentHash(rawContent);
-        SourceProvider = ValidateSourceProvider(sourceProvider);
+        ProviderName = ValidateProviderName(sourceProvider);
         Quality = quality;
         Status = FingerprintStatus.Success;
 
@@ -49,7 +49,7 @@ public sealed class Fingerprint
         _metadata = metadata != null ? new Dictionary<string, object>(metadata) : new Dictionary<string, object>();
         _domainEvents = [];
 
-        AddDomainEvent(new FingerprintCreatedEvent(Id, Url, SourceProvider, Quality, ContentHash));
+        AddDomainEvent(new FingerprintCreatedEvent(Id, Url, ProviderName, Quality, ContentHash));
     }
 
     /// <summary>
@@ -69,7 +69,7 @@ public sealed class Fingerprint
     {
         Id = id;
         Url = ValidateUrl(url);
-        SourceProvider = ValidateSourceProvider(sourceProvider);
+        ProviderName = ValidateProviderName(sourceProvider);
         ErrorMessage = ValidateErrorMessage(errorMessage);
 
         ContentHash = string.Empty;
@@ -84,7 +84,7 @@ public sealed class Fingerprint
         _metadata = metadata != null ? new Dictionary<string, object>(metadata) : new Dictionary<string, object>();
         _domainEvents = new List<IDomainEvent>();
 
-        AddDomainEvent(new ScrapingFailedEvent(Id, Url, SourceProvider, ErrorMessage));
+        AddDomainEvent(new ScrapingFailedEvent(Id, Url, ProviderName, ErrorMessage));
     }
 
     // Private constructor for reconstitution from persistence
@@ -121,7 +121,7 @@ public sealed class Fingerprint
             ContentHash = contentHash,
             RawContent = rawContent,
             ScrapedAt = scrapedAt,
-            SourceProvider = sourceProvider,
+            ProviderName = sourceProvider,
             Status = status,
             Quality = quality,
             ErrorMessage = errorMessage,
@@ -154,7 +154,7 @@ public sealed class Fingerprint
     public DateTime ScrapedAt { get; private set; }
 
     /// <summary>Source provider name</summary>
-    public string SourceProvider { get; private set; } = string.Empty;
+    public string ProviderName { get; private set; } = string.Empty;
 
     /// <summary>Current status of the scraping operation</summary>
     public FingerprintStatus Status { get; private set; }
@@ -261,7 +261,7 @@ public sealed class Fingerprint
                 Url,
                 previous.ContentHash,
                 ContentHash,
-                SourceProvider));
+                ProviderName));
 
         return hasChanged;
     }
@@ -335,7 +335,7 @@ public sealed class Fingerprint
         ScrapedAt = DateTime.UtcNow;
         UpdatedAt = DateTime.UtcNow;
 
-        AddDomainEvent(new FingerprintCreatedEvent(Id, Url, SourceProvider, Quality, ContentHash));
+        AddDomainEvent(new FingerprintCreatedEvent(Id, Url, ProviderName, Quality, ContentHash));
     }
 
     /// <summary>
@@ -347,7 +347,7 @@ public sealed class Fingerprint
         Status = FingerprintStatus.Failed;
         UpdatedAt = DateTime.UtcNow;
 
-        AddDomainEvent(new ScrapingFailedEvent(Id, Url, SourceProvider, errorMessage));
+        AddDomainEvent(new ScrapingFailedEvent(Id, Url, ProviderName, errorMessage));
     }
 
     /// <summary>
@@ -362,7 +362,7 @@ public sealed class Fingerprint
         ErrorMessage = $"Blocked: {reason}";
         UpdatedAt = DateTime.UtcNow;
 
-        AddDomainEvent(new ScrapingFailedEvent(Id, Url, SourceProvider, ErrorMessage));
+        AddDomainEvent(new ScrapingFailedEvent(Id, Url, ProviderName, ErrorMessage));
     }
 
     /// <summary>
@@ -453,7 +453,7 @@ public sealed class Fingerprint
         return contentHash;
     }
 
-    private static string ValidateSourceProvider(string sourceProvider)
+    private static string ValidateProviderName(string sourceProvider)
     {
         if (string.IsNullOrWhiteSpace(sourceProvider))
             throw new ArgumentException("Source provider cannot be empty", nameof(sourceProvider));

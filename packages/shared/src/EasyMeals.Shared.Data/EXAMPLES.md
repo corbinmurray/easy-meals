@@ -289,7 +289,7 @@ public class AnalyticsService
         // For now, we can group in memory for smaller datasets
         var allRecipes = await _recipeRepository.GetAllAsync();
         return allRecipes
-            .GroupBy(r => r.SourceProvider)
+            .GroupBy(r => r.ProviderName)
             .ToDictionary(g => g.Key, g => (long)g.Count());
     }
 }

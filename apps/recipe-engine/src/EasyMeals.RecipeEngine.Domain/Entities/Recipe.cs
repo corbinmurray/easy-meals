@@ -34,7 +34,7 @@ public sealed class Recipe
         Title = ValidateTitle(title);
         Description = description ?? string.Empty;
         SourceUrl = ValidateSourceUrl(sourceUrl);
-        SourceProvider = sourceProvider ?? string.Empty;
+        ProviderName = sourceProvider ?? string.Empty;
 
         _ingredients = [];
         _instructions = [];
@@ -99,7 +99,7 @@ public sealed class Recipe
         recipe.NutritionalInfo = nutritionalInfo;
         recipe._tags = tags.ToList();
         recipe.SourceUrl = sourceUrl;
-        recipe.SourceProvider = sourceProvider;
+        recipe.ProviderName = sourceProvider;
         recipe.IsActive = isActive;
         recipe.Cuisine = cuisine;
         recipe.Difficulty = difficulty;
@@ -150,7 +150,7 @@ public sealed class Recipe
     public string SourceUrl { get; private set; } = string.Empty;
 
     /// <summary>Source provider name</summary>
-    public string SourceProvider { get; private set; } = string.Empty;
+    public string ProviderName { get; private set; } = string.Empty;
 
     /// <summary>Whether recipe is active/published</summary>
     public bool IsActive { get; private set; }

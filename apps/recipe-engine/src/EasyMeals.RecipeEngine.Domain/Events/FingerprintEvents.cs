@@ -7,13 +7,13 @@ namespace EasyMeals.RecipeEngine.Domain.Events;
 /// </summary>
 /// <param name="FingerprintId">ID of the fingerprint</param>
 /// <param name="Url">URL that was scraped</param>
-/// <param name="SourceProvider">Source provider name</param>
+/// <param name="ProviderName">Source provider name</param>
 /// <param name="Quality">Quality of the scraped content</param>
 /// <param name="ContentHash">Hash of the scraped content</param>
 public sealed record FingerprintCreatedEvent(
     Guid FingerprintId,
     string Url,
-    string SourceProvider,
+    string ProviderName,
     ScrapingQuality Quality,
     string ContentHash) : BaseDomainEvent;
 
@@ -22,12 +22,12 @@ public sealed record FingerprintCreatedEvent(
 /// </summary>
 /// <param name="FingerprintId">ID of the fingerprint</param>
 /// <param name="Url">URL that failed to scrape</param>
-/// <param name="SourceProvider">Source provider name</param>
+/// <param name="ProviderName">Source provider name</param>
 /// <param name="ErrorMessage">Error message describing the failure</param>
 public sealed record ScrapingFailedEvent(
     Guid FingerprintId,
     string Url,
-    string SourceProvider,
+    string ProviderName,
     string ErrorMessage) : BaseDomainEvent;
 
 /// <summary>
@@ -37,13 +37,13 @@ public sealed record ScrapingFailedEvent(
 /// <param name="Url">URL where content changed</param>
 /// <param name="OldContentHash">Previous content hash</param>
 /// <param name="NewContentHash">New content hash</param>
-/// <param name="SourceProvider">Source provider name</param>
+/// <param name="ProviderName">Source provider name</param>
 public sealed record ContentChangedEvent(
     Guid FingerprintId,
     string Url,
     string OldContentHash,
     string NewContentHash,
-    string SourceProvider) : BaseDomainEvent;
+    string ProviderName) : BaseDomainEvent;
 
 /// <summary>
 ///     Event raised when fingerprint is marked as processed

@@ -47,7 +47,7 @@ public class FingerprintDocument : BaseDocument
     /// </summary>
     [BsonElement("sourceProvider")]
     [BsonRequired]
-    public string SourceProvider { get; set; } = string.Empty;
+    public string ProviderName { get; set; } = string.Empty;
 
     /// <summary>
     ///     Current status of the scraping operation

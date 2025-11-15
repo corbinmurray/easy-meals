@@ -317,7 +317,7 @@ public class RecipeExtractorService : IRecipeExtractor
                 title,
                 description,
                 fingerprint.Url,
-                fingerprint.SourceProvider);
+                fingerprint.ProviderName);
 
             // Extract optional fields
             string? imageUrl = GetJsonString(recipeElement, "image");
@@ -429,7 +429,7 @@ public class RecipeExtractorService : IRecipeExtractor
                 title,
                 description,
                 fingerprint.Url,
-                fingerprint.SourceProvider);
+                fingerprint.ProviderName);
 
             // Extract image
             string? imageUrl = GetMetaContent(doc, "og:image") ?? GetMetaContent(doc, "twitter:image");
