@@ -86,9 +86,7 @@ public class RecipeProcessingWorkflowTests : IAsyncLifetime
         var mockRateLimiter = new Mock<IRateLimiter>();
         mockRateLimiter.Setup(r => r.TryAcquireAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
-
-        var mockBatchRepo = new Mock<IRecipeBatchRepository>();
-
+        
         var mockFactory = new Mock<IDiscoveryServiceFactory>();
         mockFactory.Setup(f => f.CreateDiscoveryService(mockConfig.DiscoveryStrategy))
             .Returns(mockDiscoveryService.Object);
@@ -101,7 +99,6 @@ public class RecipeProcessingWorkflowTests : IAsyncLifetime
             mockFingerprinter.Object,
             Mock.Of<IIngredientNormalizer>(),
             mockRateLimiter.Object,
-            mockBatchRepo.Object,
             Mock.Of<IEventBus>(),
             Mock.Of<DomainInterfaces.IStealthyHttpClient>(),
             Mock.Of<DomainInterfaces.IRecipeExtractor>(),
@@ -193,7 +190,6 @@ public class RecipeProcessingWorkflowTests : IAsyncLifetime
             mockFingerprinter.Object,
             Mock.Of<IIngredientNormalizer>(),
             mockRateLimiter.Object,
-            Mock.Of<IRecipeBatchRepository>(),
             Mock.Of<IEventBus>(),
             Mock.Of<DomainInterfaces.IStealthyHttpClient>(),
             Mock.Of<DomainInterfaces.IRecipeExtractor>(),
@@ -231,7 +227,6 @@ public class RecipeProcessingWorkflowTests : IAsyncLifetime
             Mock.Of<IRecipeFingerprinter>(),
             Mock.Of<IIngredientNormalizer>(),
             Mock.Of<IRateLimiter>(),
-            Mock.Of<IRecipeBatchRepository>(),
             Mock.Of<IEventBus>(),
             Mock.Of<DomainInterfaces.IStealthyHttpClient>(),
             Mock.Of<DomainInterfaces.IRecipeExtractor>(),
@@ -298,7 +293,6 @@ public class RecipeProcessingWorkflowTests : IAsyncLifetime
             mockFingerprinter.Object,
             Mock.Of<IIngredientNormalizer>(),
             mockRateLimiter.Object,
-            Mock.Of<IRecipeBatchRepository>(),
             Mock.Of<IEventBus>(),
             Mock.Of<DomainInterfaces.IStealthyHttpClient>(),
             Mock.Of<DomainInterfaces.IRecipeExtractor>(),

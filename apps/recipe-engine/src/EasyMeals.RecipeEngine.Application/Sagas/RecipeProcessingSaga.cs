@@ -36,7 +36,6 @@ public class RecipeProcessingSaga(
 	IRecipeFingerprinter recipeFingerprinter,
 	IIngredientNormalizer ingredientNormalizer,
 	IRateLimiter rateLimiter,
-	IRecipeBatchRepository batchRepository,
 	IEventBus eventBus,
 	DomainInterfaces.IStealthyHttpClient stealthyHttpClient,
 	DomainInterfaces.IRecipeExtractor recipeExtractor,
@@ -688,9 +687,6 @@ public class RecipeProcessingSaga(
 
 			// Complete the batch
 			batch.CompleteBatch();
-
-			// Persist to MongoDB
-			await batchRepository.SaveAsync(batch, cancellationToken);
 
 			logger.LogInformation(
 				"Persisted RecipeBatch {BatchId} for provider {ProviderId}. " +

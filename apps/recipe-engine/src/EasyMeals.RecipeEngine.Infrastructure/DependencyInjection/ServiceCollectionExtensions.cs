@@ -8,7 +8,6 @@ using EasyMeals.RecipeEngine.Infrastructure.Documents.Fingerprint;
 using EasyMeals.RecipeEngine.Infrastructure.Documents.Recipe;
 using EasyMeals.RecipeEngine.Infrastructure.Documents.SagaState;
 using EasyMeals.RecipeEngine.Infrastructure.Extraction;
-using EasyMeals.RecipeEngine.Infrastructure.Fingerprinting;
 using EasyMeals.RecipeEngine.Infrastructure.HealthChecks;
 using EasyMeals.RecipeEngine.Infrastructure.Normalization;
 using EasyMeals.RecipeEngine.Infrastructure.RateLimiting;
@@ -65,17 +64,12 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IMongoRepository<RecipeDocument>, MongoRepository<RecipeDocument>>();
 
         // Register domain repositories
-        services.AddScoped<IRecipeBatchRepository, RecipeBatchRepository>();
         services.AddScoped<IIngredientMappingRepository, IngredientMappingRepository>();
-        services.AddScoped<IRecipeFingerprintRepository, RecipeFingerprintRepository>();
         services.AddScoped<IRecipeRepository, RecipeRepository>();
         
         // Register application services
         services.AddScoped<IProviderConfigurationLoader, ProviderConfigurationLoader>();
         services.AddScoped<IIngredientNormalizer, IngredientNormalizationService>();
-
-        // T125: Register fingerprinting service (Phase 9)
-        services.AddScoped<IRecipeFingerprinter, RecipeFingerprintService>();
 
         // Register recipe extraction service
         services.AddScoped<IRecipeExtractor, RecipeExtractorService>();

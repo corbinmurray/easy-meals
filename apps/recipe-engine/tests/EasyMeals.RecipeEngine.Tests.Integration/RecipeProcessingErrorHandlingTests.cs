@@ -42,13 +42,7 @@ public class RecipeProcessingErrorHandlingTests : IAsyncLifetime
         _mongoDatabase = mongoClient.GetDatabase("recipe-engine-error-test");
         _sagaRepository = new SagaStateRepository(_mongoDatabase);
     }
-
-    private static Mock<IRecipeBatchRepository> CreateMockBatchRepository()
-    {
-        var mock = new Mock<IRecipeBatchRepository>();
-        return mock;
-    }
-
+    
     private static Mock<IProviderConfigurationLoader> CreateMockConfigLoader()
     {
         var mock = new Mock<IProviderConfigurationLoader>();
@@ -138,7 +132,6 @@ public class RecipeProcessingErrorHandlingTests : IAsyncLifetime
 
         Mock<IIngredientNormalizer> mockNormalizer = CreateMockNormalizer();
         Mock<IRateLimiter> mockRateLimiter = CreateMockRateLimiter();
-        Mock<IRecipeBatchRepository> mockBatchRepository = CreateMockBatchRepository();
         Mock<IEventBus> mockEventBus = CreateMockEventBus();
 
         var mockFactory = new Mock<IDiscoveryServiceFactory>();
@@ -153,7 +146,6 @@ public class RecipeProcessingErrorHandlingTests : IAsyncLifetime
             mockFingerprinter.Object,
             mockNormalizer.Object,
             mockRateLimiter.Object,
-            mockBatchRepository.Object,
             mockEventBus.Object,
             Mock.Of<DomainInterfaces.IStealthyHttpClient>(),
             Mock.Of<DomainInterfaces.IRecipeExtractor>(),
@@ -191,7 +183,6 @@ public class RecipeProcessingErrorHandlingTests : IAsyncLifetime
         Mock<IRecipeFingerprinter> mockFingerprinter = CreateMockFingerprinter();
         Mock<IIngredientNormalizer> mockNormalizer = CreateMockNormalizer();
         Mock<IRateLimiter> mockRateLimiter = CreateMockRateLimiter();
-        Mock<IRecipeBatchRepository> mockBatchRepository = CreateMockBatchRepository();
         Mock<IEventBus> mockEventBus = CreateMockEventBus();
 
         var mockFactory = new Mock<IDiscoveryServiceFactory>();
@@ -206,7 +197,6 @@ public class RecipeProcessingErrorHandlingTests : IAsyncLifetime
             mockFingerprinter.Object,
             mockNormalizer.Object,
             mockRateLimiter.Object,
-            mockBatchRepository.Object,
             mockEventBus.Object,
             Mock.Of<DomainInterfaces.IStealthyHttpClient>(),
             Mock.Of<DomainInterfaces.IRecipeExtractor>(),
@@ -263,7 +253,6 @@ public class RecipeProcessingErrorHandlingTests : IAsyncLifetime
         Mock<IRecipeFingerprinter> mockFingerprinter = CreateMockFingerprinter();
         Mock<IIngredientNormalizer> mockNormalizer = CreateMockNormalizer();
         Mock<IRateLimiter> mockRateLimiter = CreateMockRateLimiter();
-        Mock<IRecipeBatchRepository> mockBatchRepository = CreateMockBatchRepository();
         Mock<IEventBus> mockEventBus = CreateMockEventBus();
 
         var saga = new RecipeProcessingSaga(
@@ -274,7 +263,6 @@ public class RecipeProcessingErrorHandlingTests : IAsyncLifetime
             mockFingerprinter.Object,
             mockNormalizer.Object,
             mockRateLimiter.Object,
-            mockBatchRepository.Object,
             mockEventBus.Object,
             Mock.Of<DomainInterfaces.IStealthyHttpClient>(),
             Mock.Of<DomainInterfaces.IRecipeExtractor>(),
@@ -310,7 +298,6 @@ public class RecipeProcessingErrorHandlingTests : IAsyncLifetime
         Mock<IRecipeFingerprinter> mockFingerprinter = CreateMockFingerprinter();
         Mock<IIngredientNormalizer> mockNormalizer = CreateMockNormalizer();
         Mock<IRateLimiter> mockRateLimiter = CreateMockRateLimiter();
-        Mock<IRecipeBatchRepository> mockBatchRepository = CreateMockBatchRepository();
         Mock<IEventBus> mockEventBus = CreateMockEventBus();
 
         var mockFactory = new Mock<IDiscoveryServiceFactory>();
@@ -325,7 +312,6 @@ public class RecipeProcessingErrorHandlingTests : IAsyncLifetime
             mockFingerprinter.Object,
             mockNormalizer.Object,
             mockRateLimiter.Object,
-            mockBatchRepository.Object,
             mockEventBus.Object,
             Mock.Of<DomainInterfaces.IStealthyHttpClient>(),
             Mock.Of<DomainInterfaces.IRecipeExtractor>(),

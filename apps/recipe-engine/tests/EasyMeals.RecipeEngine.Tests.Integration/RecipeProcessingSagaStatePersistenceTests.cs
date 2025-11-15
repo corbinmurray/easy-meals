@@ -42,9 +42,7 @@ public class RecipeProcessingSagaStatePersistenceTests : IAsyncLifetime
         _mongoDatabase = mongoClient.GetDatabase("recipe-engine-persistence-test");
         _sagaRepository = new SagaStateRepository(_mongoDatabase);
     }
-
-    private static Mock<IRecipeBatchRepository> CreateMockBatchRepository() => new();
-
+    
     private static Mock<IProviderConfigurationLoader> CreateMockConfigLoader()
     {
         var mock = new Mock<IProviderConfigurationLoader>();
@@ -124,7 +122,6 @@ public class RecipeProcessingSagaStatePersistenceTests : IAsyncLifetime
         Mock<IRecipeFingerprinter> mockFingerprinter = CreateMockFingerprinter();
         Mock<IIngredientNormalizer> mockNormalizer = CreateMockNormalizer();
         Mock<IRateLimiter> mockRateLimiter = CreateMockRateLimiter();
-        Mock<IRecipeBatchRepository> mockBatchRepository = CreateMockBatchRepository();
         Mock<IEventBus> mockEventBus = CreateMockEventBus();
 
         var mockFactory = new Mock<IDiscoveryServiceFactory>();
@@ -139,7 +136,6 @@ public class RecipeProcessingSagaStatePersistenceTests : IAsyncLifetime
             mockFingerprinter.Object,
             mockNormalizer.Object,
             mockRateLimiter.Object,
-            mockBatchRepository.Object,
             mockEventBus.Object,
             Mock.Of<DomainInterfaces.IStealthyHttpClient>(),
             Mock.Of<DomainInterfaces.IRecipeExtractor>(),
@@ -201,7 +197,6 @@ public class RecipeProcessingSagaStatePersistenceTests : IAsyncLifetime
         Mock<IRecipeFingerprinter> mockFingerprinter = CreateMockFingerprinter();
         Mock<IIngredientNormalizer> mockNormalizer = CreateMockNormalizer();
         Mock<IRateLimiter> mockRateLimiter = CreateMockRateLimiter();
-        Mock<IRecipeBatchRepository> mockBatchRepository = CreateMockBatchRepository();
         Mock<IEventBus> mockEventBus = CreateMockEventBus();
 
         var mockFactory = new Mock<IDiscoveryServiceFactory>();
@@ -216,7 +211,6 @@ public class RecipeProcessingSagaStatePersistenceTests : IAsyncLifetime
             mockFingerprinter.Object,
             mockNormalizer.Object,
             mockRateLimiter.Object,
-            mockBatchRepository.Object,
             mockEventBus.Object,
             Mock.Of<DomainInterfaces.IStealthyHttpClient>(),
             Mock.Of<DomainInterfaces.IRecipeExtractor>(),
@@ -255,7 +249,6 @@ public class RecipeProcessingSagaStatePersistenceTests : IAsyncLifetime
         Mock<IRecipeFingerprinter> mockFingerprinter = CreateMockFingerprinter();
         Mock<IIngredientNormalizer> mockNormalizer = CreateMockNormalizer();
         Mock<IRateLimiter> mockRateLimiter = CreateMockRateLimiter();
-        Mock<IRecipeBatchRepository> mockBatchRepository = CreateMockBatchRepository();
         Mock<IEventBus> mockEventBus = CreateMockEventBus();
 
         var mockFactory = new Mock<IDiscoveryServiceFactory>();
@@ -270,7 +263,6 @@ public class RecipeProcessingSagaStatePersistenceTests : IAsyncLifetime
             mockFingerprinter.Object,
             mockNormalizer.Object,
             mockRateLimiter.Object,
-            mockBatchRepository.Object,
             mockEventBus.Object,
             Mock.Of<DomainInterfaces.IStealthyHttpClient>(),
             Mock.Of<DomainInterfaces.IRecipeExtractor>(),
@@ -329,7 +321,6 @@ public class RecipeProcessingSagaStatePersistenceTests : IAsyncLifetime
 
         Mock<IIngredientNormalizer> mockNormalizer = CreateMockNormalizer();
         Mock<IRateLimiter> mockRateLimiter = CreateMockRateLimiter();
-        Mock<IRecipeBatchRepository> mockBatchRepository = CreateMockBatchRepository();
         Mock<IEventBus> mockEventBus = CreateMockEventBus();
 
         var saga = new RecipeProcessingSaga(
@@ -340,7 +331,6 @@ public class RecipeProcessingSagaStatePersistenceTests : IAsyncLifetime
             mockFingerprinter.Object,
             mockNormalizer.Object,
             mockRateLimiter.Object,
-            mockBatchRepository.Object,
             mockEventBus.Object,
             Mock.Of<DomainInterfaces.IStealthyHttpClient>(),
             Mock.Of<DomainInterfaces.IRecipeExtractor>(),
@@ -382,7 +372,6 @@ public class RecipeProcessingSagaStatePersistenceTests : IAsyncLifetime
         Mock<IRecipeFingerprinter> mockFingerprinter = CreateMockFingerprinter();
         Mock<IIngredientNormalizer> mockNormalizer = CreateMockNormalizer();
         Mock<IRateLimiter> mockRateLimiter = CreateMockRateLimiter();
-        Mock<IRecipeBatchRepository> mockBatchRepository = CreateMockBatchRepository();
         Mock<IEventBus> mockEventBus = CreateMockEventBus();
 
         var mockFactory = new Mock<IDiscoveryServiceFactory>();
@@ -397,7 +386,6 @@ public class RecipeProcessingSagaStatePersistenceTests : IAsyncLifetime
             mockFingerprinter.Object,
             mockNormalizer.Object,
             mockRateLimiter.Object,
-            mockBatchRepository.Object,
             mockEventBus.Object,
             Mock.Of<DomainInterfaces.IStealthyHttpClient>(),
             Mock.Of<DomainInterfaces.IRecipeExtractor>(),
@@ -424,7 +412,5 @@ public class RecipeProcessingSagaStatePersistenceTests : IAsyncLifetime
         sagaState.StateData.ShouldContainKey("CurrentIndex");
         object currentIndex = sagaState.StateData["CurrentIndex"];
         currentIndex.ShouldNotBeNull();
-
-        // In Phase 5, CurrentIndex should equal ProcessedUrls.Count after completion
     }
 }

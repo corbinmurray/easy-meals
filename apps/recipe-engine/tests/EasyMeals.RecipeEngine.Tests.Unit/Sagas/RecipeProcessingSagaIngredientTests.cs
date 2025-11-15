@@ -37,7 +37,6 @@ public class RecipeProcessingSagaIngredientTests
             Mock.Of<IRecipeFingerprinter>(),
             _mockIngredientNormalizer.Object,
             Mock.Of<IRateLimiter>(),
-            Mock.Of<IRecipeBatchRepository>(),
             _mockEventBus.Object,
             Mock.Of<DomainInterfaces.IStealthyHttpClient>(),
             Mock.Of<DomainInterfaces.IRecipeExtractor>(),
