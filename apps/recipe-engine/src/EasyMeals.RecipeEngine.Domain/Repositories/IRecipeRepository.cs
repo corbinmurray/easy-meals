@@ -24,16 +24,4 @@ public interface IRecipeRepository
     ///     Save or update a recipe.
     /// </summary>
     Task SaveAsync(Recipe recipe, CancellationToken cancellationToken = default);
-
-    /// <summary>
-    ///     Save multiple recipes in batch (for performance).
-    /// </summary>
-    Task SaveBatchAsync(
-        IEnumerable<Recipe> recipes,
-        CancellationToken cancellationToken = default);
-
-    /// <summary>
-    ///     Count recipes for a provider (useful for stats).
-    /// </summary>
-    Task<int> CountByProviderAsync(string providerId, CancellationToken cancellationToken = default);
 }

@@ -23,7 +23,7 @@ public class RecipeProcessingSagaStatePersistenceTests : IAsyncLifetime
 {
     private MongoDbContainer? _mongoContainer;
     private IMongoDatabase? _mongoDatabase;
-    private DomainInterfaces.ISagaStateRepository? _sagaRepository;
+    private ISagaStateRepository? _sagaRepository;
 
     public async Task DisposeAsync()
     {
@@ -144,7 +144,7 @@ public class RecipeProcessingSagaStatePersistenceTests : IAsyncLifetime
             Mock.Of<DomainInterfaces.IStealthyHttpClient>(),
             Mock.Of<DomainInterfaces.IRecipeExtractor>(),
             Mock.Of<IRecipeRepository>(),
-            Mock.Of<DomainInterfaces.IFingerprintRepository>());
+            Mock.Of<IFingerprintRepository>());
 
         Guid batchId = await saga.StartProcessingAsync(
             "test-provider",
@@ -221,7 +221,7 @@ public class RecipeProcessingSagaStatePersistenceTests : IAsyncLifetime
             Mock.Of<DomainInterfaces.IStealthyHttpClient>(),
             Mock.Of<DomainInterfaces.IRecipeExtractor>(),
             Mock.Of<IRecipeRepository>(),
-            Mock.Of<DomainInterfaces.IFingerprintRepository>());
+            Mock.Of<IFingerprintRepository>());
 
         // Act
         Guid batchId = await saga.StartProcessingAsync(
@@ -275,7 +275,7 @@ public class RecipeProcessingSagaStatePersistenceTests : IAsyncLifetime
             Mock.Of<DomainInterfaces.IStealthyHttpClient>(),
             Mock.Of<DomainInterfaces.IRecipeExtractor>(),
             Mock.Of<IRecipeRepository>(),
-            Mock.Of<DomainInterfaces.IFingerprintRepository>());
+            Mock.Of<IFingerprintRepository>());
 
         // Act
         Guid batchId = await saga.StartProcessingAsync(
@@ -345,7 +345,7 @@ public class RecipeProcessingSagaStatePersistenceTests : IAsyncLifetime
             Mock.Of<DomainInterfaces.IStealthyHttpClient>(),
             Mock.Of<DomainInterfaces.IRecipeExtractor>(),
             Mock.Of<IRecipeRepository>(),
-            Mock.Of<DomainInterfaces.IFingerprintRepository>());
+            Mock.Of<IFingerprintRepository>());
 
         // Act
         Guid batchId = await saga.StartProcessingAsync(
@@ -402,7 +402,7 @@ public class RecipeProcessingSagaStatePersistenceTests : IAsyncLifetime
             Mock.Of<DomainInterfaces.IStealthyHttpClient>(),
             Mock.Of<DomainInterfaces.IRecipeExtractor>(),
             Mock.Of<IRecipeRepository>(),
-            Mock.Of<DomainInterfaces.IFingerprintRepository>());
+            Mock.Of<IFingerprintRepository>());
 
         // Act
         Guid batchId = await saga.StartProcessingAsync(

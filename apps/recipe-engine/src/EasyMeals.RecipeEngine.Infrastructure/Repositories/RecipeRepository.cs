@@ -1,5 +1,6 @@
 ﻿using EasyMeals.RecipeEngine.Domain.Entities;
 using EasyMeals.RecipeEngine.Domain.Interfaces;
+using EasyMeals.RecipeEngine.Domain.Repositories;
 using EasyMeals.RecipeEngine.Domain.ValueObjects.Recipe;
 using EasyMeals.Shared.Data.Documents.Recipe;
 using EasyMeals.Shared.Data.Repositories;

@@ -2,7 +2,6 @@ using System.Net;
 using EasyMeals.RecipeEngine.Application.Interfaces;
 using EasyMeals.RecipeEngine.Domain.Interfaces;
 using EasyMeals.RecipeEngine.Domain.Repositories;
-using EasyMeals.RecipeEngine.Domain.Services;
 using EasyMeals.RecipeEngine.Infrastructure.Discovery;
 using EasyMeals.RecipeEngine.Infrastructure.Documents;
 using EasyMeals.RecipeEngine.Infrastructure.Documents.Fingerprint;
@@ -23,7 +22,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Playwright;
 using Polly;
 using Polly.Extensions.Http;
-using IRecipeRepository = EasyMeals.RecipeEngine.Domain.Interfaces.IRecipeRepository;
 
 namespace EasyMeals.RecipeEngine.Infrastructure.DependencyInjection;
 

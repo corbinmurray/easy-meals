@@ -30,7 +30,7 @@ namespace EasyMeals.RecipeEngine.Application.Sagas;
 /// </summary>
 public class RecipeProcessingSaga(
 	ILogger<RecipeProcessingSaga> logger,
-	DomainInterfaces.ISagaStateRepository sagaStateRepository,
+	ISagaStateRepository sagaStateRepository,
 	IProviderConfigurationLoader configurationLoader,
 	IDiscoveryServiceFactory discoveryServiceFactory,
 	IRecipeFingerprinter recipeFingerprinter,
@@ -41,7 +41,7 @@ public class RecipeProcessingSaga(
 	DomainInterfaces.IStealthyHttpClient stealthyHttpClient,
 	DomainInterfaces.IRecipeExtractor recipeExtractor,
 	IRecipeRepository recipeRepository,
-	DomainInterfaces.IFingerprintRepository fingerprintRepository) : IRecipeProcessingSaga
+	IFingerprintRepository fingerprintRepository) : IRecipeProcessingSaga
 {
 	private const string PhaseDiscovering = "Discovering";
 	private const string PhaseFingerprinting = "Fingerprinting";

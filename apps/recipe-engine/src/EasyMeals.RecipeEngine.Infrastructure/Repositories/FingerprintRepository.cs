@@ -1,5 +1,6 @@
 using EasyMeals.RecipeEngine.Domain.Entities;
 using EasyMeals.RecipeEngine.Domain.Interfaces;
+using EasyMeals.RecipeEngine.Domain.Repositories;
 using EasyMeals.RecipeEngine.Infrastructure.Documents.Fingerprint;
 using EasyMeals.Shared.Data.Repositories;
 using MongoDB.Driver;

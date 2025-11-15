@@ -131,7 +131,7 @@ public class RecipeProcessingSagaContractTests
     public async Task StartProcessingAsync_CreatesState_WithRequiredProperties()
     {
         // Arrange
-        var mockSagaRepo = new Mock<DomainInterfaces.ISagaStateRepository>();
+        var mockSagaRepo = new Mock<ISagaStateRepository>();
         SagaState? capturedState = null;
 
         mockSagaRepo.Setup(r => r.AddAsync(It.IsAny<SagaState>(), It.IsAny<CancellationToken>()))
@@ -160,7 +160,7 @@ public class RecipeProcessingSagaContractTests
             Mock.Of<DomainInterfaces.IStealthyHttpClient>(),
             Mock.Of<DomainInterfaces.IRecipeExtractor>(),
             Mock.Of<IRecipeRepository>(),
-            Mock.Of<DomainInterfaces.IFingerprintRepository>()
+            Mock.Of<IFingerprintRepository>()
         );
 
         // Act
@@ -185,7 +185,7 @@ public class RecipeProcessingSagaContractTests
     public async Task StartProcessingAsync_InitialState_SagaCreated()
     {
         // Arrange
-        var mockSagaRepo = new Mock<DomainInterfaces.ISagaStateRepository>();
+        var mockSagaRepo = new Mock<ISagaStateRepository>();
         SagaState? addedState = null;
 
         mockSagaRepo.Setup(r => r.AddAsync(It.IsAny<SagaState>(), It.IsAny<CancellationToken>()))
@@ -216,7 +216,7 @@ public class RecipeProcessingSagaContractTests
             Mock.Of<DomainInterfaces.IStealthyHttpClient>(),
             Mock.Of<DomainInterfaces.IRecipeExtractor>(),
             Mock.Of<IRecipeRepository>(),
-            Mock.Of<DomainInterfaces.IFingerprintRepository>()
+            Mock.Of<IFingerprintRepository>()
         );
 
         // Act & Assert - Expect exception due to null config
@@ -237,7 +237,7 @@ public class RecipeProcessingSagaContractTests
     public async Task StartProcessingAsync_WhenCalled_TransitionsToDiscovering()
     {
         // Arrange
-        var mockSagaRepo = new Mock<DomainInterfaces.ISagaStateRepository>();
+        var mockSagaRepo = new Mock<ISagaStateRepository>();
         SagaState? capturedState = null;
 
         mockSagaRepo.Setup(r => r.AddAsync(It.IsAny<SagaState>(), It.IsAny<CancellationToken>()))
@@ -266,7 +266,7 @@ public class RecipeProcessingSagaContractTests
             Mock.Of<DomainInterfaces.IStealthyHttpClient>(),
             Mock.Of<DomainInterfaces.IRecipeExtractor>(),
             Mock.Of<IRecipeRepository>(),
-            Mock.Of<DomainInterfaces.IFingerprintRepository>()
+            Mock.Of<IFingerprintRepository>()
         );
 
         // Act & Assert - Expect exception when config is null

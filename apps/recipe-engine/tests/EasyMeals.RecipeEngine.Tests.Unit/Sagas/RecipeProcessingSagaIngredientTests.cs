@@ -19,13 +19,13 @@ public class RecipeProcessingSagaIngredientTests
     private readonly Mock<IEventBus> _mockEventBus;
     private readonly Mock<IIngredientNormalizer> _mockIngredientNormalizer;
     private readonly Mock<ILogger<RecipeProcessingSaga>> _mockLogger;
-    private readonly Mock<DomainInterfaces.ISagaStateRepository> _mockSagaStateRepository;
+    private readonly Mock<ISagaStateRepository> _mockSagaStateRepository;
     private readonly RecipeProcessingSaga _sut;
 
     public RecipeProcessingSagaIngredientTests()
     {
         _mockLogger = new Mock<ILogger<RecipeProcessingSaga>>();
-        _mockSagaStateRepository = new Mock<DomainInterfaces.ISagaStateRepository>();
+        _mockSagaStateRepository = new Mock<ISagaStateRepository>();
         _mockIngredientNormalizer = new Mock<IIngredientNormalizer>();
         _mockEventBus = new Mock<IEventBus>();
 
@@ -42,7 +42,7 @@ public class RecipeProcessingSagaIngredientTests
             Mock.Of<DomainInterfaces.IStealthyHttpClient>(),
             Mock.Of<DomainInterfaces.IRecipeExtractor>(),
             Mock.Of<IRecipeRepository>(),
-            Mock.Of<DomainInterfaces.IFingerprintRepository>());
+            Mock.Of<IFingerprintRepository>());
     }
 
     [Fact(DisplayName = "ProcessIngredientsAsync with all mapped ingredients creates IngredientReferences with canonical forms")]

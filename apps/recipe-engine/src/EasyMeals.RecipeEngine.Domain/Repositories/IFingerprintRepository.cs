@@ -1,6 +1,6 @@
 using EasyMeals.RecipeEngine.Domain.Entities;
 
-namespace EasyMeals.RecipeEngine.Domain.Interfaces;
+namespace EasyMeals.RecipeEngine.Domain.Repositories;
 
 /// <summary>
 ///     Repository interface for managing Fingerprint entities

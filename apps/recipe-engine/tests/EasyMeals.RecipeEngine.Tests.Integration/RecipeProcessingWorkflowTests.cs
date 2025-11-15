@@ -22,7 +22,7 @@ public class RecipeProcessingWorkflowTests : IAsyncLifetime
 {
     private MongoDbContainer? _mongoContainer;
     private IMongoDatabase? _mongoDatabase;
-    private DomainInterfaces.ISagaStateRepository? _sagaRepository;
+    private ISagaStateRepository? _sagaRepository;
 
     public async Task DisposeAsync()
     {
@@ -106,7 +106,7 @@ public class RecipeProcessingWorkflowTests : IAsyncLifetime
             Mock.Of<DomainInterfaces.IStealthyHttpClient>(),
             Mock.Of<DomainInterfaces.IRecipeExtractor>(),
             Mock.Of<IRecipeRepository>(),
-            Mock.Of<DomainInterfaces.IFingerprintRepository>()
+            Mock.Of<IFingerprintRepository>()
         );
 
         // Act
@@ -198,7 +198,7 @@ public class RecipeProcessingWorkflowTests : IAsyncLifetime
             Mock.Of<DomainInterfaces.IStealthyHttpClient>(),
             Mock.Of<DomainInterfaces.IRecipeExtractor>(),
             Mock.Of<IRecipeRepository>(),
-            Mock.Of<DomainInterfaces.IFingerprintRepository>()
+            Mock.Of<IFingerprintRepository>()
         );
 
         // Act
@@ -236,7 +236,7 @@ public class RecipeProcessingWorkflowTests : IAsyncLifetime
             Mock.Of<DomainInterfaces.IStealthyHttpClient>(),
             Mock.Of<DomainInterfaces.IRecipeExtractor>(),
             Mock.Of<IRecipeRepository>(),
-            Mock.Of<DomainInterfaces.IFingerprintRepository>()
+            Mock.Of<IFingerprintRepository>()
         );
 
         // Act & Assert
@@ -303,7 +303,7 @@ public class RecipeProcessingWorkflowTests : IAsyncLifetime
             Mock.Of<DomainInterfaces.IStealthyHttpClient>(),
             Mock.Of<DomainInterfaces.IRecipeExtractor>(),
             Mock.Of<IRecipeRepository>(),
-            Mock.Of<DomainInterfaces.IFingerprintRepository>()
+            Mock.Of<IFingerprintRepository>()
         );
 
         // Act

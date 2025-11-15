@@ -23,7 +23,7 @@ public class RecipeProcessingErrorHandlingTests : IAsyncLifetime
 {
     private MongoDbContainer? _mongoContainer;
     private IMongoDatabase? _mongoDatabase;
-    private DomainInterfaces.ISagaStateRepository? _sagaRepository;
+    private ISagaStateRepository? _sagaRepository;
 
     public async Task DisposeAsync()
     {
@@ -158,7 +158,7 @@ public class RecipeProcessingErrorHandlingTests : IAsyncLifetime
             Mock.Of<DomainInterfaces.IStealthyHttpClient>(),
             Mock.Of<DomainInterfaces.IRecipeExtractor>(),
             Mock.Of<IRecipeRepository>(),
-            Mock.Of<DomainInterfaces.IFingerprintRepository>());
+            Mock.Of<IFingerprintRepository>());
 
         // Act & Assert
         // Currently will fail because error handling is not implemented
@@ -211,7 +211,7 @@ public class RecipeProcessingErrorHandlingTests : IAsyncLifetime
             Mock.Of<DomainInterfaces.IStealthyHttpClient>(),
             Mock.Of<DomainInterfaces.IRecipeExtractor>(),
             Mock.Of<IRecipeRepository>(),
-            Mock.Of<DomainInterfaces.IFingerprintRepository>());
+            Mock.Of<IFingerprintRepository>());
 
         // Act
         Guid batchId = await saga.StartProcessingAsync(
@@ -279,7 +279,7 @@ public class RecipeProcessingErrorHandlingTests : IAsyncLifetime
             Mock.Of<DomainInterfaces.IStealthyHttpClient>(),
             Mock.Of<DomainInterfaces.IRecipeExtractor>(),
             Mock.Of<IRecipeRepository>(),
-            Mock.Of<DomainInterfaces.IFingerprintRepository>());
+            Mock.Of<IFingerprintRepository>());
 
         // Act
         Guid batchId = await saga.StartProcessingAsync("test-provider", 10, TimeSpan.FromMinutes(10), CancellationToken.None);
@@ -330,7 +330,7 @@ public class RecipeProcessingErrorHandlingTests : IAsyncLifetime
             Mock.Of<DomainInterfaces.IStealthyHttpClient>(),
             Mock.Of<DomainInterfaces.IRecipeExtractor>(),
             Mock.Of<IRecipeRepository>(),
-            Mock.Of<DomainInterfaces.IFingerprintRepository>());
+            Mock.Of<IFingerprintRepository>());
 
         // Act
         Guid batchId = await saga.StartProcessingAsync(
