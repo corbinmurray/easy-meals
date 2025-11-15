@@ -5,10 +5,6 @@ using EasyMeals.RecipeEngine.Domain.ValueObjects.Fingerprint;
 
 namespace EasyMeals.RecipeEngine.Domain.Entities;
 
-// TODO: Align all domain entities with the reconstitue pattern used in SagaState entity.
-// This is important so we're not firing off events, validating, etc. during rehydration from the database.
-// ✅ COMPLETED: Added Reconstitute method following SagaState pattern
-
 /// <summary>
 ///     Fingerprint aggregate root that tracks web scraping operations and content changes
 ///     Follows DDD principles with rich domain behavior and proper encapsulation
@@ -94,8 +90,8 @@ public sealed class Fingerprint
     // Private constructor for reconstitution from persistence
     private Fingerprint()
     {
-        _metadata = new Dictionary<string, object>();
-        _domainEvents = new List<IDomainEvent>();
+        _metadata = [];
+        _domainEvents = [];
     }
 
     /// <summary>
@@ -118,23 +114,24 @@ public sealed class Fingerprint
         DateTime createdAt,
         DateTime updatedAt)
     {
-        var fingerprint = new Fingerprint();
-
-        fingerprint.Id = id;
-        fingerprint.Url = url;
-        fingerprint.ContentHash = contentHash;
-        fingerprint.RawContent = rawContent;
-        fingerprint.ScrapedAt = scrapedAt;
-        fingerprint.SourceProvider = sourceProvider;
-        fingerprint.Status = status;
-        fingerprint.Quality = quality;
-        fingerprint.ErrorMessage = errorMessage;
-        fingerprint._metadata = metadata ?? new Dictionary<string, object>();
-        fingerprint.RetryCount = retryCount;
-        fingerprint.ProcessedAt = processedAt;
-        fingerprint.RecipeId = recipeId;
-        fingerprint.CreatedAt = createdAt;
-        fingerprint.UpdatedAt = updatedAt;
+        var fingerprint = new Fingerprint
+        {
+            Id = id,
+            Url = url,
+            ContentHash = contentHash,
+            RawContent = rawContent,
+            ScrapedAt = scrapedAt,
+            SourceProvider = sourceProvider,
+            Status = status,
+            Quality = quality,
+            ErrorMessage = errorMessage,
+            _metadata = metadata ?? [],
+            RetryCount = retryCount,
+            ProcessedAt = processedAt,
+            RecipeId = recipeId,
+            CreatedAt = createdAt,
+            UpdatedAt = updatedAt
+        };
 
         return fingerprint;
     }
