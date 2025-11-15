@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+using System.Text.Unicode;
 using EasyMeals.RecipeEngine.Domain.Entities;
 using EasyMeals.RecipeEngine.Domain.Interfaces;
 using EasyMeals.RecipeEngine.Domain.ValueObjects.Fingerprint;
@@ -123,11 +125,16 @@ public class RecipeExtractorServiceTests
     public async Task ExtractRecipeAsync_EmptyRawContent_ReturnsNull()
     {
         // Arrange
-        var fingerprint = Fingerprint.Reconstitute(
+        const string url = "https://example.com/recipe";
+        byte[] fingerprintsHashBytes = SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(url));
+        string fingerprintHash = Convert.ToHexString(fingerprintsHashBytes).ToLowerInvariant();
+        
+        Fingerprint fingerprint = Fingerprint.Reconstitute(
             Guid.NewGuid(),
-            "https://example.com/recipe",
+            url,
             "hash123",
-            null, // Empty raw content
+            string.Empty, // Empty raw content
+            fingerprintHash,
             DateTime.UtcNow,
             "test-provider",
             FingerprintStatus.Success,

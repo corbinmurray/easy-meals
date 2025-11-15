@@ -236,11 +236,13 @@ public class RecipeProcessingSaga(
 		}
 	}
 
-	private async Task ExecuteFingerprintingPhaseAsync(SagaState sagaState, CancellationToken cancellationToken)
+	private async Task ExecuteFingerprintingPhaseAsync(
+		SagaState sagaState, 
+		CancellationToken cancellationToken)
 	{
 		logger.LogInformation("Executing Fingerprinting phase for saga {SagaId}", sagaState.Id);
 
-		List<string> discoveredUrls = sagaState.StateData["DiscoveredUrls"] as List<string> ?? new List<string>();
+		List<string> discoveredUrls = sagaState.StateData["DiscoveredUrls"] as List<string> ?? [];
 		var fingerprintedUrls = new List<string>();
 
 		int totalUrls = discoveredUrls.Count;
@@ -249,7 +251,6 @@ public class RecipeProcessingSaga(
 
 		foreach (string url in discoveredUrls)
 		{
-			// T124: Generate fingerprint based on URL (title and description will be fetched during Processing phase)
 			// For now, fingerprint is based on normalized URL only for quick duplicate detection
 			string fingerprint = recipeFingerprinter.GenerateFingerprint(url, "", "");
 			bool isDuplicate = await recipeFingerprinter.IsDuplicateAsync(fingerprint, cancellationToken);

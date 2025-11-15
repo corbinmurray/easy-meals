@@ -280,7 +280,7 @@ public class AnalyticsService
         {
             new BsonDocument("$group", new BsonDocument
             {
-                {"_id", "$sourceProvider"},
+                {"_id", "$providerName"},
                 {"count", new BsonDocument("$sum", 1)}
             })
         };

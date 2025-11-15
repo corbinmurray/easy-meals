@@ -89,7 +89,7 @@ public class RecipeDocument : BaseSoftDeletableDocument
     ///     Source provider
     ///     Supports multi-provider architecture and data lineage tracking
     /// </summary>
-    [BsonElement("sourceProvider")]
+    [BsonElement("providerName")]
     public string ProviderName { get; set; } = string.Empty;
 
     /// <summary>

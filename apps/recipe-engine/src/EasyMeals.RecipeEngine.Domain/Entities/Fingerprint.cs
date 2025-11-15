@@ -17,19 +17,19 @@ public sealed class Fingerprint
 
     /// <summary>
     ///     Creates a new Fingerprint aggregate root from raw content
-    ///     Automatically computes content hash from raw content
+    ///     Automatically computes content and fingerprint hashes from raw content and by normalizing the URL
     /// </summary>
     /// <param name="id">Unique identifier for the fingerprint</param>
     /// <param name="url">URL that was scraped (required)</param>
     /// <param name="rawContent">Raw scraped content (required)</param>
-    /// <param name="sourceProvider">Source provider name (required)</param>
+    /// <param name="providerName">Source provider name (required)</param>
     /// <param name="quality">Quality assessment of scraped content</param>
     /// <param name="metadata">Additional metadata about the scraping operation</param>
     public Fingerprint(
         Guid id,
         string url,
         string rawContent,
-        string sourceProvider,
+        string providerName,
         ScrapingQuality quality = ScrapingQuality.Good,
         Dictionary<string, object>? metadata = null)
     {
@@ -37,7 +37,8 @@ public sealed class Fingerprint
         Url = ValidateUrl(url);
         RawContent = ValidateRawContent(rawContent);
         ContentHash = ComputeContentHash(rawContent);
-        ProviderName = ValidateProviderName(sourceProvider);
+        FingerprintHash = ComputeFingerprintHash(url);
+        ProviderName = ValidateProviderName(providerName);
         Quality = quality;
         Status = FingerprintStatus.Success;
 
@@ -46,10 +47,44 @@ public sealed class Fingerprint
         UpdatedAt = DateTime.UtcNow;
         RetryCount = 0;
 
-        _metadata = metadata != null ? new Dictionary<string, object>(metadata) : new Dictionary<string, object>();
+        _metadata = metadata != null ? new Dictionary<string, object>(metadata) : [];
         _domainEvents = [];
 
         AddDomainEvent(new FingerprintCreatedEvent(Id, Url, ProviderName, Quality, ContentHash));
+    }
+
+    /// <summary>
+    ///    Computes a lightweight fingerprint hash by normalizing the URL for deduplication
+    /// </summary>
+    /// <param name="url">URL to normalize and compute the fingerprint hash for</param>
+    /// <returns>Normalized fingerprint hash</returns>
+    /// <exception cref="NotImplementedException"></exception>
+    private static string ComputeFingerprintHash(string url)
+    {
+        if (string.IsNullOrWhiteSpace(url))
+            return string.Empty;
+
+        if (!Uri.TryCreate(url, UriKind.Absolute, out Uri? uri) ||
+            uri == null ||
+            !uri.IsWellFormedOriginalString())
+            return string.Empty;
+
+        // Align with RecipeFingerprintService.NormalizeUrl:
+        // - Lowercase the entire URL (scheme + host + path)
+        // - Remove query parameters (everything after '?')
+        string normalizedUrl = uri
+            .GetComponents(UriComponents.HttpRequestUrl, UriFormat.Unescaped)
+            .ToLowerInvariant()
+            .Trim();
+        int queryIndex = normalizedUrl.IndexOf('?');
+        if (queryIndex >= 0)
+            normalizedUrl = normalizedUrl[..queryIndex];
+
+        // Compute SHA256 hex string lower-case
+        byte[] inputBytes = Encoding.UTF8.GetBytes(normalizedUrl);
+        byte[] hashBytes = SHA256.HashData(inputBytes);
+
+        return Convert.ToHexString(hashBytes).ToLowerInvariant();
     }
 
     /// <summary>
@@ -57,19 +92,19 @@ public sealed class Fingerprint
     /// </summary>
     /// <param name="id">Unique identifier for the fingerprint</param>
     /// <param name="url">URL that failed to scrape (required)</param>
-    /// <param name="sourceProvider">Source provider name (required)</param>
+    /// <param name="providerName">Source provider name (required)</param>
     /// <param name="errorMessage">Error message describing the failure (required)</param>
     /// <param name="metadata">Additional metadata about the scraping operation</param>
     public Fingerprint(
         Guid id,
         string url,
-        string sourceProvider,
+        string providerName,
         string errorMessage,
         Dictionary<string, object>? metadata = null)
     {
         Id = id;
         Url = ValidateUrl(url);
-        ProviderName = ValidateProviderName(sourceProvider);
+        ProviderName = ValidateProviderName(providerName);
         ErrorMessage = ValidateErrorMessage(errorMessage);
 
         ContentHash = string.Empty;
@@ -82,7 +117,7 @@ public sealed class Fingerprint
         RetryCount = 0;
 
         _metadata = metadata != null ? new Dictionary<string, object>(metadata) : new Dictionary<string, object>();
-        _domainEvents = new List<IDomainEvent>();
+        _domainEvents = [];
 
         AddDomainEvent(new ScrapingFailedEvent(Id, Url, ProviderName, ErrorMessage));
     }
@@ -101,9 +136,10 @@ public sealed class Fingerprint
         Guid id,
         string url,
         string contentHash,
+        string fingerprintHash,
         string? rawContent,
         DateTime scrapedAt,
-        string sourceProvider,
+        string providerName,
         FingerprintStatus status,
         ScrapingQuality quality,
         string? errorMessage,
@@ -119,9 +155,10 @@ public sealed class Fingerprint
             Id = id,
             Url = url,
             ContentHash = contentHash,
+            FingerprintHash = fingerprintHash,
             RawContent = rawContent,
             ScrapedAt = scrapedAt,
-            ProviderName = sourceProvider,
+            ProviderName = providerName,
             Status = status,
             Quality = quality,
             ErrorMessage = errorMessage,
@@ -146,6 +183,11 @@ public sealed class Fingerprint
 
     /// <summary>Hash of the scraped content</summary>
     public string ContentHash { get; private set; } = string.Empty;
+
+    /// <summary>
+    ///  Lightweight, normalized fingerprint hash for deduplication
+    /// </summary>
+    public string FingerprintHash { get; private set; } = string.Empty;
 
     /// <summary>Raw scraped content (optional, for debugging and reprocessing)</summary>
     public string? RawContent { get; private set; }
@@ -409,20 +451,20 @@ public sealed class Fingerprint
     public static Fingerprint CreateSuccess(
         string url,
         string contentHash,
-        string sourceProvider,
+        string providerName,
         ScrapingQuality quality = ScrapingQuality.Good,
         Dictionary<string, object>? metadata = null) =>
-        new(Guid.NewGuid(), url, contentHash, sourceProvider, quality, metadata);
+        new(Guid.NewGuid(), url, contentHash, providerName, quality, metadata);
 
     /// <summary>
     ///     Creates a new fingerprint for a failed scraping attempt
     /// </summary>
     public static Fingerprint CreateFailure(
         string url,
-        string sourceProvider,
+        string providerName,
         string errorMessage,
         Dictionary<string, object>? metadata = null) =>
-        new(Guid.NewGuid(), url, sourceProvider, errorMessage, metadata);
+        new(Guid.NewGuid(), url, providerName, errorMessage, metadata);
 
     #endregion
 
@@ -453,15 +495,15 @@ public sealed class Fingerprint
         return contentHash;
     }
 
-    private static string ValidateProviderName(string sourceProvider)
+    private static string ValidateProviderName(string providerName)
     {
-        if (string.IsNullOrWhiteSpace(sourceProvider))
-            throw new ArgumentException("Source provider cannot be empty", nameof(sourceProvider));
+        if (string.IsNullOrWhiteSpace(providerName))
+            throw new ArgumentException("Source provider cannot be empty", nameof(providerName));
 
-        if (sourceProvider.Length > 100)
-            throw new ArgumentException("Source provider name cannot exceed 100 characters", nameof(sourceProvider));
+        if (providerName.Length > 100)
+            throw new ArgumentException("Source provider name cannot exceed 100 characters", nameof(providerName));
 
-        return sourceProvider.Trim();
+        return providerName.Trim();
     }
 
     private static string ValidateErrorMessage(string errorMessage)
