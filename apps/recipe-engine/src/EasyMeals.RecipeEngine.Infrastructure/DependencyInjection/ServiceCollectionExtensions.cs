@@ -8,6 +8,7 @@ using EasyMeals.RecipeEngine.Infrastructure.Documents;
 using EasyMeals.RecipeEngine.Infrastructure.Documents.Fingerprint;
 using EasyMeals.RecipeEngine.Infrastructure.Documents.Recipe;
 using EasyMeals.RecipeEngine.Infrastructure.Documents.SagaState;
+using EasyMeals.RecipeEngine.Infrastructure.Extraction;
 using EasyMeals.RecipeEngine.Infrastructure.Fingerprinting;
 using EasyMeals.RecipeEngine.Infrastructure.HealthChecks;
 using EasyMeals.RecipeEngine.Infrastructure.Normalization;
@@ -77,6 +78,9 @@ public static class ServiceCollectionExtensions
 
         // T125: Register fingerprinting service (Phase 9)
         services.AddScoped<IRecipeFingerprinter, RecipeFingerprintService>();
+
+        // Register recipe extraction service
+        services.AddScoped<IRecipeExtractor, RecipeExtractorService>();
 
         // T116: Register discovery services (Phase 8)
         services.AddScoped<StaticCrawlDiscoveryService>();
