@@ -13,14 +13,9 @@ namespace EasyMeals.RecipeEngine.Infrastructure.Extraction;
 ///     Implements a multi-strategy approach: JSON-LD structured data first, then HTML parsing fallback.
 ///     Follows DDD principles with proper encapsulation and business logic.
 /// </summary>
-public class RecipeExtractorService : IRecipeExtractor
+public class RecipeExtractorService(ILogger<RecipeExtractorService> logger) : IRecipeExtractor
 {
-    private readonly ILogger<RecipeExtractorService> _logger;
-
-    public RecipeExtractorService(ILogger<RecipeExtractorService> logger)
-    {
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
+    private readonly ILogger<RecipeExtractorService> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
     /// <summary>
     ///     Extracts a structured recipe from a fingerprint containing HTML content.

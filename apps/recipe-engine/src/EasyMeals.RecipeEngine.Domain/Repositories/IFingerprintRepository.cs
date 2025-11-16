@@ -9,83 +9,20 @@ namespace EasyMeals.RecipeEngine.Domain.Repositories;
 public interface IFingerprintRepository
 {
     /// <summary>
-    ///     Finds a fingerprint by URL
-    /// </summary>
-    Task<Fingerprint?> FindByUrlAsync(string url);
-
-    /// <summary>
-    ///     Finds a fingerprint by content hash
-    /// </summary>
-    Task<Fingerprint?> FindByContentHashAsync(string contentHash);
-
-    /// <summary>
-    ///     Gets all fingerprints for a specific source provider
-    /// </summary>
-    Task<IEnumerable<Fingerprint>> FindByProviderAsync(
-        string provider,
-        DateTime? since = null);
-
-    /// <summary>
-    ///     Gets fingerprints that are ready for processing
-    /// </summary>
-    Task<IEnumerable<Fingerprint>> FindReadyForProcessingAsync(
-        int maxCount = 100);
-
-    /// <summary>
-    ///     Gets failed fingerprints that can be retried
-    /// </summary>
-    Task<IEnumerable<Fingerprint>> FindRetryableFingerprintsAsync(
-        int maxRetries = 3,
-        TimeSpan retryDelay = default);
-
-    /// <summary>
-    ///     Checks if a URL has been scraped recently
-    /// </summary>
-    Task<bool> HasBeenScrapedRecentlyAsync(
-        string url,
-        TimeSpan timeWindow);
-
-    /// <summary>
-    ///     Gets fingerprints older than the specified age for cleanup
-    /// </summary>
-    Task<IEnumerable<Fingerprint>> FindStaleAsync(
-        TimeSpan maxAge,
-        int maxCount = 1000);
-
-    /// <summary>
     ///     Adds a new fingerprint
     /// </summary>
-    Task<Fingerprint> AddAsync(Fingerprint fingerprint);
+    Task<Fingerprint> AddAsync(Fingerprint fingerprint, CancellationToken cancellationToken = default);
 
     /// <summary>
     ///     Updates an existing fingerprint
     /// </summary>
-    Task<Fingerprint> UpdateAsync(Fingerprint fingerprint);
+    Task<Fingerprint> UpdateAsync(Fingerprint fingerprint, CancellationToken cancellationToken = default);
 
     /// <summary>
-    ///     Deletes fingerprints older than the specified age
+    ///     Checks if a fingerprint hash already exists, ensures we don't process a duplicate recipe
     /// </summary>
-    Task<int> DeleteStaleAsync(TimeSpan maxAge);
-
-    /// <summary>
-    ///     Gets statistics about fingerprints for monitoring
-    /// </summary>
-    Task<FingerprintStatistics> GetStatisticsAsync(
-        DateTime? since = null,
-        string? provider = null);
+    /// <param name="fingerprintHash"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    Task<bool> ExistsAsync(string fingerprintHash, CancellationToken cancellationToken = default);
 }
-
-/// <summary>
-///     Statistics about fingerprint data for monitoring and reporting
-/// </summary>
-public record FingerprintStatistics(
-    int TotalCount,
-    int SuccessCount,
-    int FailedCount,
-    int ProcessedCount,
-    int ReadyForProcessingCount,
-    Dictionary<string, int> StatusCounts,
-    Dictionary<string, int> QualityCounts,
-    Dictionary<string, int> ProviderCounts,
-    DateTime? OldestFingerprint,
-    DateTime? NewestFingerprint);

@@ -1,33 +1,65 @@
+using System.Text;
 using EasyMeals.RecipeEngine.Domain.Entities;
-using EasyMeals.RecipeEngine.Domain.Interfaces;
 using EasyMeals.RecipeEngine.Domain.Repositories;
 using EasyMeals.RecipeEngine.Infrastructure.Documents.Fingerprint;
 using EasyMeals.Shared.Data.Repositories;
 using MongoDB.Driver;
 
-public class FingerprintRepository(IMongoDatabase database, IClientSessionHandle? session = null)
-    : MongoRepository<FingerprintDocument>(database, session), IFingerprintRepository
+namespace EasyMeals.RecipeEngine.Infrastructure.Repositories;
+
+public sealed class FingerprintRepository(IMongoDatabase database, IClientSessionHandle? session = null)
+	: MongoRepository<FingerprintDocument>(database, session), IFingerprintRepository
 {
-    public Task<Fingerprint> AddAsync(Fingerprint fingerprint) => throw new NotImplementedException();
+	public async Task<Fingerprint> AddAsync(Fingerprint fingerprint, CancellationToken cancellationToken = default)
+	{
+		FingerprintDocument doc = ToDocument(fingerprint);
+		FingerprintDocument savedDoc = await InsertOneAsync(doc, cancellationToken);
+		return ToDomain(savedDoc);
+	}
 
-    public Task<int> DeleteStaleAsync(TimeSpan maxAge) => throw new NotImplementedException();
+	public async Task<Fingerprint> UpdateAsync(Fingerprint fingerprint, CancellationToken cancellationToken = default) =>
+		throw new NotImplementedException();
 
-    public Task<Fingerprint?> FindByContentHashAsync(string contentHash) => throw new NotImplementedException();
+	public async Task<bool> ExistsAsync(string fingerprintHash, CancellationToken cancellationToken = default) => throw new NotImplementedException();
 
-    public Task<IEnumerable<Fingerprint>> FindByProviderAsync(string provider, DateTime? since = null) => throw new NotImplementedException();
+	private static FingerprintDocument ToDocument(Fingerprint fingerprint)
+	{
+		return new FingerprintDocument
+		{
+			Id = fingerprint.Id.ToString(),
+			ContentHash = fingerprint.ContentHash,
+			ContentSizeBytes = fingerprint.ContentSizeBytes,
+			CreatedAt = fingerprint.CreatedAt,
+			ErrorMessage = fingerprint.ErrorMessage,
+			FingerprintHash = fingerprint.FingerprintHash,
+			Metadata = fingerprint.Metadata.ToDictionary(kvp => kvp.Key, kvp => kvp.Value),
+			ProcessedAt = fingerprint.ProcessedAt,
+			ProviderName = fingerprint.ProviderName,
+			Quality = fingerprint.Quality,
+			RecipeId = fingerprint.RecipeId.ToString(),
+			ScrapedAt = fingerprint.ScrapedAt,
+			Status = fingerprint.Status,
+			UpdatedAt = fingerprint.UpdatedAt,
+			Url = fingerprint.Url,
+			Version = 1 // TOOD: How should we handle versioning of these documents?
+		};
+	}
 
-    public Task<Fingerprint?> FindByUrlAsync(string url) => throw new NotImplementedException();
-
-    public Task<IEnumerable<Fingerprint>> FindReadyForProcessingAsync(int maxCount = 100) => throw new NotImplementedException();
-
-    public Task<IEnumerable<Fingerprint>> FindRetryableFingerprintsAsync(int maxRetries = 3, TimeSpan retryDelay = default) =>
-        throw new NotImplementedException();
-
-    public Task<IEnumerable<Fingerprint>> FindStaleAsync(TimeSpan maxAge, int maxCount = 1000) => throw new NotImplementedException();
-
-    public Task<FingerprintStatistics> GetStatisticsAsync(DateTime? since = null, string? provider = null) => throw new NotImplementedException();
-
-    public Task<bool> HasBeenScrapedRecentlyAsync(string url, TimeSpan timeWindow) => throw new NotImplementedException();
-
-    public Task<Fingerprint> UpdateAsync(Fingerprint fingerprint) => throw new NotImplementedException();
+	private static Fingerprint ToDomain(FingerprintDocument fingerprintDocument) =>
+		Fingerprint.Reconstitute(
+			Guid.Parse(fingerprintDocument.Id),
+			fingerprintDocument.Url,
+			fingerprintDocument.ContentHash,
+			fingerprintDocument.FingerprintHash,
+			fingerprintDocument.ContentSizeBytes,
+			fingerprintDocument.ScrapedAt,
+			fingerprintDocument.ProviderName,
+			fingerprintDocument.Status,
+			fingerprintDocument.Quality,
+			fingerprintDocument.ErrorMessage,
+			fingerprintDocument.Metadata ?? [],
+			fingerprintDocument.ProcessedAt,
+			!string.IsNullOrWhiteSpace(fingerprintDocument.RecipeId) ? Guid.Parse(fingerprintDocument.RecipeId) : Guid.Empty,
+			fingerprintDocument.CreatedAt,
+			fingerprintDocument.UpdatedAt);
 }
