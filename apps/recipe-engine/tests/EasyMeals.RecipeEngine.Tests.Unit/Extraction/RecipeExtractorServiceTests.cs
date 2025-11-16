@@ -94,7 +94,7 @@ public class RecipeExtractorServiceTests
             ScrapingQuality.Good);
 
         // Act
-        Recipe? recipe = await _sut.ExtractRecipeAsync(fingerprint);
+        Recipe? recipe = await _sut.ExtractRecipeAsync(htmlContent, fingerprint);
 
         // Assert
         recipe.ShouldNotBeNull();
@@ -111,47 +111,53 @@ public class RecipeExtractorServiceTests
         recipe.IsReadyForPublication.ShouldBeTrue();
     }
 
-    [Fact(DisplayName = "ExtractRecipeAsync with null fingerprint throws ArgumentNullException")]
-    public async Task ExtractRecipeAsync_NullFingerprint_ThrowsArgumentNullException()
+    [Fact(DisplayName = "ExtractRecipeAsync with null rawContent throws ArgumentException")]
+    public async Task ExtractRecipeAsync_NullRawContent_ThrowsArgumentException()
     {
+        // Arrange
+        var fingerprint = new Fingerprint(
+            Guid.NewGuid(),
+            "https://example.com/recipe",
+            "some content",
+            "test-provider",
+            ScrapingQuality.Good);
+
         // Act
-        Func<Task> act = async () => await _sut.ExtractRecipeAsync(null!);
+        Func<Task> act = async () => await _sut.ExtractRecipeAsync(null!, fingerprint);
 
         // Assert
-        await Should.ThrowAsync<ArgumentNullException>(act);
+        await Should.ThrowAsync<ArgumentException>(act);
     }
 
-    [Fact(DisplayName = "ExtractRecipeAsync with empty raw content returns null")]
-    public async Task ExtractRecipeAsync_EmptyRawContent_ReturnsNull()
+    [Fact(DisplayName = "ExtractRecipeAsync with empty raw content throws ArgumentException")]
+    public async Task ExtractRecipeAsync_EmptyRawContent_ThrowsArgumentException()
     {
         // Arrange
         const string url = "https://example.com/recipe";
-        byte[] fingerprintsHashBytes = SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(url));
-        string fingerprintHash = Convert.ToHexString(fingerprintsHashBytes).ToLowerInvariant();
+        const string emptyContent = "";
         
         Fingerprint fingerprint = Fingerprint.Reconstitute(
             Guid.NewGuid(),
             url,
             "hash123",
-            string.Empty, // Empty raw content
-            fingerprintHash,
+            "fingerprintHash123",
+            0,
             DateTime.UtcNow,
             "test-provider",
             FingerprintStatus.Success,
             ScrapingQuality.Good,
             null,
             new Dictionary<string, object>(),
-            0,
             null,
             null,
             DateTime.UtcNow,
             DateTime.UtcNow);
 
         // Act
-        Recipe? recipe = await _sut.ExtractRecipeAsync(fingerprint);
+        Func<Task> act = async () => await _sut.ExtractRecipeAsync(emptyContent, fingerprint);
 
         // Assert
-        recipe.ShouldBeNull();
+        await Should.ThrowAsync<ArgumentException>(act);
     }
 
     [Fact(DisplayName = "ExtractRecipeAsync with HTML fallback returns valid recipe")]
@@ -192,7 +198,7 @@ public class RecipeExtractorServiceTests
             ScrapingQuality.Good);
 
         // Act
-        Recipe? recipe = await _sut.ExtractRecipeAsync(fingerprint);
+        Recipe? recipe = await _sut.ExtractRecipeAsync(htmlContent, fingerprint);
 
         // Assert
         recipe.ShouldNotBeNull();
@@ -227,7 +233,7 @@ public class RecipeExtractorServiceTests
             ScrapingQuality.Good);
 
         // Act
-        Recipe? recipe = await _sut.ExtractRecipeAsync(fingerprint);
+        Recipe? recipe = await _sut.ExtractRecipeAsync(htmlContent, fingerprint);
 
         // Assert
         recipe.ShouldBeNull();
@@ -251,15 +257,8 @@ public class RecipeExtractorServiceTests
 <body></body>
 </html>";
 
-        var fingerprint = new Fingerprint(
-            Guid.NewGuid(),
-            "https://example.com/test",
-            htmlContent,
-            "test-provider",
-            ScrapingQuality.Good);
-
         // Act
-        bool canExtract = _sut.CanExtractRecipe(fingerprint);
+        bool canExtract = _sut.CanExtractRecipe(htmlContent);
 
         // Assert
         canExtract.ShouldBeTrue();
@@ -278,15 +277,8 @@ public class RecipeExtractorServiceTests
 <body></body>
 </html>";
 
-        var fingerprint = new Fingerprint(
-            Guid.NewGuid(),
-            "https://example.com/test",
-            htmlContent,
-            "test-provider",
-            ScrapingQuality.Good);
-
         // Act
-        bool canExtract = _sut.CanExtractRecipe(fingerprint);
+        bool canExtract = _sut.CanExtractRecipe(htmlContent);
 
         // Assert
         canExtract.ShouldBeTrue();
@@ -307,15 +299,8 @@ public class RecipeExtractorServiceTests
 </body>
 </html>";
 
-        var fingerprint = new Fingerprint(
-            Guid.NewGuid(),
-            "https://example.com/test",
-            htmlContent,
-            "test-provider",
-            ScrapingQuality.Good);
-
         // Act
-        bool canExtract = _sut.CanExtractRecipe(fingerprint);
+        bool canExtract = _sut.CanExtractRecipe(htmlContent);
 
         // Assert
         canExtract.ShouldBeTrue();
@@ -334,22 +319,15 @@ public class RecipeExtractorServiceTests
 </body>
 </html>";
 
-        var fingerprint = new Fingerprint(
-            Guid.NewGuid(),
-            "https://example.com/test",
-            htmlContent,
-            "test-provider",
-            ScrapingQuality.Good);
-
         // Act
-        bool canExtract = _sut.CanExtractRecipe(fingerprint);
+        bool canExtract = _sut.CanExtractRecipe(htmlContent);
 
         // Assert
         canExtract.ShouldBeFalse();
     }
 
-    [Fact(DisplayName = "CanExtractRecipe with null fingerprint returns false")]
-    public async Task CanExtractRecipe_NullFingerprint_ReturnsFalse()
+    [Fact(DisplayName = "CanExtractRecipe with null rawContent returns false")]
+    public async Task CanExtractRecipe_NullRawContent_ReturnsFalse()
     {
         // Act
         bool canExtract = _sut.CanExtractRecipe(null!);
@@ -376,15 +354,8 @@ public class RecipeExtractorServiceTests
 <body></body>
 </html>";
 
-        var fingerprint = new Fingerprint(
-            Guid.NewGuid(),
-            "https://example.com/test",
-            htmlContent,
-            "test-provider",
-            ScrapingQuality.Good);
-
         // Act
-        decimal confidence = _sut.GetExtractionConfidence(fingerprint);
+        decimal confidence = _sut.GetExtractionConfidence(htmlContent);
 
         // Assert
         confidence.ShouldBeGreaterThanOrEqualTo(0.6m);
@@ -404,15 +375,8 @@ public class RecipeExtractorServiceTests
 <body></body>
 </html>";
 
-        var fingerprint = new Fingerprint(
-            Guid.NewGuid(),
-            "https://example.com/test",
-            htmlContent,
-            "test-provider",
-            ScrapingQuality.Good);
-
         // Act
-        decimal confidence = _sut.GetExtractionConfidence(fingerprint);
+        decimal confidence = _sut.GetExtractionConfidence(htmlContent);
 
         // Assert
         confidence.ShouldBeGreaterThan(0.0m);
@@ -431,22 +395,15 @@ public class RecipeExtractorServiceTests
 </body>
 </html>";
 
-        var fingerprint = new Fingerprint(
-            Guid.NewGuid(),
-            "https://example.com/test",
-            htmlContent,
-            "test-provider",
-            ScrapingQuality.Good);
-
         // Act
-        decimal confidence = _sut.GetExtractionConfidence(fingerprint);
+        decimal confidence = _sut.GetExtractionConfidence(htmlContent);
 
         // Assert
         confidence.ShouldBe(0.0m);
     }
 
-    [Fact(DisplayName = "GetExtractionConfidence with null fingerprint returns zero")]
-    public async Task GetExtractionConfidence_NullFingerprint_ReturnsZero()
+    [Fact(DisplayName = "GetExtractionConfidence with null rawContent returns zero")]
+    public async Task GetExtractionConfidence_NullRawContent_ReturnsZero()
     {
         // Act
         decimal confidence = _sut.GetExtractionConfidence(null!);
@@ -486,7 +443,7 @@ public class RecipeExtractorServiceTests
             ScrapingQuality.Good);
 
         // Act
-        Recipe? recipe = await _sut.ExtractRecipeAsync(fingerprint);
+        Recipe? recipe = await _sut.ExtractRecipeAsync(htmlContent, fingerprint);
 
         // Assert
         recipe.ShouldNotBeNull();
@@ -529,7 +486,7 @@ public class RecipeExtractorServiceTests
             ScrapingQuality.Good);
 
         // Act
-        Recipe? recipe = await _sut.ExtractRecipeAsync(fingerprint);
+        Recipe? recipe = await _sut.ExtractRecipeAsync(htmlContent, fingerprint);
 
         // Assert
         recipe.ShouldNotBeNull();
