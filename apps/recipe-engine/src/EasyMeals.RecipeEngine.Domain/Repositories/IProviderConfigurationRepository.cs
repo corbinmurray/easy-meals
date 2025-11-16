@@ -1,4 +1,4 @@
-﻿using EasyMeals.RecipeEngine.Domain.Entities;
+﻿using EasyMeals.RecipeEngine.Domain.ValueObjects;
 
 namespace EasyMeals.RecipeEngine.Domain.Repositories;
 
