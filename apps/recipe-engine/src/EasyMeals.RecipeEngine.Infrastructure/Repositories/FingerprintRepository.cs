@@ -17,10 +17,22 @@ public sealed class FingerprintRepository(IMongoDatabase database, IClientSessio
 		return ToDomain(savedDoc);
 	}
 
-	public async Task<Fingerprint> UpdateAsync(Fingerprint fingerprint, CancellationToken cancellationToken = default) =>
-		throw new NotImplementedException();
+	public async Task<Fingerprint> UpdateAsync(Fingerprint fingerprint, CancellationToken cancellationToken = default)
+	{
+		FingerprintDocument doc = ToDocument(fingerprint);
+		bool updated = await ReplaceOneAsync(d => d.Id == fingerprint.Id.ToString(), doc, upsert: false, cancellationToken: cancellationToken);
+		
+		if (!updated)
+			throw new InvalidOperationException($"Fingerprint with ID {fingerprint.Id} not found for update");
+		
+		return fingerprint;
+	}
 
-	public async Task<bool> ExistsAsync(string fingerprintHash, CancellationToken cancellationToken = default) => throw new NotImplementedException();
+	public async Task<bool> ExistsAsync(string fingerprintHash, CancellationToken cancellationToken = default)
+	{
+		long count = await CountAsync(d => d.FingerprintHash == fingerprintHash, cancellationToken);
+		return count > 0;
+	}
 
 	private static FingerprintDocument ToDocument(Fingerprint fingerprint)
 	{
