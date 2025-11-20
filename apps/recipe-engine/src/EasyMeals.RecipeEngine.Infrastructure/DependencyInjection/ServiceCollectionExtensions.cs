@@ -58,15 +58,14 @@ public static class ServiceCollectionExtensions
 
         // Register MongoDB document repositories for Recipe Engine
         services.AddScoped<IMongoRepository<ProviderConfigurationDocument>, MongoRepository<ProviderConfigurationDocument>>();
-        services.AddScoped<IMongoRepository<RecipeBatchDocument>, MongoRepository<RecipeBatchDocument>>();
         services.AddScoped<IMongoRepository<IngredientMappingDocument>, MongoRepository<IngredientMappingDocument>>();
-        services.AddScoped<IMongoRepository<RecipeFingerprintDocument>, MongoRepository<RecipeFingerprintDocument>>();
+        services.AddScoped<IMongoRepository<FingerprintDocument>, MongoRepository<FingerprintDocument>>();
         services.AddScoped<IMongoRepository<RecipeDocument>, MongoRepository<RecipeDocument>>();
 
         // Register domain repositories
         services.AddScoped<IIngredientMappingRepository, IngredientMappingRepository>();
         services.AddScoped<IRecipeRepository, RecipeRepository>();
-        
+
         // Register application services
         services.AddScoped<IProviderConfigurationLoader, ProviderConfigurationLoader>();
         services.AddScoped<IIngredientNormalizer, IngredientNormalizationService>();

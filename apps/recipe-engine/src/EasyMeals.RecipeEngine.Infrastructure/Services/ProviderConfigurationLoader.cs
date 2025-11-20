@@ -74,49 +74,49 @@ public class ProviderConfigurationLoader(IMongoRepository<ProviderConfigurationD
 		Console.WriteLine($"Loaded {configList.Count} provider configuration(s) from MongoDB and cached them");
 	}
 
-    /// <summary>
-    ///     Invalidates the cache for a specific provider, forcing reload on next access.
-    /// </summary>
-    /// <param name="providerId">Provider ID to invalidate</param>
-    public void InvalidateCache(string providerId)
+	/// <summary>
+	///     Invalidates the cache for a specific provider, forcing reload on next access.
+	/// </summary>
+	/// <param name="providerId">Provider ID to invalidate</param>
+	public void InvalidateCache(string providerId)
 	{
 		_cache.TryRemove(providerId, out _);
 	}
 
-    /// <summary>
-    ///     Clears the entire cache, forcing reload for all providers.
-    /// </summary>
-    public void ClearCache()
+	/// <summary>
+	///     Clears the entire cache, forcing reload for all providers.
+	/// </summary>
+	public void ClearCache()
 	{
 		_cache.Clear();
 	}
 
 	private static ProviderConfiguration ToDomain(ProviderConfigurationDocument document)
 	{
-		// Parse the discovery strategy from string to enum
-		if (!Enum.TryParse(document.DiscoveryStrategy, true, out DiscoveryStrategy strategy))
-			throw new InvalidOperationException($"Invalid DiscoveryStrategy value: {document.DiscoveryStrategy}");
+		// Parse discovery strategy from nested discovery config
+		if (!Enum.TryParse(document.Discovery.Strategy, true, out DiscoveryStrategy strategy))
+			throw new InvalidOperationException($"Invalid DiscoveryStrategy value: {document.Discovery.Strategy}");
 
 		return new ProviderConfiguration(
 			document.ProviderId,
 			document.Enabled,
 			strategy,
-			document.RecipeRootUrl,
-			document.BatchSize,
-			document.TimeWindowMinutes,
-			document.MinDelaySeconds,
-			document.MaxRequestsPerMinute,
-			document.RetryCount,
-			document.RequestTimeoutSeconds,
-			document.RecipeUrlPattern,
-			document.CategoryUrlPattern
+			document.Endpoint.RecipeRootUrl,
+			document.Batching.BatchSize,
+			document.Batching.TimeWindowMinutes,
+			document.RateLimit.MinDelaySeconds,
+			document.RateLimit.MaxRequestsPerMinute,
+			document.RateLimit.RetryCount,
+			document.RateLimit.RequestTimeoutSeconds,
+			document.Discovery.RecipeUrlPattern,
+			document.Discovery.CategoryUrlPattern
 		);
 	}
 
-    /// <summary>
-    ///     Cache entry with expiration support.
-    /// </summary>
-    private class CacheEntry
+	/// <summary>
+	///     Cache entry with expiration support.
+	/// </summary>
+	private class CacheEntry
 	{
 		public ProviderConfiguration? Configuration { get; }
 		public DateTime ExpiresAt { get; }

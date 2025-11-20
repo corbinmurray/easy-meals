@@ -19,43 +19,18 @@ public class ProviderConfigurationDocument : BaseDocument
     [BsonRequired]
     public bool Enabled { get; set; }
 
-    [BsonElement("discoveryStrategy")]
-    [BsonRequired]
-    public string DiscoveryStrategy { get; set; } = string.Empty;
+    // Nested documents mapping to Domain.ValueObjects
+    [BsonElement("endpoint")]
+    public EndpointInfoDocument Endpoint { get; set; } = new EndpointInfoDocument();
 
-    [BsonElement("recipeRootUrl")]
-    [BsonRequired]
-    public string RecipeRootUrl { get; set; } = string.Empty;
+    [BsonElement("discovery")]
+    public DiscoveryConfigDocument Discovery { get; set; } = new DiscoveryConfigDocument();
 
-    [BsonElement("batchSize")]
-    [BsonRequired]
-    public int BatchSize { get; set; }
+    [BsonElement("batching")]
+    public BatchingConfigDocument Batching { get; set; } = new BatchingConfigDocument();
 
-    [BsonElement("timeWindowMinutes")]
-    [BsonRequired]
-    public int TimeWindowMinutes { get; set; }
-
-    [BsonElement("minDelaySeconds")]
-    [BsonRequired]
-    public double MinDelaySeconds { get; set; }
-
-    [BsonElement("maxRequestsPerMinute")]
-    [BsonRequired]
-    public int MaxRequestsPerMinute { get; set; }
-
-    [BsonElement("retryCount")]
-    [BsonRequired]
-    public int RetryCount { get; set; }
-
-    [BsonElement("requestTimeoutSeconds")]
-    [BsonRequired]
-    public int RequestTimeoutSeconds { get; set; }
-
-    [BsonElement("recipeUrlPattern")]
-    public string? RecipeUrlPattern { get; set; }
-
-    [BsonElement("categoryUrlPattern")]
-    public string? CategoryUrlPattern { get; set; }
+    [BsonElement("rateLimit")]
+    public RateLimitConfigDocument RateLimit { get; set; } = new RateLimitConfigDocument();
 
     [BsonElement("createdBy")] public string CreatedBy { get; set; } = string.Empty;
 

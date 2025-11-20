@@ -48,14 +48,10 @@ public class MultiProviderProcessingTests : IAsyncLifetime
         {
             ProviderId = providerId,
             Enabled = enabled,
-            DiscoveryStrategy = "Dynamic",
-            RecipeRootUrl = url,
-            BatchSize = batchSize,
-            TimeWindowMinutes = 10,
-            MinDelaySeconds = 2,
-            MaxRequestsPerMinute = 10,
-            RetryCount = 3,
-            RequestTimeoutSeconds = 30,
+            Endpoint = new EndpointInfoDocument { RecipeRootUrl = url },
+            Discovery = new DiscoveryConfigDocument { Strategy = "Dynamic" },
+            Batching = new BatchingConfigDocument { BatchSize = batchSize, TimeWindowMinutes = 10 },
+            RateLimit = new RateLimitConfigDocument { MinDelaySeconds = 2, MaxRequestsPerMinute = 10, RetryCount = 3, RequestTimeoutSeconds = 30 },
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
@@ -67,14 +63,10 @@ public class MultiProviderProcessingTests : IAsyncLifetime
         {
             ProviderId = providerId,
             Enabled = true,
-            DiscoveryStrategy = strategy,
-            RecipeRootUrl = "https://example.com/recipes",
-            BatchSize = 10,
-            TimeWindowMinutes = 10,
-            MinDelaySeconds = 2,
-            MaxRequestsPerMinute = 10,
-            RetryCount = 3,
-            RequestTimeoutSeconds = 30,
+            Discovery = new DiscoveryConfigDocument { Strategy = strategy },
+            Endpoint = new EndpointInfoDocument { RecipeRootUrl = "https://example.com/recipes" },
+            Batching = new BatchingConfigDocument { BatchSize = 10, TimeWindowMinutes = 10 },
+            RateLimit = new RateLimitConfigDocument { MinDelaySeconds = 2, MaxRequestsPerMinute = 10, RetryCount = 3, RequestTimeoutSeconds = 30 },
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
@@ -151,14 +143,10 @@ public class MultiProviderProcessingTests : IAsyncLifetime
         {
             ProviderId = "provider_001",
             Enabled = true,
-            DiscoveryStrategy = "Dynamic",
-            RecipeRootUrl = "https://provider1.com/recipes",
-            BatchSize = 10,
-            TimeWindowMinutes = 10,
-            MinDelaySeconds = 2,
-            MaxRequestsPerMinute = 10,
-            RetryCount = 3,
-            RequestTimeoutSeconds = 30,
+            Discovery = new DiscoveryConfigDocument { Strategy = "Dynamic" },
+            Endpoint = new EndpointInfoDocument { RecipeRootUrl = "https://provider1.com/recipes" },
+            Batching = new BatchingConfigDocument { BatchSize = 10, TimeWindowMinutes = 10 },
+            RateLimit = new RateLimitConfigDocument { MinDelaySeconds = 2, MaxRequestsPerMinute = 10, RetryCount = 3, RequestTimeoutSeconds = 30 },
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
@@ -167,14 +155,10 @@ public class MultiProviderProcessingTests : IAsyncLifetime
         {
             ProviderId = "provider_002",
             Enabled = true,
-            DiscoveryStrategy = "Static",
-            RecipeRootUrl = "https://provider2.com/recipes",
-            BatchSize = 20, // Different batch size
-            TimeWindowMinutes = 15, // Different time window
-            MinDelaySeconds = 3, // Different delay
-            MaxRequestsPerMinute = 5, // Different rate limit
-            RetryCount = 5, // Different retry count
-            RequestTimeoutSeconds = 60, // Different timeout
+            Discovery = new DiscoveryConfigDocument { Strategy = "Static" },
+            Endpoint = new EndpointInfoDocument { RecipeRootUrl = "https://provider2.com/recipes" },
+            Batching = new BatchingConfigDocument { BatchSize = 20, TimeWindowMinutes = 15 },
+            RateLimit = new RateLimitConfigDocument { MinDelaySeconds = 3, MaxRequestsPerMinute = 5, RetryCount = 5, RequestTimeoutSeconds = 60 },
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };

@@ -59,16 +59,10 @@ public class ProviderConfigurationIntegrationTests : IAsyncLifetime
         {
             ProviderId = "recipe-provider-001",
             Enabled = true,
-            DiscoveryStrategy = "Static",
-            RecipeRootUrl = "https://www.example-recipes.com/recipes",
-            BatchSize = 10,
-            TimeWindowMinutes = 60,
-            MinDelaySeconds = 2.0,
-            MaxRequestsPerMinute = 20,
-            RetryCount = 3,
-            RequestTimeoutSeconds = 30,
-            RecipeUrlPattern = @"\/recipes\/[\w-]+",
-            CategoryUrlPattern = @"\/recipes$"
+            Endpoint = new EndpointInfoDocument { RecipeRootUrl = "https://www.example-recipes.com/recipes" },
+            Discovery = new DiscoveryConfigDocument { Strategy = "Static", RecipeUrlPattern = @"\/recipes\/[\w-]+", CategoryUrlPattern = @"\/recipes$" },
+            Batching = new BatchingConfigDocument { BatchSize = 10, TimeWindowMinutes = 60 },
+            RateLimit = new RateLimitConfigDocument { MinDelaySeconds = 2.0, MaxRequestsPerMinute = 20, RetryCount = 3, RequestTimeoutSeconds = 30 }
         };
 
         await _repository!.InsertOneAsync(configDocument);
@@ -156,27 +150,19 @@ public class ProviderConfigurationIntegrationTests : IAsyncLifetime
             {
                 ProviderId = "provider-a",
                 Enabled = true,
-                DiscoveryStrategy = "Static",
-                RecipeRootUrl = "https://www.provider-a.com/recipes",
-                BatchSize = 10,
-                TimeWindowMinutes = 60,
-                MinDelaySeconds = 2.0,
-                MaxRequestsPerMinute = 20,
-                RetryCount = 3,
-                RequestTimeoutSeconds = 30
+                Endpoint = new EndpointInfoDocument { RecipeRootUrl = "https://www.provider-a.com/recipes" },
+                Discovery = new DiscoveryConfigDocument { Strategy = "Static" },
+                Batching = new BatchingConfigDocument { BatchSize = 10, TimeWindowMinutes = 60 },
+                RateLimit = new RateLimitConfigDocument { MinDelaySeconds = 2.0, MaxRequestsPerMinute = 20, RetryCount = 3, RequestTimeoutSeconds = 30 }
             },
             new ProviderConfigurationDocument
             {
                 ProviderId = "provider-b",
                 Enabled = true,
-                DiscoveryStrategy = "Dynamic",
-                RecipeRootUrl = "https://www.provider-b.com/recipes",
-                BatchSize = 5,
-                TimeWindowMinutes = 30,
-                MinDelaySeconds = 1.0,
-                MaxRequestsPerMinute = 30,
-                RetryCount = 2,
-                RequestTimeoutSeconds = 45
+                Endpoint = new EndpointInfoDocument { RecipeRootUrl = "https://www.provider-b.com/recipes" },
+                Discovery = new DiscoveryConfigDocument { Strategy = "Dynamic" },
+                Batching = new BatchingConfigDocument { BatchSize = 5, TimeWindowMinutes = 30 },
+                RateLimit = new RateLimitConfigDocument { MinDelaySeconds = 1.0, MaxRequestsPerMinute = 30, RetryCount = 2, RequestTimeoutSeconds = 45 }
             }
         };
 

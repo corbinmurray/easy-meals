@@ -83,16 +83,10 @@ public class RecipeProviderWorkflowIntegrationTests : IAsyncLifetime
         {
             ProviderId = config.ProviderId,
             Enabled = config.Enabled,
-            DiscoveryStrategy = config.DiscoveryStrategy.ToString(),
-            RecipeRootUrl = config.RecipeRootUrl,
-            BatchSize = config.BatchSize,
-            TimeWindowMinutes = (int)config.TimeWindow.TotalMinutes,
-            MinDelaySeconds = config.MinDelay.TotalSeconds,
-            MaxRequestsPerMinute = config.MaxRequestsPerMinute,
-            RetryCount = config.RetryCount,
-            RequestTimeoutSeconds = (int)config.RequestTimeout.TotalSeconds,
-            RecipeUrlPattern = config.RecipeUrlPattern,
-            CategoryUrlPattern = config.CategoryUrlPattern
+            Endpoint = new EndpointInfoDocument { RecipeRootUrl = config.RecipeRootUrl },
+            Discovery = new DiscoveryConfigDocument { Strategy = config.DiscoveryStrategy.ToString(), RecipeUrlPattern = config.RecipeUrlPattern, CategoryUrlPattern = config.CategoryUrlPattern },
+            Batching = new BatchingConfigDocument { BatchSize = config.BatchSize, TimeWindowMinutes = (int)config.TimeWindow.TotalMinutes },
+            RateLimit = new RateLimitConfigDocument { MinDelaySeconds = config.MinDelay.TotalSeconds, MaxRequestsPerMinute = config.MaxRequestsPerMinute, RetryCount = config.RetryCount, RequestTimeoutSeconds = (int)config.RequestTimeout.TotalSeconds }
         };
 
         await _configRepository!.InsertOneAsync(configDocument);
@@ -103,7 +97,7 @@ public class RecipeProviderWorkflowIntegrationTests : IAsyncLifetime
         // Assert - Verify configuration loaded correctly with nested objects
         loadedConfig.ShouldNotBeNull();
         loadedConfig.ProviderId.ShouldBe("recipe-provider-001");
-        
+
         // Verify nested value objects
         loadedConfig.Endpoint.RecipeRootUrl.ShouldBe("https://www.example-recipe-site.com/recipes");
         loadedConfig.Discovery.Strategy.ShouldBe(DiscoveryStrategy.Static);

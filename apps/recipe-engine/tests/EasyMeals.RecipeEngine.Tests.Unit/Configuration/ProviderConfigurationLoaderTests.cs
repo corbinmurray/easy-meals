@@ -24,14 +24,10 @@ public class ProviderConfigurationLoaderTests
         {
             ProviderId = providerId,
             Enabled = enabled,
-            DiscoveryStrategy = "Dynamic",
-            RecipeRootUrl = "https://example.com/recipes",
-            BatchSize = 10,
-            TimeWindowMinutes = 10,
-            MinDelaySeconds = 2,
-            MaxRequestsPerMinute = 10,
-            RetryCount = 3,
-            RequestTimeoutSeconds = 30,
+            Endpoint = new EndpointInfoDocument { RecipeRootUrl = "https://example.com/recipes" },
+            Discovery = new DiscoveryConfigDocument { Strategy = "Dynamic" },
+            Batching = new BatchingConfigDocument { BatchSize = 10, TimeWindowMinutes = 10 },
+            RateLimit = new RateLimitConfigDocument { MinDelaySeconds = 2, MaxRequestsPerMinute = 10, RetryCount = 3, RequestTimeoutSeconds = 30 },
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
