@@ -1,25 +1,20 @@
 using EasyMeals.RecipeEngine.Application.Interfaces;
-using EasyMeals.RecipeEngine.Application.Sagas;
 using EasyMeals.RecipeEngine.Domain.Entities;
 using EasyMeals.RecipeEngine.Domain.Events;
-using DomainInterfaces = EasyMeals.RecipeEngine.Domain.Interfaces;
 using EasyMeals.RecipeEngine.Domain.Repositories;
 using EasyMeals.RecipeEngine.Domain.ValueObjects;
 using EasyMeals.RecipeEngine.Domain.ValueObjects.Discovery;
 using EasyMeals.RecipeEngine.Domain.ValueObjects.Provider;
-using EasyMeals.RecipeEngine.Domain.ValueObjects.Fingerprint;
-using EasyMeals.RecipeEngine.Infrastructure.Documents;
-using EasyMeals.RecipeEngine.Infrastructure.Repositories;
-using EasyMeals.RecipeEngine.Infrastructure.Services;
 using EasyMeals.RecipeEngine.Infrastructure.Extraction;
-using EasyMeals.Shared.Data.Repositories;
-using Shouldly;
+using EasyMeals.RecipeEngine.Infrastructure.Repositories;
 using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
 using Moq;
+using Shouldly;
 using Testcontainers.MongoDb;
+using DomainInterfaces = EasyMeals.RecipeEngine.Domain.Interfaces;
 
-namespace EasyMeals.RecipeEngine.Tests.Integration;
+namespace EasyMeals.RecipeEngine.Tests.Integration.RecipeProcessingSaga;
 
 /// <summary>
 ///     End-to-end integration tests for RecipeProcessingSaga.
@@ -229,8 +224,8 @@ public class RecipeProcessingSagaEndToEndTests : IAsyncLifetime
             .ReturnsAsync(false);
 
         // Create saga with real repositories and services
-        var saga = new RecipeProcessingSaga(
-            Mock.Of<ILogger<RecipeProcessingSaga>>(),
+        var saga = new Application.Sagas.RecipeProcessingSaga(
+            Mock.Of<ILogger<Application.Sagas.RecipeProcessingSaga>>(),
             _sagaRepository!,
             mockConfigLoader.Object,
             mockFactory.Object,
@@ -384,8 +379,8 @@ public class RecipeProcessingSagaEndToEndTests : IAsyncLifetime
         mockFingerprinter.Setup(f => f.IsDuplicateAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
 
-        var saga = new RecipeProcessingSaga(
-            Mock.Of<ILogger<RecipeProcessingSaga>>(),
+        var saga = new Application.Sagas.RecipeProcessingSaga(
+            Mock.Of<ILogger<Application.Sagas.RecipeProcessingSaga>>(),
             _sagaRepository!,
             mockConfigLoader.Object,
             mockFactory.Object,

@@ -1,18 +1,17 @@
 using EasyMeals.RecipeEngine.Application.Interfaces;
-using EasyMeals.RecipeEngine.Application.Sagas;
 using EasyMeals.RecipeEngine.Domain.Entities;
-using DomainInterfaces = EasyMeals.RecipeEngine.Domain.Interfaces;
 using EasyMeals.RecipeEngine.Domain.Repositories;
 using EasyMeals.RecipeEngine.Domain.ValueObjects;
 using EasyMeals.RecipeEngine.Domain.ValueObjects.Discovery;
 using EasyMeals.RecipeEngine.Infrastructure.Repositories;
-using Shouldly;
 using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
 using Moq;
+using Shouldly;
 using Testcontainers.MongoDb;
+using DomainInterfaces = EasyMeals.RecipeEngine.Domain.Interfaces;
 
-namespace EasyMeals.RecipeEngine.Tests.Integration;
+namespace EasyMeals.RecipeEngine.Tests.Integration.RecipeProcessingSaga;
 
 /// <summary>
 ///     Integration tests for the complete batch processing workflow.
@@ -91,8 +90,8 @@ public class RecipeProcessingWorkflowTests : IAsyncLifetime
         mockFactory.Setup(f => f.CreateDiscoveryService(mockConfig.DiscoveryStrategy))
             .Returns(mockDiscoveryService.Object);
 
-        var saga = new RecipeProcessingSaga(
-            Mock.Of<ILogger<RecipeProcessingSaga>>(),
+        var saga = new Application.Sagas.RecipeProcessingSaga(
+            Mock.Of<ILogger<Application.Sagas.RecipeProcessingSaga>>(),
             _sagaRepository!,
             mockConfigLoader.Object,
             mockFactory.Object,
@@ -182,8 +181,8 @@ public class RecipeProcessingWorkflowTests : IAsyncLifetime
         var mockFactory = new Mock<IDiscoveryServiceFactory>();
         mockFactory.Setup(f => f.CreateDiscoveryService(mockConfig.DiscoveryStrategy))
             .Returns(mockDiscoveryService.Object);
-        var saga = new RecipeProcessingSaga(
-            Mock.Of<ILogger<RecipeProcessingSaga>>(),
+        var saga = new Application.Sagas.RecipeProcessingSaga(
+            Mock.Of<ILogger<Application.Sagas.RecipeProcessingSaga>>(),
             _sagaRepository!,
             mockConfigLoader.Object,
             mockFactory.Object,
@@ -219,8 +218,8 @@ public class RecipeProcessingWorkflowTests : IAsyncLifetime
         var mockFactory = new Mock<IDiscoveryServiceFactory>();
         mockFactory.Setup(f => f.CreateDiscoveryService(It.IsAny<DiscoveryStrategy>()))
             .Returns(Mock.Of<DomainInterfaces.IDiscoveryService>());
-        var saga = new RecipeProcessingSaga(
-            Mock.Of<ILogger<RecipeProcessingSaga>>(),
+        var saga = new Application.Sagas.RecipeProcessingSaga(
+            Mock.Of<ILogger<Application.Sagas.RecipeProcessingSaga>>(),
             _sagaRepository!,
             mockConfigLoader.Object,
             mockFactory.Object,
@@ -285,8 +284,8 @@ public class RecipeProcessingWorkflowTests : IAsyncLifetime
         var mockFactory = new Mock<IDiscoveryServiceFactory>();
         mockFactory.Setup(f => f.CreateDiscoveryService(mockConfig.DiscoveryStrategy))
             .Returns(mockDiscoveryService.Object);
-        var saga = new RecipeProcessingSaga(
-            Mock.Of<ILogger<RecipeProcessingSaga>>(),
+        var saga = new Application.Sagas.RecipeProcessingSaga(
+            Mock.Of<ILogger<Application.Sagas.RecipeProcessingSaga>>(),
             _sagaRepository!,
             mockConfigLoader.Object,
             mockFactory.Object,
