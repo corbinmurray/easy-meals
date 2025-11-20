@@ -18,27 +18,22 @@ public class RecipeExtractorService(ILogger<RecipeExtractorService> logger) : IR
     private readonly ILogger<RecipeExtractorService> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
     /// <summary>
-    ///     Extracts a structured recipe from a fingerprint containing HTML content.
+    ///     Extracts a structured recipe from raw HTML content.
     ///     Uses JSON-LD structured data (schema.org Recipe) as primary strategy,
     ///     with HTML parsing as fallback.
     /// </summary>
-    public async Task<Recipe?> ExtractRecipeAsync(Fingerprint fingerprint, CancellationToken cancellationToken = default)
+    public async Task<Recipe?> ExtractRecipeAsync(string rawContent, Fingerprint fingerprint, CancellationToken cancellationToken = default)
     {
+        if (string.IsNullOrWhiteSpace(rawContent))
+            throw new ArgumentException("Raw content is required", nameof(rawContent));
+
         if (fingerprint == null)
             throw new ArgumentNullException(nameof(fingerprint));
-
-        if (string.IsNullOrEmpty(fingerprint.RawContent))
-        {
-            _logger.LogWarning(
-                "Fingerprint {FingerprintId} has no raw content to extract from",
-                fingerprint.Id);
-            return null;
-        }
 
         try
         {
             var doc = new HtmlDocument();
-            doc.LoadHtml(fingerprint.RawContent);
+            doc.LoadHtml(rawContent);
 
             // Strategy 1: Try to extract from JSON-LD structured data
             Recipe? recipe = await ExtractFromJsonLdAsync(doc, fingerprint, cancellationToken);
@@ -82,18 +77,18 @@ public class RecipeExtractorService(ILogger<RecipeExtractorService> logger) : IR
     }
 
     /// <summary>
-    ///     Determines if a fingerprint contains extractable recipe content by checking for
+    ///     Determines if raw content contains extractable recipe content by checking for
     ///     common recipe indicators (JSON-LD, meta tags, semantic markup).
     /// </summary>
-    public bool CanExtractRecipe(Fingerprint fingerprint)
+    public bool CanExtractRecipe(string rawContent)
     {
-        if (fingerprint == null || string.IsNullOrEmpty(fingerprint.RawContent))
+        if (string.IsNullOrWhiteSpace(rawContent))
             return false;
 
         try
         {
             var doc = new HtmlDocument();
-            doc.LoadHtml(fingerprint.RawContent);
+            doc.LoadHtml(rawContent);
 
             // Check for JSON-LD Recipe schema
             var jsonLdNodes = doc.DocumentNode.SelectNodes("//script[@type='application/ld+json']");
@@ -135,8 +130,7 @@ public class RecipeExtractorService(ILogger<RecipeExtractorService> logger) : IR
         {
             _logger.LogWarning(
                 ex,
-                "Error checking if fingerprint {FingerprintId} can extract recipe: {ErrorMessage}",
-                fingerprint.Id,
+                "Error checking if raw content can extract recipe: {ErrorMessage}",
                 ex.Message);
             return false;
         }
@@ -145,15 +139,15 @@ public class RecipeExtractorService(ILogger<RecipeExtractorService> logger) : IR
     /// <summary>
     ///     Gets extraction confidence score based on the presence and quality of recipe indicators.
     /// </summary>
-    public decimal GetExtractionConfidence(Fingerprint fingerprint)
+    public decimal GetExtractionConfidence(string rawContent)
     {
-        if (fingerprint == null || string.IsNullOrEmpty(fingerprint.RawContent))
+        if (string.IsNullOrWhiteSpace(rawContent))
             return 0.0m;
 
         try
         {
             var doc = new HtmlDocument();
-            doc.LoadHtml(fingerprint.RawContent);
+            doc.LoadHtml(rawContent);
 
             decimal confidence = 0.0m;
 
@@ -205,8 +199,7 @@ public class RecipeExtractorService(ILogger<RecipeExtractorService> logger) : IR
         {
             _logger.LogWarning(
                 ex,
-                "Error calculating extraction confidence for fingerprint {FingerprintId}: {ErrorMessage}",
-                fingerprint.Id,
+                "Error calculating extraction confidence for raw content: {ErrorMessage}",
                 ex.Message);
             return 0.0m;
         }

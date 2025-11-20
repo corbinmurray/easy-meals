@@ -1,36 +1,41 @@
-using System.Text.RegularExpressions;
+using EasyMeals.RecipeEngine.Domain.ValueObjects.Provider;
 
 namespace EasyMeals.RecipeEngine.Domain.ValueObjects;
 
 /// <summary>
 ///     Immutable value object representing provider-specific configuration.
 ///     Loaded from MongoDB at runtime for security (URLs never committed to GitHub).
+///     Refactored to use nested value objects for better organization and extensibility.
 /// </summary>
 public class ProviderConfiguration
 {
     public string ProviderId { get; }
     public bool Enabled { get; }
-    public DiscoveryStrategy DiscoveryStrategy { get; }
-    public string RecipeRootUrl { get; }
-    public int BatchSize { get; }
-    public TimeSpan TimeWindow { get; }
-    public TimeSpan MinDelay { get; }
-    public int MaxRequestsPerMinute { get; }
-    public int RetryCount { get; }
-    public TimeSpan RequestTimeout { get; }
+    public EndpointInfo Endpoint { get; }
+    public DiscoveryConfig Discovery { get; }
+    public BatchingConfig Batching { get; }
+    public RateLimitConfig RateLimit { get; }
 
-    /// <summary>
-    ///     Optional regex pattern to identify recipe URLs for this provider.
-    ///     If not provided, discovery service will use default patterns.
-    /// </summary>
-    public string? RecipeUrlPattern { get; }
+    public ProviderConfiguration(
+        string providerId,
+        bool enabled,
+        EndpointInfo endpoint,
+        DiscoveryConfig discovery,
+        BatchingConfig batching,
+        RateLimitConfig rateLimit)
+    {
+        if (string.IsNullOrWhiteSpace(providerId))
+            throw new ArgumentException("ProviderId is required", nameof(providerId));
 
-    /// <summary>
-    ///     Optional regex pattern to identify category/listing URLs for this provider.
-    ///     If not provided, discovery service will use default patterns.
-    /// </summary>
-    public string? CategoryUrlPattern { get; }
+        ProviderId = providerId;
+        Enabled = enabled;
+        Endpoint = endpoint ?? throw new ArgumentNullException(nameof(endpoint));
+        Discovery = discovery ?? throw new ArgumentNullException(nameof(discovery));
+        Batching = batching ?? throw new ArgumentNullException(nameof(batching));
+        RateLimit = rateLimit ?? throw new ArgumentNullException(nameof(rateLimit));
+    }
 
+    // Backward compatibility constructor for existing code
     public ProviderConfiguration(
         string providerId,
         bool enabled,
@@ -44,75 +49,27 @@ public class ProviderConfiguration
         int requestTimeoutSeconds,
         string? recipeUrlPattern = null,
         string? categoryUrlPattern = null)
+        : this(
+            providerId,
+            enabled,
+            new EndpointInfo(recipeRootUrl),
+            new DiscoveryConfig(discoveryStrategy, recipeUrlPattern, categoryUrlPattern),
+            new BatchingConfig(batchSize, timeWindowMinutes),
+            new RateLimitConfig(minDelaySeconds, maxRequestsPerMinute, retryCount, requestTimeoutSeconds))
     {
-        if (string.IsNullOrWhiteSpace(providerId))
-            throw new ArgumentException("ProviderId is required", nameof(providerId));
-
-        if (string.IsNullOrWhiteSpace(recipeRootUrl))
-            throw new ArgumentException("RecipeRootUrl is required", nameof(recipeRootUrl));
-
-        if (!Uri.IsWellFormedUriString(recipeRootUrl, UriKind.Absolute))
-            throw new ArgumentException("RecipeRootUrl must be a valid absolute URL", nameof(recipeRootUrl));
-
-        if (!recipeRootUrl.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
-            throw new ArgumentException("RecipeRootUrl must use HTTPS", nameof(recipeRootUrl));
-
-        if (batchSize <= 0)
-            throw new ArgumentException("BatchSize must be positive", nameof(batchSize));
-
-        if (timeWindowMinutes <= 0)
-            throw new ArgumentException("TimeWindow must be positive", nameof(timeWindowMinutes));
-
-        if (minDelaySeconds < 0)
-            throw new ArgumentException("MinDelay cannot be negative", nameof(minDelaySeconds));
-
-        if (maxRequestsPerMinute <= 0)
-            throw new ArgumentException("MaxRequestsPerMinute must be positive", nameof(maxRequestsPerMinute));
-
-        if (retryCount < 0)
-            throw new ArgumentException("RetryCount cannot be negative", nameof(retryCount));
-
-        if (requestTimeoutSeconds <= 0)
-            throw new ArgumentException("RequestTimeout must be positive", nameof(requestTimeoutSeconds));
-
-        // Validate regex patterns if provided
-        if (!string.IsNullOrWhiteSpace(recipeUrlPattern))
-        {
-            try
-            {
-                _ = new Regex(recipeUrlPattern, RegexOptions.Compiled | RegexOptions.IgnoreCase, TimeSpan.FromSeconds(1));
-            }
-            catch (Exception ex)
-            {
-                throw new ArgumentException($"RecipeUrlPattern is not a valid regex: {ex.Message}", nameof(recipeUrlPattern), ex);
-            }
-        }
-
-        if (!string.IsNullOrWhiteSpace(categoryUrlPattern))
-        {
-            try
-            {
-                _ = new Regex(categoryUrlPattern, RegexOptions.Compiled | RegexOptions.IgnoreCase, TimeSpan.FromSeconds(1));
-            }
-            catch (Exception ex)
-            {
-                throw new ArgumentException($"CategoryUrlPattern is not a valid regex: {ex.Message}", nameof(categoryUrlPattern), ex);
-            }
-        }
-
-        ProviderId = providerId;
-        Enabled = enabled;
-        DiscoveryStrategy = discoveryStrategy;
-        RecipeRootUrl = recipeRootUrl;
-        BatchSize = batchSize;
-        TimeWindow = TimeSpan.FromMinutes(timeWindowMinutes);
-        MinDelay = TimeSpan.FromSeconds(minDelaySeconds);
-        MaxRequestsPerMinute = maxRequestsPerMinute;
-        RetryCount = retryCount;
-        RequestTimeout = TimeSpan.FromSeconds(requestTimeoutSeconds);
-        RecipeUrlPattern = recipeUrlPattern;
-        CategoryUrlPattern = categoryUrlPattern;
     }
+
+    // Convenience properties for backward compatibility
+    public DiscoveryStrategy DiscoveryStrategy => Discovery.Strategy;
+    public string RecipeRootUrl => Endpoint.RecipeRootUrl;
+    public int BatchSize => Batching.BatchSize;
+    public TimeSpan TimeWindow => Batching.TimeWindow;
+    public TimeSpan MinDelay => RateLimit.MinDelay;
+    public int MaxRequestsPerMinute => RateLimit.MaxRequestsPerMinute;
+    public int RetryCount => RateLimit.RetryCount;
+    public TimeSpan RequestTimeout => RateLimit.RequestTimeout;
+    public string? RecipeUrlPattern => Discovery.RecipeUrlPattern;
+    public string? CategoryUrlPattern => Discovery.CategoryUrlPattern;
 
     public override bool Equals(object? obj) => obj is ProviderConfiguration other && ProviderId == other.ProviderId;
 
