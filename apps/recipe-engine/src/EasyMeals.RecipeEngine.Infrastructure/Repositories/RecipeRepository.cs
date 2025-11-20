@@ -28,7 +28,7 @@ public sealed class RecipeRepository(IMongoDatabase database, IClientSessionHand
 	public async Task SaveAsync(Recipe recipe, CancellationToken cancellationToken = default)
 	{
 		RecipeDocument document = ToDocument(recipe);
-		await ReplaceOneAsync(d => d.Id == recipe.Id.ToString(), document, cancellationToken: cancellationToken);
+		await ReplaceOneAsync(d => d.Id == recipe.Id.ToString(), document, upsert: true, cancellationToken: cancellationToken);
 	}
 
 	public async Task SaveBatchAsync(IReadOnlyList<Recipe> recipes, CancellationToken cancellationToken = default)

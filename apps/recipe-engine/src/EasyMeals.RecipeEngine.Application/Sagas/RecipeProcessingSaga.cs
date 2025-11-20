@@ -392,7 +392,7 @@ public class RecipeProcessingSaga(
 						fingerprintMetadata);
 
 					// Step 3: Extract recipe data using recipe extractor
-					Recipe? recipe = await recipeExtractor.ExtractRecipeAsync(fingerprint, cancellationToken);
+					Recipe? recipe = await recipeExtractor.ExtractRecipeAsync(htmlContent, fingerprint, cancellationToken);
 
 					if (recipe == null)
 					{
