@@ -1,5 +1,4 @@
 using EasyMeals.Persistence.Mongo.Options;
-using Microsoft.Extensions.Options;
 using MongoDB.Driver;
 
 namespace EasyMeals.Persistence.Mongo;
@@ -11,15 +10,15 @@ public sealed class MongoContext : IMongoContext
 {
 	private readonly IMongoClient _client;
 
-	public MongoContext(IMongoClient client, IOptions<MongoDbOptions> options)
+	public MongoContext(IMongoClient client, MongoDbOptions options)
 	{
 		_client = client ?? throw new ArgumentNullException(nameof(client));
-		MongoDbOptions opts = options?.Value ?? throw new ArgumentNullException(nameof(options));
+		ArgumentNullException.ThrowIfNull(options);
 
-		if (string.IsNullOrWhiteSpace(opts.DatabaseName))
+		if (string.IsNullOrWhiteSpace(options.DatabaseName))
 			throw new ArgumentException("Database name must be provided in MongoDbOptions.", nameof(options));
 
-		Database = _client.GetDatabase(opts.DatabaseName);
+		Database = _client.GetDatabase(options.DatabaseName);
 	}
 
 	/// <inheritdoc />
@@ -35,10 +34,10 @@ public sealed class MongoContext : IMongoContext
 	/// <inheritdoc />
 	public Task<IClientSessionHandle> StartSessionAsync(CancellationToken ct = default) => _client.StartSessionAsync(cancellationToken: ct);
 
-    /// <summary>
-    ///     Gets the collection name for a type using pluralization convention.
-    /// </summary>
-    private static string GetCollectionName<T>()
+	/// <summary>
+	///     Gets the collection name for a type using pluralization convention.
+	/// </summary>
+	private static string GetCollectionName<T>()
 	{
 		string typeName = typeof(T).Name;
 
