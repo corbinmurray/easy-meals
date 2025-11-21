@@ -1,0 +1,44 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Persistence", "Persistence", "{662BE531-CCE7-4DC6-8AAB-E47C9D445522}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EasyMeals.Persistence.Abstractions", "EasyMeals.Persistence.Abstractions\EasyMeals.Persistence.Abstractions.csproj", "{A120975C-4A5E-4830-A4F6-BF022B409E01}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EasyMeals.Persistence.Mongo", "EasyMeals.Persistence.Mongo\EasyMeals.Persistence.Mongo.csproj", "{1995EF70-7A11-4FC8-B792-91C908744DAB}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EasyMeals.Platform", "EasyMeals.Platform\EasyMeals.Platform.csproj", "{3C5273C1-12A3-47EF-A805-BA488341DEA0}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Platform", "Platform", "{491F57B5-70FE-4E44-A0CD-60E0831BDBB4}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EasyMeals.Platform.Abstractions", "EasyMeals.Platform.Abstractions\EasyMeals.Platform.Abstractions.csproj", "{495D3DB2-D0D7-43C3-85BF-C14EFEB3ED9A}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{A120975C-4A5E-4830-A4F6-BF022B409E01}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A120975C-4A5E-4830-A4F6-BF022B409E01}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A120975C-4A5E-4830-A4F6-BF022B409E01}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A120975C-4A5E-4830-A4F6-BF022B409E01}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1995EF70-7A11-4FC8-B792-91C908744DAB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1995EF70-7A11-4FC8-B792-91C908744DAB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1995EF70-7A11-4FC8-B792-91C908744DAB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1995EF70-7A11-4FC8-B792-91C908744DAB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3C5273C1-12A3-47EF-A805-BA488341DEA0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3C5273C1-12A3-47EF-A805-BA488341DEA0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3C5273C1-12A3-47EF-A805-BA488341DEA0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3C5273C1-12A3-47EF-A805-BA488341DEA0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{495D3DB2-D0D7-43C3-85BF-C14EFEB3ED9A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{495D3DB2-D0D7-43C3-85BF-C14EFEB3ED9A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{495D3DB2-D0D7-43C3-85BF-C14EFEB3ED9A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{495D3DB2-D0D7-43C3-85BF-C14EFEB3ED9A}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{A120975C-4A5E-4830-A4F6-BF022B409E01} = {662BE531-CCE7-4DC6-8AAB-E47C9D445522}
+		{1995EF70-7A11-4FC8-B792-91C908744DAB} = {662BE531-CCE7-4DC6-8AAB-E47C9D445522}
+		{3C5273C1-12A3-47EF-A805-BA488341DEA0} = {491F57B5-70FE-4E44-A0CD-60E0831BDBB4}
+		{495D3DB2-D0D7-43C3-85BF-C14EFEB3ED9A} = {491F57B5-70FE-4E44-A0CD-60E0831BDBB4}
+	EndGlobalSection
+EndGlobal
