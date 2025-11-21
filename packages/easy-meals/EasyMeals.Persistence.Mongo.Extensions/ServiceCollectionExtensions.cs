@@ -97,7 +97,7 @@ public static class ServiceCollectionExtensions
 			MongoDbOptions options = sp.GetRequiredService<IOptions<MongoDbOptions>>().Value;
 			return new MongoContext(client, options);
 		});
-		services.AddScoped<IUnitOfWork, MongoUnitOfWork>();
+		services.AddScoped<IMongoUnitOfWork, MongoUnitOfWork>();
 
 		// Build and configure repositories using fluent builder
 		var builder = new MongoRepositoryBuilder(services);

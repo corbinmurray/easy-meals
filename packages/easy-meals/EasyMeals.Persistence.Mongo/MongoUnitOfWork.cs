@@ -4,9 +4,16 @@ using MongoDB.Driver;
 namespace EasyMeals.Persistence.Mongo;
 
 /// <summary>
+///     Marker interface for MongoDB Unit of Work implementations.
+/// </summary>
+public interface IMongoUnitOfWork : IUnitOfWork
+{
+}
+
+/// <summary>
 ///     MongoDB implementation of the Unit of Work pattern for transaction management.
 /// </summary>
-public sealed class MongoUnitOfWork(IMongoContext context) : IUnitOfWork
+public sealed class MongoUnitOfWork(IMongoContext context) : IMongoUnitOfWork
 {
 	private readonly IMongoContext _context = context ?? throw new ArgumentNullException(nameof(context));
 	private bool _disposed;
