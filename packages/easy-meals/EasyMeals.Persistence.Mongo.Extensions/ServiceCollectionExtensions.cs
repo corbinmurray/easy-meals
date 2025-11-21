@@ -19,7 +19,6 @@ public static class ServiceCollectionExtensions
 	/// </summary>
 	/// <param name="services">The service collection.</param>
 	/// <param name="configuration">The configuration to bind MongoDB options from.</param>
-	/// <param name="sectionName">The configuration section name (default: "MongoDB").</param>
 	/// <returns>The service collection for chaining.</returns>
 	public static IServiceCollection AddEasyMealsMongo(
 		this IServiceCollection services,
