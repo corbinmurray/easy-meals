@@ -1,0 +1,33 @@
+<Project>
+    <!-- Enable Central Package Management -->
+    <PropertyGroup>
+        <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <!-- Microsoft.Extensions.* Packages - Using latest stable version (10.0.0 for .NET 10) -->
+        <PackageVersion Include="Microsoft.Extensions.Configuration.Abstractions" Version="10.0.0" />
+        <PackageVersion Include="Microsoft.Extensions.Configuration.Binder" Version="10.0.0" />
+        <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="10.0.0" />
+        <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions"
+            Version="10.0.0" />
+        <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="10.0.0" />
+        <PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.0" />
+        <PackageVersion Include="Microsoft.Extensions.Http" Version="10.0.0" />
+        <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.0" />
+        <PackageVersion Include="Microsoft.Extensions.Options" Version="10.0.0" />
+        <PackageVersion Include="Microsoft.Extensions.Options.ConfigurationExtensions"
+            Version="10.0.0" />
+        <PackageVersion Include="Microsoft.Extensions.Options.DataAnnotations" Version="10.0.0" />
+
+        <!-- MongoDB - Using latest version (3.5.1) -->
+        <PackageVersion Include="MongoDB.Driver" Version="3.5.1" />
+
+        <!-- ASP.NET Core Packages -->
+        <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.0" />
+
+        <!-- Third-party Packages -->
+        <PackageVersion Include="Swashbuckle.AspNetCore" Version="7.2.0" />
+        <PackageVersion Include="Testcontainers.MongoDb" Version="4.3.0" />
+    </ItemGroup>
+</Project>

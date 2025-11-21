@@ -20,19 +20,7 @@ public static class ServiceCollectionExtensions
 	/// <returns>Service collection for chaining</returns>
 	public static IServiceCollection AddRecipeEngineInfrastructure(this IServiceCollection services, IConfiguration configuration)
 	{
-		// Add MongoDB data services using shared options pattern with shared database
-		services
-			.AddEasyMealsDataWithOptions(options =>
-			{
-				options.ApplicationName = "EasyMeals.RecipeEngine";
-				options.HealthCheckTags = ["recipe-engine", "database", "mongodb"];
-				options.EnableDetailedLogging = true;
-			})
-			.ConfigureEasyMealsRepositories()
-			.AddSharedRepository<IRecipeRepository>()
-			.WithDefaultIndexes()
-			.EnsureDatabaseAsync();
-
+		
 		return services;
 	}
 }

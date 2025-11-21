@@ -7,12 +7,12 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="MongoDB.Driver" Version="3.5.1"/>
+        <PackageReference Include="MongoDB.Driver" />
     </ItemGroup>
 
     <ItemGroup>
         <ProjectReference
-                Include="..\EasyMeals.Persistence.Abstractions\EasyMeals.Persistence.Abstractions.csproj"/>
+            Include="..\EasyMeals.Persistence.Abstractions\EasyMeals.Persistence.Abstractions.csproj" />
     </ItemGroup>
 
 </Project>
