@@ -21,19 +21,19 @@ public sealed class Recipe
 	/// <param name="title">Recipe title (required, max 200 characters)</param>
 	/// <param name="description">Recipe description</param>
 	/// <param name="sourceUrl">Original source URL (required)</param>
-	/// <param name="sourceProvider">Source provider name</param>
+	/// <param name="providerName">Source provider name</param>
 	public Recipe(
 		Guid id,
 		string title,
 		string description,
 		string sourceUrl,
-		string sourceProvider)
+		string providerName)
 	{
 		Id = id;
 		Title = ValidateTitle(title);
 		Description = description ?? string.Empty;
 		SourceUrl = ValidateSourceUrl(sourceUrl);
-		SourceProvider = sourceProvider ?? string.Empty;
+		ProviderName = providerName ?? string.Empty;
 
 		_ingredients = new List<Ingredient>();
 		_instructions = new List<Instruction>();
@@ -96,7 +96,7 @@ public sealed class Recipe
 	public string SourceUrl { get; private set; } = string.Empty;
 
 	/// <summary>Source provider name</summary>
-	public string SourceProvider { get; private set; } = string.Empty;
+	public string ProviderName { get; private set; } = string.Empty;
 
 	/// <summary>Whether recipe is active/published</summary>
 	public bool IsActive { get; private set; }

@@ -1,5 +1,3 @@
-using EasyMeals.Shared.Data.DependencyInjection;
-using EasyMeals.Shared.Data.Repositories.Recipe;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 

@@ -20,14 +20,14 @@ public sealed class Fingerprint
 	/// <param name="id">Unique identifier for the fingerprint</param>
 	/// <param name="url">URL that was scraped (required)</param>
 	/// <param name="rawContent">Raw scraped content (required)</param>
-	/// <param name="sourceProvider">Source provider name (required)</param>
+	/// <param name="providerName">Source provider name (required)</param>
 	/// <param name="quality">Quality assessment of scraped content</param>
 	/// <param name="metadata">Additional metadata about the scraping operation</param>
 	public Fingerprint(
 		Guid id,
 		string url,
 		string rawContent,
-		string sourceProvider,
+		string providerName,
 		ScrapingQuality quality = ScrapingQuality.Good,
 		Dictionary<string, object>? metadata = null)
 	{
@@ -35,7 +35,7 @@ public sealed class Fingerprint
 		Url = ValidateUrl(url);
 		RawContent = ValidateRawContent(rawContent);
 		ContentHash = ComputeContentHash(rawContent);
-		SourceProvider = ValidateSourceProvider(sourceProvider);
+		ProviderName = ValidateProviderName(providerName);
 		Quality = quality;
 		Status = FingerprintStatus.Success;
 
@@ -47,7 +47,7 @@ public sealed class Fingerprint
 		_metadata = metadata != null ? new Dictionary<string, object>(metadata) : new Dictionary<string, object>();
 		_domainEvents = new List<IDomainEvent>();
 
-		AddDomainEvent(new FingerprintCreatedEvent(Id, Url, SourceProvider, Quality, ContentHash));
+		AddDomainEvent(new FingerprintCreatedEvent(Id, Url, ProviderName, Quality, ContentHash));
 	}
 
 	/// <summary>
@@ -55,19 +55,19 @@ public sealed class Fingerprint
 	/// </summary>
 	/// <param name="id">Unique identifier for the fingerprint</param>
 	/// <param name="url">URL that failed to scrape (required)</param>
-	/// <param name="sourceProvider">Source provider name (required)</param>
+	/// <param name="providerName">Source provider name (required)</param>
 	/// <param name="errorMessage">Error message describing the failure (required)</param>
 	/// <param name="metadata">Additional metadata about the scraping operation</param>
 	public Fingerprint(
 		Guid id,
 		string url,
-		string sourceProvider,
+		string providerName,
 		string errorMessage,
 		Dictionary<string, object>? metadata = null)
 	{
 		Id = id;
 		Url = ValidateUrl(url);
-		SourceProvider = ValidateSourceProvider(sourceProvider);
+		ProviderName = ValidateProviderName(providerName);
 		ErrorMessage = ValidateErrorMessage(errorMessage);
 
 		ContentHash = string.Empty;
@@ -82,7 +82,7 @@ public sealed class Fingerprint
 		_metadata = metadata != null ? new Dictionary<string, object>(metadata) : new Dictionary<string, object>();
 		_domainEvents = new List<IDomainEvent>();
 
-		AddDomainEvent(new ScrapingFailedEvent(Id, Url, SourceProvider, ErrorMessage));
+		AddDomainEvent(new ScrapingFailedEvent(Id, Url, ProviderName, ErrorMessage));
 	}
 
 	// Private constructor for reconstitution from persistence
@@ -110,7 +110,7 @@ public sealed class Fingerprint
 	public DateTime ScrapedAt { get; private set; }
 
 	/// <summary>Source provider name</summary>
-	public string SourceProvider { get; private set; } = string.Empty;
+	public string ProviderName { get; private set; } = string.Empty;
 
 	/// <summary>Current status of the scraping operation</summary>
 	public FingerprintStatus Status { get; private set; }
@@ -218,7 +218,7 @@ public sealed class Fingerprint
 				Url,
 				previous.ContentHash,
 				ContentHash,
-				SourceProvider));
+				ProviderName));
 		}
 
 		return hasChanged;
@@ -293,7 +293,7 @@ public sealed class Fingerprint
 		ScrapedAt = DateTime.UtcNow;
 		UpdatedAt = DateTime.UtcNow;
 
-		AddDomainEvent(new FingerprintCreatedEvent(Id, Url, SourceProvider, Quality, ContentHash));
+		AddDomainEvent(new FingerprintCreatedEvent(Id, Url, ProviderName, Quality, ContentHash));
 	}
 
 	/// <summary>
@@ -305,7 +305,7 @@ public sealed class Fingerprint
 		Status = FingerprintStatus.Failed;
 		UpdatedAt = DateTime.UtcNow;
 
-		AddDomainEvent(new ScrapingFailedEvent(Id, Url, SourceProvider, errorMessage));
+		AddDomainEvent(new ScrapingFailedEvent(Id, Url, ProviderName, errorMessage));
 	}
 
 	/// <summary>
@@ -320,7 +320,7 @@ public sealed class Fingerprint
 		ErrorMessage = $"Blocked: {reason}";
 		UpdatedAt = DateTime.UtcNow;
 
-		AddDomainEvent(new ScrapingFailedEvent(Id, Url, SourceProvider, ErrorMessage));
+		AddDomainEvent(new ScrapingFailedEvent(Id, Url, ProviderName, ErrorMessage));
 	}
 
 	/// <summary>
@@ -367,20 +367,20 @@ public sealed class Fingerprint
 	public static Fingerprint CreateSuccess(
 		string url,
 		string contentHash,
-		string sourceProvider,
+		string providerName,
 		ScrapingQuality quality = ScrapingQuality.Good,
 		Dictionary<string, object>? metadata = null) =>
-		new(Guid.NewGuid(), url, contentHash, sourceProvider, quality, metadata);
+		new(Guid.NewGuid(), url, contentHash, providerName, quality, metadata);
 
 	/// <summary>
 	///     Creates a new fingerprint for a failed scraping attempt
 	/// </summary>
 	public static Fingerprint CreateFailure(
 		string url,
-		string sourceProvider,
+		string providerName,
 		string errorMessage,
 		Dictionary<string, object>? metadata = null) =>
-		new(Guid.NewGuid(), url, sourceProvider, errorMessage, metadata);
+		new(Guid.NewGuid(), url, providerName, errorMessage, metadata);
 
 	#endregion
 
@@ -411,15 +411,15 @@ public sealed class Fingerprint
 		return contentHash;
 	}
 
-	private static string ValidateSourceProvider(string sourceProvider)
+	private static string ValidateProviderName(string providerName)
 	{
-		if (string.IsNullOrWhiteSpace(sourceProvider))
-			throw new ArgumentException("Source provider cannot be empty", nameof(sourceProvider));
+		if (string.IsNullOrWhiteSpace(providerName))
+			throw new ArgumentException("Source provider cannot be empty", nameof(providerName));
 
-		if (sourceProvider.Length > 100)
-			throw new ArgumentException("Source provider name cannot exceed 100 characters", nameof(sourceProvider));
+		if (providerName.Length > 100)
+			throw new ArgumentException("Source provider name cannot exceed 100 characters", nameof(providerName));
 
-		return sourceProvider.Trim();
+		return providerName.Trim();
 	}
 
 	private static string ValidateErrorMessage(string errorMessage)

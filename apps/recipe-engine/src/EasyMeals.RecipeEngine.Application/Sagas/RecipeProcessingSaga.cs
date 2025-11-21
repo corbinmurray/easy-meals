@@ -312,7 +312,7 @@ public class RecipeProcessingSaga(
             PublishEvent(new FingerprintCreatedEvent(
                 fingerprint.Id,
                 fingerprint.Url,
-                fingerprint.SourceProvider,
+                fingerprint.ProviderName,
                 fingerprint.Quality,
                 fingerprint.ContentHash));
 
@@ -331,7 +331,7 @@ public class RecipeProcessingSaga(
             PublishEvent(new ScrapingFailedEvent(
                 failedFingerprint.Id,
                 failedFingerprint.Url,
-                failedFingerprint.SourceProvider,
+                failedFingerprint.ProviderName,
                 ex.Message));
 
             return Task.FromResult<Fingerprint?>(failedFingerprint);

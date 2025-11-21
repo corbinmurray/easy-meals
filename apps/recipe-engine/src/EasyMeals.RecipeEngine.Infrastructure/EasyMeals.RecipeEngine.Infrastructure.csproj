@@ -7,12 +7,13 @@
     </PropertyGroup>
     
     <ItemGroup>
-        <ProjectReference
-                Include="..\EasyMeals.RecipeEngine.Application\EasyMeals.RecipeEngine.Application.csproj"/>
-        <ProjectReference
-                Include="..\EasyMeals.RecipeEngine.Domain\EasyMeals.RecipeEngine.Domain.csproj"/>
-        <ProjectReference
-                Include="..\..\..\..\packages\easy-meals\EasyMeals.Persistence.Mongo.Extensions\EasyMeals.Persistence.Mongo.Extensions.csproj"/>
+        <ProjectReference Include="..\EasyMeals.RecipeEngine.Application\EasyMeals.RecipeEngine.Application.csproj" />
+        <ProjectReference Include="..\EasyMeals.RecipeEngine.Domain\EasyMeals.RecipeEngine.Domain.csproj" />
+        <ProjectReference Include="..\..\..\..\packages\easy-meals\EasyMeals.Persistence.Mongo.Extensions\EasyMeals.Persistence.Mongo.Extensions.csproj" />
+    </ItemGroup>
+    
+    <ItemGroup>
+      <Folder Include="Repositories\" />
     </ItemGroup>
 
 </Project>

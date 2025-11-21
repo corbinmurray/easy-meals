@@ -1,5 +1,5 @@
-using EasyMeals.Shared.Data.Attributes;
-using EasyMeals.Shared.Data.Documents;
+using EasyMeals.Persistence.Mongo.Attributes;
+using EasyMeals.Persistence.Mongo.Documents;
 using MongoDB.Bson.Serialization.Attributes;
 
 namespace EasyMeals.RecipeEngine.Infrastructure.Documents.Recipe;
@@ -89,8 +89,8 @@ public class RecipeDocument : BaseSoftDeletableDocument
 	///     Source provider (e.g., "HelloFresh", "AllRecipes", etc.)
 	///     Supports multi-provider architecture and data lineage tracking
 	/// </summary>
-	[BsonElement("sourceProvider")]
-	public string SourceProvider { get; set; } = string.Empty;
+	[BsonElement("providerName")]
+	public string ProviderName { get; set; } = string.Empty;
 
 	/// <summary>
 	///     Indicates if this recipe is active/published
@@ -129,32 +129,4 @@ public class RecipeDocument : BaseSoftDeletableDocument
 	/// </summary>
 	[BsonElement("reviewCount")]
 	public int ReviewCount { get; set; } = 0;
-
-	/// <summary>
-	///     Calculated total time for the recipe
-	///     Business logic exposed as computed property
-	/// </summary>
-	[BsonIgnore]
-	public int TotalTimeMinutes => PrepTimeMinutes + CookTimeMinutes;
-
-	/// <summary>
-	///     Indicates if the recipe has complete nutritional information
-	///     Business logic for data quality validation
-	/// </summary>
-	[BsonIgnore]
-	public bool HasNutritionInfo => NutritionInfo?.Calories.HasValue == true;
-
-	/// <summary>
-	///     Gets ingredient count for quick reference
-	///     Useful for UI display and filtering
-	/// </summary>
-	[BsonIgnore]
-	public int IngredientCount => Ingredients.Count;
-
-	/// <summary>
-	///     Gets instruction step count for quick reference
-	///     Useful for UI display and complexity assessment
-	/// </summary>
-	[BsonIgnore]
-	public int InstructionCount => Instructions.Count;
 }

@@ -1,6 +1,6 @@
+using EasyMeals.Persistence.Mongo.Attributes;
+using EasyMeals.Persistence.Mongo.Documents;
 using EasyMeals.RecipeEngine.Domain.ValueObjects.Fingerprint;
-using EasyMeals.Shared.Data.Attributes;
-using EasyMeals.Shared.Data.Documents;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 
@@ -45,9 +45,9 @@ public class FingerprintDocument : BaseDocument
 	///     Source provider that scraped this content (e.g., "HelloFresh", "Tasty")
 	///     Enables provider-specific processing strategies and audit trails
 	/// </summary>
-	[BsonElement("sourceProvider")]
+	[BsonElement("providerName")]
 	[BsonRequired]
-	public string SourceProvider { get; set; } = string.Empty;
+	public string ProviderName { get; set; } = string.Empty;
 
 	/// <summary>
 	///     Current status of the scraping operation
