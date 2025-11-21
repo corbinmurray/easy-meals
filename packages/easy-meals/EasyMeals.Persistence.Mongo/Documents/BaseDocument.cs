@@ -64,14 +64,14 @@ public abstract class BaseDocument : IEntity, IAuditableEntity, IVersionedEntity
 	///     Incremented on each update to detect concurrent modifications.
 	/// </summary>
 	[BsonElement("__concurrencyToken")]
-	public long ConcurrencyToken { get; set; } = 0;
+	public long ConcurrencyToken { get; set; }
 
 	/// <summary>
 	///     Increments the concurrency token.
 	/// </summary>
 	public void IncrementConcurrencyToken()
 	{
-		throw new NotImplementedException();
+		ConcurrencyToken++;
 	}
 }
 
