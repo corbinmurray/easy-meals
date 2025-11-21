@@ -1,5 +1,5 @@
-﻿using EasyMeals.Persistence.Abstractions;
-using EasyMeals.Persistence.Abstractions.Repositories;
+﻿using EasyMeals.Persistence.Abstractions.Repositories;
+using EasyMeals.Persistence.Mongo.Documents;
 using EasyMeals.Persistence.Mongo.Options;
 using EasyMeals.Persistence.Mongo.Repositories;
 using Microsoft.Extensions.Configuration;
@@ -22,11 +22,47 @@ public static class ServiceCollectionExtensions
 	/// <returns>The service collection for chaining.</returns>
 	public static IServiceCollection AddEasyMealsMongo(
 		this IServiceCollection services,
-		IConfiguration configuration)
+		IConfiguration configuration,
+		Action<MongoRepositoryBuilder>? mongoRepositoryBuilderAction = null)
 	{
-		// Configure options - bind the configuration section to MongoDbOptions
-		services.Configure<MongoDbOptions>(configuration.Bind);
+		services.AddOptions<MongoDbOptions>()
+			.Bind(configuration.GetSection(MongoDbOptions.SectionName))
+			.ValidateDataAnnotations()
+			.ValidateOnStart();
 
+		services.AddCoreMongoServices();
+
+		var builder = new MongoRepositoryBuilder(services);
+		mongoRepositoryBuilderAction?.Invoke(builder);
+		
+		return services;
+	}
+
+	/// <summary>
+	///     Configures MongoDB with custom options.
+	/// </summary>
+	/// <param name="services">The service collection.</param>
+	/// <param name="configureOptions">Action to configure MongoDB options.</param>
+	/// <returns>The service collection for chaining.</returns>
+	public static IServiceCollection AddEasyMealsMongo(
+		this IServiceCollection services,
+		Action<MongoDbOptions> configureOptions)
+	{
+		services.Configure(configureOptions);
+
+		services.AddCoreMongoServices();
+
+		return services;
+	}
+
+	/// <summary>
+	///     Adds core MongoDB services to the service collection.
+	/// </summary>
+	/// <param name="services"></param>
+	/// <returns></returns>
+	/// <exception cref="InvalidOperationException"></exception>
+	private static IServiceCollection AddCoreMongoServices(this IServiceCollection services)
+	{
 		// Register MongoDB client (singleton - connection pooling)
 		services.AddSingleton<IMongoClient>(sp =>
 		{
@@ -47,64 +83,15 @@ public static class ServiceCollectionExtensions
 			return new MongoClient(settings);
 		});
 
-		// Register context and unit of work
-		services.AddScoped<IMongoContext>(sp =>
+		// Register IMongoDatabase as scoped
+		services.AddScoped<IMongoDatabase>(sp =>
 		{
+			MongoDbOptions options = sp.GetRequiredService<IOptions<MongoDbOptions>>().Value;
 			var client = sp.GetRequiredService<IMongoClient>();
-			MongoDbOptions options = sp.GetRequiredService<IOptions<MongoDbOptions>>().Value;
-			return new MongoContext(client, options);
-		});
-		services.AddScoped<IUnitOfWork, MongoUnitOfWork>();
-
-		return services;
-	}
-
-	/// <summary>
-	///     Registers a MongoDB repository for the specified entity type.
-	/// </summary>
-	/// <typeparam name="T">The entity type.</typeparam>
-	/// <param name="services">The service collection.</param>
-	/// <returns>The service collection for chaining.</returns>
-	public static IServiceCollection AddMongoRepository<T>(this IServiceCollection services)
-		where T : class, IEntity
-	{
-		// Register the concrete repository
-		services.AddScoped<MongoRepository<T>>();
-
-		// Register all interface variations pointing to the same instance
-		services.AddScoped<IReadRepository<T, string>>(sp => sp.GetRequiredService<MongoRepository<T>>());
-		services.AddScoped<IWriteRepository<T, string>>(sp => sp.GetRequiredService<MongoRepository<T>>());
-		services.AddScoped<IRepository<T, string>>(sp => sp.GetRequiredService<MongoRepository<T>>());
-
-		return services;
-	}
-
-	/// <summary>
-	///     Configures MongoDB with custom options.
-	/// </summary>
-	/// <param name="services">The service collection.</param>
-	/// <param name="configureOptions">Action to configure MongoDB options.</param>
-	/// <returns>The service collection for chaining.</returns>
-	public static IServiceCollection AddEasyMealsMongo(
-		this IServiceCollection services,
-		Action<MongoDbOptions> configureOptions)
-	{
-		services.Configure(configureOptions);
-
-		// Register MongoDB client
-		services.AddSingleton<IMongoClient>(sp =>
-		{
-			MongoDbOptions options = sp.GetRequiredService<IOptions<MongoDbOptions>>().Value;
-
-			if (string.IsNullOrWhiteSpace(options.ConnectionString)) throw new InvalidOperationException("MongoDB connection string is required.");
-
-			MongoClientSettings? settings = MongoClientSettings.FromConnectionString(options.ConnectionString);
-			settings.MaxConnectionPoolSize = 100;
-			settings.MinConnectionPoolSize = 10;
-
-			return new MongoClient(settings);
+			return client.GetDatabase(options.DatabaseName);
 		});
 
+		// Register context and unit of work
 		services.AddScoped<IMongoContext>(sp =>
 		{
 			var client = sp.GetRequiredService<IMongoClient>();
