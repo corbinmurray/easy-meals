@@ -14,10 +14,10 @@ public sealed class MongoUnitOfWork(IMongoContext context) : IUnitOfWork
 	/// <inheritdoc />
 	public bool HasActiveTransaction => Session?.IsInTransaction ?? false;
 
-    /// <summary>
-    ///     Gets the current session handle, if any.
-    /// </summary>
-    public IClientSessionHandle? Session { get; private set; }
+	/// <summary>
+	///     Gets the current session handle, if any.
+	/// </summary>
+	public IClientSessionHandle? Session { get; private set; }
 
 	/// <inheritdoc />
 	public async Task BeginTransactionAsync(CancellationToken cancellationToken = default)

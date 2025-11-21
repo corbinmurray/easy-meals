@@ -223,9 +223,9 @@ public class MongoRepository<T>(IMongoContext context) : IRepository<T, string>
 	/// </summary>
 	protected virtual FilterDefinition<T> ApplySoftDeleteFilter(FilterDefinition<T> filter)
 	{
-		if (!typeof(ISoftDeletableEntity).IsAssignableFrom(typeof(T))) 
+		if (!typeof(ISoftDeletableEntity).IsAssignableFrom(typeof(T)))
 			return filter;
-		
+
 		FilterDefinition<T>? notDeletedFilter = Builders<T>.Filter.Eq(
 			nameof(ISoftDeletableEntity.IsDeleted),
 			false);
@@ -245,10 +245,10 @@ public class MongoRepository<T>(IMongoContext context) : IRepository<T, string>
 			auditable.UpdatedAt = now;
 		}
 
-		if (entity is IOptimisticConcurrency concurrent) 
+		if (entity is IOptimisticConcurrency concurrent)
 			concurrent.ConcurrencyToken = 0;
 
-		if (entity is IVersionedEntity { Version: 0 } versioned) 
+		if (entity is IVersionedEntity { Version: 0 } versioned)
 			versioned.Version = 1;
 	}
 

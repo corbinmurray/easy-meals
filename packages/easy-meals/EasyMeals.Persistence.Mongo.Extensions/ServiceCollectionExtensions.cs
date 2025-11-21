@@ -52,7 +52,7 @@ public static class ServiceCollectionExtensions
 		services.AddScoped<IMongoContext>(sp =>
 		{
 			var client = sp.GetRequiredService<IMongoClient>();
-			var options = sp.GetRequiredService<IOptions<MongoDbOptions>>().Value;
+			MongoDbOptions options = sp.GetRequiredService<IOptions<MongoDbOptions>>().Value;
 			return new MongoContext(client, options);
 		});
 		services.AddScoped<IUnitOfWork, MongoUnitOfWork>();
@@ -109,7 +109,7 @@ public static class ServiceCollectionExtensions
 		services.AddScoped<IMongoContext>(sp =>
 		{
 			var client = sp.GetRequiredService<IMongoClient>();
-			var options = sp.GetRequiredService<IOptions<MongoDbOptions>>().Value;
+			MongoDbOptions options = sp.GetRequiredService<IOptions<MongoDbOptions>>().Value;
 			return new MongoContext(client, options);
 		});
 		services.AddScoped<IUnitOfWork, MongoUnitOfWork>();
