@@ -18,11 +18,11 @@ public interface IDiscoveryService
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Collection of discovered recipe URLs with metadata</returns>
     Task<IEnumerable<DiscoveredUrl>> DiscoverRecipeUrlsAsync(
-        string baseUrl,
-        string provider,
-        int maxDepth = 3,
-        int maxUrls = 1000,
-        CancellationToken cancellationToken = default);
+		string baseUrl,
+		string provider,
+		int maxDepth = 3,
+		int maxUrls = 1000,
+		CancellationToken cancellationToken = default);
 
     /// <summary>
     ///     Discovers recipe URLs from multiple pages/categories
@@ -33,10 +33,10 @@ public interface IDiscoveryService
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Collection of discovered recipe URLs</returns>
     Task<IEnumerable<DiscoveredUrl>> DiscoverFromSeedUrlsAsync(
-        IEnumerable<string> seedUrls,
-        string provider,
-        DiscoveryOptions discoveryOptions,
-        CancellationToken cancellationToken = default);
+		IEnumerable<string> seedUrls,
+		string provider,
+		DiscoveryOptions discoveryOptions,
+		CancellationToken cancellationToken = default);
 
     /// <summary>
     ///     Checks if a URL is likely to be a recipe page based on provider patterns
@@ -53,6 +53,6 @@ public interface IDiscoveryService
     /// <param name="timeRange">Time range for statistics</param>
     /// <returns>Discovery performance metrics</returns>
     Task<DiscoveryStatistics> GetDiscoveryStatisticsAsync(
-        string provider,
-        TimeRange timeRange);
+		string provider,
+		TimeRange timeRange);
 }

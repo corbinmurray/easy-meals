@@ -1,13 +1,14 @@
-﻿using EasyMeals.RecipeEngine.Domain.ValueObjects.Fingerprint;
+﻿using System.Security.Cryptography;
+using System.Text;
+using EasyMeals.Platform;
+using EasyMeals.RecipeEngine.Domain.ValueObjects.Fingerprint;
 
 namespace EasyMeals.RecipeEngine.Domain.Entities;
 
 /// <summary>
 ///     Fingerprint aggregate root that tracks web scraping operations and content changes
-///     Follows DDD principles with rich domain behavior and proper encapsulation
-///     Enables change detection, deduplication, and scraping audit trails
 /// </summary>
-public sealed class Fingerprint
+public sealed class Fingerprint : AggregateRoot<Guid>
 {
 	private readonly Dictionary<string, object> _metadata;
 
@@ -28,8 +29,8 @@ public sealed class Fingerprint
 		string providerName,
 		ScrapingQuality quality = ScrapingQuality.Good,
 		Dictionary<string, object>? metadata = null)
+		: base(id)
 	{
-		Id = id;
 		Url = ValidateUrl(url);
 		RawContent = ValidateRawContent(rawContent);
 		ContentHash = ComputeContentHash(rawContent);
@@ -38,8 +39,6 @@ public sealed class Fingerprint
 		Status = FingerprintStatus.Success;
 
 		ScrapedAt = DateTime.UtcNow;
-		CreatedAt = DateTime.UtcNow;
-		UpdatedAt = DateTime.UtcNow;
 		RetryCount = 0;
 
 		_metadata = metadata != null ? new Dictionary<string, object>(metadata) : new Dictionary<string, object>();
@@ -59,8 +58,8 @@ public sealed class Fingerprint
 		string providerName,
 		string errorMessage,
 		Dictionary<string, object>? metadata = null)
+		: base(id)
 	{
-		Id = id;
 		Url = ValidateUrl(url);
 		ProviderName = ValidateProviderName(providerName);
 		ErrorMessage = ValidateErrorMessage(errorMessage);
@@ -70,23 +69,15 @@ public sealed class Fingerprint
 		Status = FingerprintStatus.Failed;
 
 		ScrapedAt = DateTime.UtcNow;
-		CreatedAt = DateTime.UtcNow;
-		UpdatedAt = DateTime.UtcNow;
 		RetryCount = 0;
 
 		_metadata = metadata != null ? new Dictionary<string, object>(metadata) : new Dictionary<string, object>();
 	}
 
 	// Private constructor for reconstitution from persistence
-	private Fingerprint()
-	{
-		_metadata = new Dictionary<string, object>();
-	}
+	private Fingerprint() => _metadata = new Dictionary<string, object>();
 
 	#region Properties
-
-	/// <summary>Unique identifier</summary>
-	public Guid Id { get; private set; }
 
 	/// <summary>URL that was scraped</summary>
 	public string Url { get; private set; } = string.Empty;
@@ -123,12 +114,6 @@ public sealed class Fingerprint
 
 	/// <summary>ID of the recipe created from this fingerprint</summary>
 	public Guid? RecipeId { get; private set; }
-
-	/// <summary>Creation timestamp</summary>
-	public DateTime CreatedAt { get; private set; }
-
-	/// <summary>Last update timestamp</summary>
-	public DateTime UpdatedAt { get; private set; }
 
 	#endregion
 
@@ -312,7 +297,7 @@ public sealed class Fingerprint
 
 		return default;
 	}
-	
+
 	#endregion
 
 	#region Factory Methods
@@ -398,8 +383,8 @@ public sealed class Fingerprint
 		if (string.IsNullOrEmpty(content))
 			return string.Empty;
 
-		using var sha256 = System.Security.Cryptography.SHA256.Create();
-		byte[] hashBytes = sha256.ComputeHash(System.Text.Encoding.UTF8.GetBytes(content));
+		using var sha256 = SHA256.Create();
+		byte[] hashBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(content));
 		return Convert.ToHexString(hashBytes).ToLowerInvariant();
 	}
 

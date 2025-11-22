@@ -40,9 +40,9 @@ public abstract class AggregateRoot<TKey> : IAggregateRoot<TKey>
 	public DateTime CreatedAt { get; private set; }
 
 	/// <summary>
-	///     Gets the last updated timestamp of this aggregate root
+	///     Gets or sets the last updated timestamp of this aggregate root
 	/// </summary>
-	public DateTime UpdatedAt { get; private set; }
+	public DateTime UpdatedAt { get; set; }
 
 	/// <summary>
 	///     Explicit interface implementation for IAggregateRoot
@@ -60,14 +60,5 @@ public abstract class AggregateRoot<TKey> : IAggregateRoot<TKey>
 	{
 		get => CreatedAt;
 		set => CreatedAt = value;
-	}
-
-	/// <summary>
-	///     Explicit interface implementation for IAggregateRoot
-	/// </summary>
-	DateTime IAggregateRoot<TKey>.UpdatedAt
-	{
-		get => UpdatedAt;
-		set => UpdatedAt = value;
 	}
 }

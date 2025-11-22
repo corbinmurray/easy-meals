@@ -81,25 +81,49 @@ public sealed record Ingredient
 	/// <summary>
 	///     Creates a copy of this ingredient with new amount and unit
 	/// </summary>
-	public Ingredient WithQuantity(string amount, string unit)
-	{
-		return this with { Amount = ValidateAmount(amount), Unit = ValidateUnit(unit) };
-	}
+	public Ingredient WithQuantity(string amount, string unit) => this with { Amount = ValidateAmount(amount), Unit = ValidateUnit(unit) };
 
 	/// <summary>
 	///     Creates a copy of this ingredient with new notes
 	/// </summary>
-	public Ingredient WithNotes(string? notes)
-	{
-		return this with { Notes = string.IsNullOrWhiteSpace(notes) ? null : notes.Trim() };
-	}
+	public Ingredient WithNotes(string? notes) => this with { Notes = string.IsNullOrWhiteSpace(notes) ? null : notes.Trim() };
 
 	/// <summary>
 	///     Creates a copy of this ingredient with new optional status
 	/// </summary>
-	public Ingredient WithOptional(bool isOptional)
+	public Ingredient WithOptional(bool isOptional) => this with { IsOptional = isOptional };
+
+	/// <summary>
+	///     Common measurement units for validation and standardization
+	/// </summary>
+	public static class CommonUnits
 	{
-		return this with { IsOptional = isOptional };
+		public static readonly string[] VolumeUnits =
+		{
+			"cup", "cups", "tbsp", "tsp", "fl oz", "ml", "l", "pint", "quart", "gallon"
+		};
+
+		public static readonly string[] WeightUnits =
+		{
+			"oz", "lb", "lbs", "g", "kg", "pound", "pounds"
+		};
+
+		public static readonly string[] CountUnits =
+		{
+			"piece", "pieces", "item", "items", "whole", "clove", "cloves", "slice", "slices"
+		};
+
+		/// <summary>
+		///     Gets all common units
+		/// </summary>
+		public static IEnumerable<string> AllUnits =>
+			VolumeUnits.Concat(WeightUnits).Concat(CountUnits);
+
+		/// <summary>
+		///     Checks if a unit is a common/recognized unit
+		/// </summary>
+		public static bool IsCommonUnit(string unit) =>
+			AllUnits.Any(u => string.Equals(u, unit, StringComparison.OrdinalIgnoreCase));
 	}
 
 	#region Validation Methods
@@ -146,37 +170,4 @@ public sealed record Ingredient
 	}
 
 	#endregion
-
-	/// <summary>
-	///     Common measurement units for validation and standardization
-	/// </summary>
-	public static class CommonUnits
-	{
-		public static readonly string[] VolumeUnits =
-		{
-			"cup", "cups", "tbsp", "tsp", "fl oz", "ml", "l", "pint", "quart", "gallon"
-		};
-
-		public static readonly string[] WeightUnits =
-		{
-			"oz", "lb", "lbs", "g", "kg", "pound", "pounds"
-		};
-
-		public static readonly string[] CountUnits =
-		{
-			"piece", "pieces", "item", "items", "whole", "clove", "cloves", "slice", "slices"
-		};
-
-		/// <summary>
-		///     Gets all common units
-		/// </summary>
-		public static IEnumerable<string> AllUnits =>
-			VolumeUnits.Concat(WeightUnits).Concat(CountUnits);
-
-		/// <summary>
-		///     Checks if a unit is a common/recognized unit
-		/// </summary>
-		public static bool IsCommonUnit(string unit) =>
-			AllUnits.Any(u => string.Equals(u, unit, StringComparison.OrdinalIgnoreCase));
-	}
 }

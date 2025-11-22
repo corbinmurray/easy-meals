@@ -1,3 +1,4 @@
+using EasyMeals.Platform;
 using EasyMeals.RecipeEngine.Domain.ValueObjects.Recipe;
 
 namespace EasyMeals.RecipeEngine.Domain.Entities;
@@ -5,7 +6,7 @@ namespace EasyMeals.RecipeEngine.Domain.Entities;
 /// <summary>
 ///     Recipe aggregate root
 /// </summary>
-public sealed class Recipe
+public sealed class Recipe : AggregateRoot<Guid>
 {
 	private readonly List<Ingredient> _ingredients;
 	private readonly List<Instruction> _instructions;
@@ -25,8 +26,8 @@ public sealed class Recipe
 		string description,
 		string sourceUrl,
 		string providerName)
+		: base(id)
 	{
-		Id = id;
 		Title = ValidateTitle(title);
 		Description = description ?? string.Empty;
 		SourceUrl = ValidateSourceUrl(sourceUrl);
@@ -36,8 +37,6 @@ public sealed class Recipe
 		_instructions = [];
 		_tags = [];
 
-		CreatedAt = DateTime.UtcNow;
-		UpdatedAt = DateTime.UtcNow;
 		IsActive = true;
 	}
 
@@ -50,9 +49,6 @@ public sealed class Recipe
 	}
 
 	#region Properties
-
-	/// <summary>Unique identifier</summary>
-	public Guid Id { get; private set; }
 
 	/// <summary>Recipe title</summary>
 	public string Title { get; private set; } = string.Empty;
@@ -105,12 +101,6 @@ public sealed class Recipe
 	/// <summary>Number of reviews</summary>
 	public int ReviewCount { get; private set; }
 
-	/// <summary>Creation timestamp</summary>
-	public DateTime CreatedAt { get; private set; }
-
-	/// <summary>Last update timestamp</summary>
-	public DateTime UpdatedAt { get; private set; }
-	
 	#endregion
 
 	#region Computed Properties
@@ -287,7 +277,7 @@ public sealed class Recipe
 		ReviewCount++;
 		UpdatedAt = DateTime.UtcNow;
 	}
-	
+
 	#endregion
 
 	#region Private Methods
@@ -334,6 +324,6 @@ public sealed class Recipe
 			_ => timeMinutes
 		};
 	}
-	
+
 	#endregion
 }
