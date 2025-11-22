@@ -1,5 +1,4 @@
-﻿using EasyMeals.RecipeEngine.Domain.Events;
-using EasyMeals.RecipeEngine.Domain.ValueObjects.Fingerprint;
+﻿using EasyMeals.RecipeEngine.Domain.ValueObjects.Fingerprint;
 
 namespace EasyMeals.RecipeEngine.Domain.Entities;
 
@@ -10,7 +9,6 @@ namespace EasyMeals.RecipeEngine.Domain.Entities;
 /// </summary>
 public sealed class Fingerprint
 {
-	private readonly List<IDomainEvent> _domainEvents;
 	private readonly Dictionary<string, object> _metadata;
 
 	/// <summary>
@@ -45,9 +43,6 @@ public sealed class Fingerprint
 		RetryCount = 0;
 
 		_metadata = metadata != null ? new Dictionary<string, object>(metadata) : new Dictionary<string, object>();
-		_domainEvents = new List<IDomainEvent>();
-
-		AddDomainEvent(new FingerprintCreatedEvent(Id, Url, ProviderName, Quality, ContentHash));
 	}
 
 	/// <summary>
@@ -80,16 +75,12 @@ public sealed class Fingerprint
 		RetryCount = 0;
 
 		_metadata = metadata != null ? new Dictionary<string, object>(metadata) : new Dictionary<string, object>();
-		_domainEvents = new List<IDomainEvent>();
-
-		AddDomainEvent(new ScrapingFailedEvent(Id, Url, ProviderName, ErrorMessage));
 	}
 
 	// Private constructor for reconstitution from persistence
 	private Fingerprint()
 	{
 		_metadata = new Dictionary<string, object>();
-		_domainEvents = new List<IDomainEvent>();
 	}
 
 	#region Properties
@@ -138,9 +129,6 @@ public sealed class Fingerprint
 
 	/// <summary>Last update timestamp</summary>
 	public DateTime UpdatedAt { get; private set; }
-
-	/// <summary>Read-only view of domain events</summary>
-	public IReadOnlyList<IDomainEvent> DomainEvents => _domainEvents.AsReadOnly();
 
 	#endregion
 
@@ -209,19 +197,7 @@ public sealed class Fingerprint
 		if (!IsSuccessful || !previous.IsSuccessful)
 			return false;
 
-		bool hasChanged = previous.ContentHash != ContentHash;
-
-		if (hasChanged)
-		{
-			AddDomainEvent(new ContentChangedEvent(
-				Id,
-				Url,
-				previous.ContentHash,
-				ContentHash,
-				ProviderName));
-		}
-
-		return hasChanged;
+		return previous.ContentHash != ContentHash;
 	}
 
 	/// <summary>
@@ -238,8 +214,6 @@ public sealed class Fingerprint
 		ScrapingQuality oldQuality = Quality;
 		Quality = newQuality;
 		UpdatedAt = DateTime.UtcNow;
-
-		AddDomainEvent(new QualityAssessedEvent(Id, Url, oldQuality, newQuality, reason));
 	}
 
 	/// <summary>
@@ -257,8 +231,6 @@ public sealed class Fingerprint
 		RecipeId = recipeId;
 		Status = FingerprintStatus.Processing; // Could add a Processed status to enum
 		UpdatedAt = DateTime.UtcNow;
-
-		AddDomainEvent(new FingerprintProcessedEvent(Id, Url, recipeId));
 	}
 
 	/// <summary>
@@ -277,8 +249,6 @@ public sealed class Fingerprint
 		Status = FingerprintStatus.Processing;
 		ErrorMessage = null; // Clear previous error
 		UpdatedAt = DateTime.UtcNow;
-
-		AddDomainEvent(new FingerprintRetryEvent(Id, Url, RetryCount, reason));
 	}
 
 	/// <summary>
@@ -292,8 +262,6 @@ public sealed class Fingerprint
 		ErrorMessage = null;
 		ScrapedAt = DateTime.UtcNow;
 		UpdatedAt = DateTime.UtcNow;
-
-		AddDomainEvent(new FingerprintCreatedEvent(Id, Url, ProviderName, Quality, ContentHash));
 	}
 
 	/// <summary>
@@ -304,8 +272,6 @@ public sealed class Fingerprint
 		ErrorMessage = ValidateErrorMessage(errorMessage);
 		Status = FingerprintStatus.Failed;
 		UpdatedAt = DateTime.UtcNow;
-
-		AddDomainEvent(new ScrapingFailedEvent(Id, Url, ProviderName, errorMessage));
 	}
 
 	/// <summary>
@@ -319,8 +285,6 @@ public sealed class Fingerprint
 		Status = FingerprintStatus.Blocked;
 		ErrorMessage = $"Blocked: {reason}";
 		UpdatedAt = DateTime.UtcNow;
-
-		AddDomainEvent(new ScrapingFailedEvent(Id, Url, ProviderName, ErrorMessage));
 	}
 
 	/// <summary>
@@ -348,15 +312,7 @@ public sealed class Fingerprint
 
 		return default;
 	}
-
-	/// <summary>
-	///     Clears all domain events (typically called after persistence)
-	/// </summary>
-	public void ClearDomainEvents()
-	{
-		_domainEvents.Clear();
-	}
-
+	
 	#endregion
 
 	#region Factory Methods
@@ -431,11 +387,6 @@ public sealed class Fingerprint
 			throw new ArgumentException("Error message cannot exceed 1000 characters", nameof(errorMessage));
 
 		return errorMessage.Trim();
-	}
-
-	private void AddDomainEvent(IDomainEvent domainEvent)
-	{
-		_domainEvents.Add(domainEvent);
 	}
 
 	/// <summary>

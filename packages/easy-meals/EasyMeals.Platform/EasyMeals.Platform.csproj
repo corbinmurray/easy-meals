@@ -6,4 +6,8 @@
         <Nullable>enable</Nullable>
     </PropertyGroup>
 
+    <ItemGroup>
+      <ProjectReference Include="..\EasyMeals.Platform.Abstractions\EasyMeals.Platform.Abstractions.csproj" />
+    </ItemGroup>
+
 </Project>

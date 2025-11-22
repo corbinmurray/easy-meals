@@ -1,18 +1,15 @@
-using EasyMeals.RecipeEngine.Domain.Events;
 using EasyMeals.RecipeEngine.Domain.ValueObjects.Recipe;
 
 namespace EasyMeals.RecipeEngine.Domain.Entities;
 
 /// <summary>
-///     Recipe aggregate root that encapsulates business rules and maintains consistency
-///     Follows DDD principles with rich domain behavior and proper encapsulation
+///     Recipe aggregate root
 /// </summary>
 public sealed class Recipe
 {
 	private readonly List<Ingredient> _ingredients;
 	private readonly List<Instruction> _instructions;
 	private readonly List<string> _tags;
-	private readonly List<IDomainEvent> _domainEvents;
 
 	/// <summary>
 	///     Creates a new Recipe aggregate root
@@ -35,26 +32,21 @@ public sealed class Recipe
 		SourceUrl = ValidateSourceUrl(sourceUrl);
 		ProviderName = providerName ?? string.Empty;
 
-		_ingredients = new List<Ingredient>();
-		_instructions = new List<Instruction>();
-		_tags = new List<string>();
-		_domainEvents = new List<IDomainEvent>();
+		_ingredients = [];
+		_instructions = [];
+		_tags = [];
 
 		CreatedAt = DateTime.UtcNow;
 		UpdatedAt = DateTime.UtcNow;
 		IsActive = true;
-
-		// Domain event: Recipe created
-		AddDomainEvent(new RecipeCreatedEvent(this));
 	}
 
 	// Private constructor for reconstitution from persistence
 	private Recipe()
 	{
-		_ingredients = new List<Ingredient>();
-		_instructions = new List<Instruction>();
-		_tags = new List<string>();
-		_domainEvents = new List<IDomainEvent>();
+		_ingredients = [];
+		_instructions = [];
+		_tags = [];
 	}
 
 	#region Properties
@@ -118,10 +110,7 @@ public sealed class Recipe
 
 	/// <summary>Last update timestamp</summary>
 	public DateTime UpdatedAt { get; private set; }
-
-	/// <summary>Read-only view of domain events</summary>
-	public IReadOnlyList<IDomainEvent> DomainEvents => _domainEvents.AsReadOnly();
-
+	
 	#endregion
 
 	#region Computed Properties
@@ -160,13 +149,6 @@ public sealed class Recipe
 		Description = description ?? string.Empty;
 		Servings = ValidateServings(servings);
 		UpdatedAt = DateTime.UtcNow;
-
-		if (oldTitle != Title)
-		{
-			AddDomainEvent(new RecipeTitleChangedEvent(Id, oldTitle, Title));
-		}
-
-		AddDomainEvent(new RecipeUpdatedEvent(Id));
 	}
 
 	/// <summary>
@@ -177,8 +159,6 @@ public sealed class Recipe
 		PrepTimeMinutes = ValidateTime(prepTimeMinutes, nameof(prepTimeMinutes));
 		CookTimeMinutes = ValidateTime(cookTimeMinutes, nameof(cookTimeMinutes));
 		UpdatedAt = DateTime.UtcNow;
-
-		AddDomainEvent(new RecipeUpdatedEvent(Id));
 	}
 
 	/// <summary>
@@ -203,8 +183,6 @@ public sealed class Recipe
 
 		_ingredients.Add(ingredient);
 		UpdatedAt = DateTime.UtcNow;
-
-		AddDomainEvent(new IngredientAddedEvent(Id, ingredient));
 	}
 
 	/// <summary>
@@ -223,8 +201,6 @@ public sealed class Recipe
 
 		_ingredients.Remove(ingredient);
 		UpdatedAt = DateTime.UtcNow;
-
-		AddDomainEvent(new IngredientRemovedEvent(Id, ingredient));
 	}
 
 	/// <summary>
@@ -245,8 +221,6 @@ public sealed class Recipe
 		_instructions.Add(instruction);
 		_instructions.Sort((a, b) => a.StepNumber.CompareTo(b.StepNumber));
 		UpdatedAt = DateTime.UtcNow;
-
-		AddDomainEvent(new InstructionAddedEvent(Id, instruction));
 	}
 
 	/// <summary>
@@ -256,11 +230,6 @@ public sealed class Recipe
 	{
 		NutritionalInfo = nutritionalInfo;
 		UpdatedAt = DateTime.UtcNow;
-
-		if (nutritionalInfo?.IsComprehensive == true)
-		{
-			AddDomainEvent(new NutritionalInfoCompletedEvent(Id));
-		}
 	}
 
 	/// <summary>
@@ -317,18 +286,8 @@ public sealed class Recipe
 		Rating = Math.Round(newRating, 1);
 		ReviewCount++;
 		UpdatedAt = DateTime.UtcNow;
-
-		AddDomainEvent(new RecipeRatedEvent(Id, oldRating, Rating.Value, ReviewCount));
 	}
-
-	/// <summary>
-	///     Clears all domain events (typically called after persistence)
-	/// </summary>
-	public void ClearDomainEvents()
-	{
-		_domainEvents.Clear();
-	}
-
+	
 	#endregion
 
 	#region Private Methods
@@ -357,30 +316,24 @@ public sealed class Recipe
 
 	private static int ValidateServings(int servings)
 	{
-		if (servings <= 0)
-			throw new ArgumentOutOfRangeException(nameof(servings), "Servings must be positive");
-
-		if (servings > 100)
-			throw new ArgumentOutOfRangeException(nameof(servings), "Servings cannot exceed 100");
-
-		return servings;
+		return servings switch
+		{
+			<= 0 => throw new ArgumentOutOfRangeException(nameof(servings), "Servings must be positive"),
+			> 100 => throw new ArgumentOutOfRangeException(nameof(servings), "Servings cannot exceed 100"),
+			_ => servings
+		};
 	}
 
 	private static int ValidateTime(int timeMinutes, string parameterName)
 	{
-		if (timeMinutes < 0)
-			throw new ArgumentOutOfRangeException(parameterName, "Time cannot be negative");
-
-		if (timeMinutes > 1440) // 24 hours
-			throw new ArgumentOutOfRangeException(parameterName, "Time cannot exceed 24 hours");
-
-		return timeMinutes;
+		return timeMinutes switch
+		{
+			< 0 => throw new ArgumentOutOfRangeException(parameterName, "Time cannot be negative"),
+			// 24 hours
+			> 1440 => throw new ArgumentOutOfRangeException(parameterName, "Time cannot exceed 24 hours"),
+			_ => timeMinutes
+		};
 	}
-
-	private void AddDomainEvent(IDomainEvent domainEvent)
-	{
-		_domainEvents.Add(domainEvent);
-	}
-
+	
 	#endregion
 }
