@@ -6,15 +6,15 @@ using EasyMeals.RecipeEngine.Domain.ValueObjects.Fingerprint;
 namespace EasyMeals.RecipeEngine.Domain.Entities;
 
 /// <summary>
-///     Fingerprint aggregate root that tracks web scraping operations and content changes
+///     Fingerprint aggregate root that tracks web scraping operations and content changes.
+///     Responsible for: tracking visited URLs, detecting content changes, and linking to resulting recipes.
 /// </summary>
 public sealed class Fingerprint : AggregateRoot<Guid>
 {
 	private readonly Dictionary<string, object> _metadata;
 
 	/// <summary>
-	///     Creates a new Fingerprint aggregate root from raw content
-	///     Automatically computes content hash from raw content
+	///     Creates a new Fingerprint for successfully scraped content
 	/// </summary>
 	/// <param name="id">Unique identifier for the fingerprint</param>
 	/// <param name="url">URL that was scraped (required)</param>
@@ -35,19 +35,16 @@ public sealed class Fingerprint : AggregateRoot<Guid>
 		RawContent = ValidateRawContent(rawContent);
 		ContentHash = ComputeContentHash(rawContent);
 		ProviderName = ValidateProviderName(providerName);
-		RecipeContentHash = string.Empty; // How do we compute this without recipe data?
-		DuplicateOfRecipeId = null;
 		Quality = quality;
 		Status = FingerprintStatus.Success;
-
 		ScrapedAt = DateTime.UtcNow;
 		RetryCount = 0;
 
-		_metadata = metadata != null ? new Dictionary<string, object>(metadata) : [];
+		_metadata = metadata is not null ? new Dictionary<string, object>(metadata) : [];
 	}
 
 	/// <summary>
-	///     Creates a new Fingerprint aggregate root for failed scraping
+	///     Creates a new Fingerprint for a failed scraping attempt
 	/// </summary>
 	/// <param name="id">Unique identifier for the fingerprint</param>
 	/// <param name="url">URL that failed to scrape (required)</param>
@@ -65,38 +62,28 @@ public sealed class Fingerprint : AggregateRoot<Guid>
 		Url = ValidateUrl(url);
 		ProviderName = ValidateProviderName(providerName);
 		ErrorMessage = ValidateErrorMessage(errorMessage);
-		DuplicateOfRecipeId = null;
-		RecipeContentHash = string.Empty;
 		RawContent = null;
 		ContentHash = string.Empty;
 		Quality = ScrapingQuality.Poor;
 		Status = FingerprintStatus.Failed;
-
 		ScrapedAt = DateTime.UtcNow;
 		RetryCount = 0;
 
-		_metadata = metadata != null ? new Dictionary<string, object>(metadata) : [];
+		_metadata = metadata is not null ? new Dictionary<string, object>(metadata) : [];
 	}
 
-    // Private constructor for reconstitution from persistence
-    private Fingerprint()
-    {
-        _metadata = [];
-		ContentHash = string.Empty;
-		RecipeContentHash = string.Empty;
-		DuplicateOfRecipeId = null;
-		RawContent = null;
-    }
+	// Private constructor for reconstitution from persistence
+	private Fingerprint() => _metadata = [];
 
-    #region Properties
+	#region Properties
 
-    /// <summary>URL that was scraped</summary>
-    public string Url { get; private set; } = string.Empty;
+	/// <summary>URL that was scraped</summary>
+	public string Url { get; private set; } = string.Empty;
 
-	/// <summary>Hash of the scraped content</summary>
+	/// <summary>Hash of the raw scraped content (for detecting if source page changed)</summary>
 	public string ContentHash { get; private set; } = string.Empty;
 
-	/// <summary>Raw scraped content (optional, for debugging and reprocessing)</summary>
+	/// <summary>Raw scraped content for extraction processing</summary>
 	public string? RawContent { get; private set; }
 
 	/// <summary>Timestamp when content was scraped</summary>
@@ -120,31 +107,28 @@ public sealed class Fingerprint : AggregateRoot<Guid>
 	/// <summary>Number of retry attempts</summary>
 	public int RetryCount { get; private set; }
 
-	/// <summary>Timestamp when fingerprint was last processed</summary>
+	/// <summary>Timestamp when fingerprint was processed into a recipe</summary>
 	public DateTime? ProcessedAt { get; private set; }
 
-	/// <summary>ID of the recipe created from this fingerprint</summary>
+	/// <summary>ID of the recipe created from this fingerprint (null if not yet processed or failed extraction)</summary>
 	public Guid? RecipeId { get; private set; }
 
-	/// <summary>Hash of the normalized title + ingredients</summary>
-	public string RecipeContentHash {get; private set;}
-
-	/// <summary>If duplicate, the ID of the original recipe</summary>
-	public Guid? DuplicateOfRecipeId {get; private set;}
+	/// <summary>Maximum retry attempts allowed</summary>
+	public const int MaxRetryAttempts = 3;
 
 	#endregion
 
 	#region Computed Properties
 
 	/// <summary>
-	///     Indicates if this fingerprint represents successfully scraped content
-	///     that is ready for recipe processing
+	///     Indicates if this fingerprint has successfully scraped content ready for recipe extraction
 	/// </summary>
 	public bool IsReadyForProcessing =>
 		Status == FingerprintStatus.Success &&
 		Quality >= ScrapingQuality.Acceptable &&
 		!string.IsNullOrEmpty(ContentHash) &&
-		ProcessedAt == null;
+		!string.IsNullOrEmpty(RawContent) &&
+		ProcessedAt is null;
 
 	/// <summary>
 	///     Indicates if this fingerprint represents a successful scraping operation
@@ -157,9 +141,14 @@ public sealed class Fingerprint : AggregateRoot<Guid>
 	public bool IsFailed => Status == FingerprintStatus.Failed;
 
 	/// <summary>
-	///     Indicates if this fingerprint has been processed into a recipe
+	///     Indicates if this fingerprint has been processed (attempted recipe extraction)
 	/// </summary>
 	public bool IsProcessed => ProcessedAt.HasValue;
+
+	/// <summary>
+	///     Indicates if this fingerprint resulted in a recipe
+	/// </summary>
+	public bool HasRecipe => RecipeId.HasValue;
 
 	/// <summary>
 	///     Indicates if this fingerprint can be retried
@@ -178,87 +167,75 @@ public sealed class Fingerprint : AggregateRoot<Guid>
 	/// </summary>
 	public double AgeInHours => (DateTime.UtcNow - ScrapedAt).TotalHours;
 
-	/// <summary>
-	///     Maximum retry attempts allowed
-	/// </summary>
-	public const int MaxRetryAttempts = 3;
-
 	#endregion
 
 	#region Business Methods
 
 	/// <summary>
-	///     Determines if this fingerprint represents content that has changed
-	///     compared to a previous fingerprint of the same URL
+	///     Determines if the source content has changed compared to a previous fingerprint
 	/// </summary>
 	public bool HasContentChanged(Fingerprint? previous)
 	{
-		if (previous == null)
+		if (previous is null)
 			return true;
 
 		if (!IsSuccessful || !previous.IsSuccessful)
 			return false;
 
-		return previous.ContentHash != ContentHash;
+		return !string.Equals(ContentHash, previous.ContentHash, StringComparison.Ordinal);
 	}
 
 	/// <summary>
-	///     Updates the quality assessment of this fingerprint
+	///     Marks this fingerprint as processed, optionally linking to the created recipe
 	/// </summary>
-	public void UpdateQuality(ScrapingQuality newQuality, string reason)
-	{
-		if (string.IsNullOrWhiteSpace(reason))
-			throw new ArgumentException("Reason for quality update is required", nameof(reason));
-
-		if (Quality == newQuality)
-			return; // No change needed
-
-		ScrapingQuality oldQuality = Quality;
-		Quality = newQuality;
-		UpdatedAt = DateTime.UtcNow;
-	}
-
-	/// <summary>
-	///     Marks this fingerprint as processed with optional recipe ID
-	/// </summary>
+	/// <param name="recipeId">ID of the recipe created, or null if extraction failed/was duplicate</param>
 	public void MarkAsProcessed(Guid? recipeId = null)
 	{
 		if (IsProcessed)
 			throw new InvalidOperationException("Fingerprint has already been processed");
 
-		if (!IsReadyForProcessing)
-			throw new InvalidOperationException("Fingerprint is not ready for processing");
+		if (!IsSuccessful)
+			throw new InvalidOperationException("Cannot process a failed fingerprint");
 
 		ProcessedAt = DateTime.UtcNow;
 		RecipeId = recipeId;
-		Status = FingerprintStatus.Processing; // Could add a Processed status to enum
 		UpdatedAt = DateTime.UtcNow;
 	}
 
 	/// <summary>
-	///     Attempts to retry a failed scraping operation
+	///     Updates the quality assessment of this fingerprint
 	/// </summary>
-	public void Retry(string reason)
+	public void UpdateQuality(ScrapingQuality newQuality)
+	{
+		if (Quality == newQuality)
+			return;
+
+		Quality = newQuality;
+		UpdatedAt = DateTime.UtcNow;
+	}
+
+	/// <summary>
+	///     Prepares fingerprint for a retry attempt
+	/// </summary>
+	public void PrepareForRetry()
 	{
 		if (!CanRetry)
 			throw new InvalidOperationException(
 				$"Cannot retry fingerprint. Status: {Status}, RetryCount: {RetryCount}/{MaxRetryAttempts}");
 
-		if (string.IsNullOrWhiteSpace(reason))
-			throw new ArgumentException("Retry reason is required", nameof(reason));
-
 		RetryCount++;
 		Status = FingerprintStatus.Processing;
-		ErrorMessage = null; // Clear previous error
+		ErrorMessage = null;
 		UpdatedAt = DateTime.UtcNow;
 	}
 
 	/// <summary>
 	///     Updates the fingerprint after a successful retry
 	/// </summary>
-	public void UpdateAfterSuccessfulRetry(string contentHash, ScrapingQuality quality)
+	public void CompleteRetrySuccess(string rawContent, ScrapingQuality quality)
 	{
-		ContentHash = ValidateContentHash(contentHash);
+		RawContent = ValidateRawContent(rawContent);
+		ContentHash = ComputeContentHash(rawContent);
 		Quality = quality;
 		Status = FingerprintStatus.Success;
 		ErrorMessage = null;
@@ -269,7 +246,7 @@ public sealed class Fingerprint : AggregateRoot<Guid>
 	/// <summary>
 	///     Updates the fingerprint after a failed retry
 	/// </summary>
-	public void UpdateAfterFailedRetry(string errorMessage)
+	public void CompleteRetryFailure(string errorMessage)
 	{
 		ErrorMessage = ValidateErrorMessage(errorMessage);
 		Status = FingerprintStatus.Failed;
@@ -290,6 +267,18 @@ public sealed class Fingerprint : AggregateRoot<Guid>
 	}
 
 	/// <summary>
+	///     Clears raw content to free memory after processing
+	/// </summary>
+	public void ClearRawContent()
+	{
+		if (!IsProcessed)
+			throw new InvalidOperationException("Cannot clear raw content before processing");
+
+		RawContent = null;
+		UpdatedAt = DateTime.UtcNow;
+	}
+
+	/// <summary>
 	///     Adds metadata to the fingerprint
 	/// </summary>
 	public void AddMetadata(string key, object value)
@@ -297,8 +286,7 @@ public sealed class Fingerprint : AggregateRoot<Guid>
 		if (string.IsNullOrWhiteSpace(key))
 			throw new ArgumentException("Metadata key cannot be empty", nameof(key));
 
-		if (value == null)
-			throw new ArgumentNullException(nameof(value));
+		ArgumentNullException.ThrowIfNull(value);
 
 		_metadata[key] = value;
 		UpdatedAt = DateTime.UtcNow;
@@ -320,18 +308,18 @@ public sealed class Fingerprint : AggregateRoot<Guid>
 	#region Factory Methods
 
 	/// <summary>
-	///     Creates a new fingerprint for a successfully scraped URL
+	///     Creates a fingerprint for successfully scraped content
 	/// </summary>
 	public static Fingerprint CreateSuccess(
 		string url,
-		string contentHash,
+		string rawContent,
 		string providerName,
 		ScrapingQuality quality = ScrapingQuality.Good,
 		Dictionary<string, object>? metadata = null) =>
-		new(Guid.NewGuid(), url, contentHash, providerName, quality, metadata);
+		new(Guid.NewGuid(), url, rawContent, providerName, quality, metadata);
 
 	/// <summary>
-	///     Creates a new fingerprint for a failed scraping attempt
+	///     Creates a fingerprint for a failed scraping attempt
 	/// </summary>
 	public static Fingerprint CreateFailure(
 		string url,
@@ -352,30 +340,19 @@ public sealed class Fingerprint : AggregateRoot<Guid>
 		if (!Uri.TryCreate(url, UriKind.Absolute, out Uri? uri))
 			throw new ArgumentException("URL must be a valid absolute URL", nameof(url));
 
-		if (uri.Scheme != "http" && uri.Scheme != "https")
+		if (uri.Scheme is not ("http" or "https"))
 			throw new ArgumentException("URL must use HTTP or HTTPS protocol", nameof(url));
 
 		return url;
 	}
 
-	private static string ValidateContentHash(string contentHash)
-	{
-		if (string.IsNullOrWhiteSpace(contentHash))
-			throw new ArgumentException("Content hash cannot be empty", nameof(contentHash));
-
-		if (contentHash.Length < 8)
-			throw new ArgumentException("Content hash is too short", nameof(contentHash));
-
-		return contentHash;
-	}
-
 	private static string ValidateProviderName(string providerName)
 	{
 		if (string.IsNullOrWhiteSpace(providerName))
-			throw new ArgumentException("Source provider cannot be empty", nameof(providerName));
+			throw new ArgumentException("Provider name cannot be empty", nameof(providerName));
 
 		if (providerName.Length > 100)
-			throw new ArgumentException("Source provider name cannot exceed 100 characters", nameof(providerName));
+			throw new ArgumentException("Provider name cannot exceed 100 characters", nameof(providerName));
 
 		return providerName.Trim();
 	}
@@ -391,23 +368,6 @@ public sealed class Fingerprint : AggregateRoot<Guid>
 		return errorMessage.Trim();
 	}
 
-	/// <summary>
-	///     Computes SHA-256 hash of content for deduplication
-	///     Encapsulates content hashing business logic within the aggregate
-	/// </summary>
-	private static string ComputeContentHash(string content)
-	{
-		if (string.IsNullOrEmpty(content))
-			return string.Empty;
-
-		using var sha256 = SHA256.Create();
-		byte[] hashBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(content));
-		return Convert.ToHexString(hashBytes).ToLowerInvariant();
-	}
-
-	/// <summary>
-	///     Validates raw content
-	/// </summary>
 	private static string ValidateRawContent(string rawContent)
 	{
 		if (string.IsNullOrEmpty(rawContent))
@@ -417,6 +377,18 @@ public sealed class Fingerprint : AggregateRoot<Guid>
 			throw new ArgumentException("Raw content exceeds maximum size limit", nameof(rawContent));
 
 		return rawContent;
+	}
+
+	/// <summary>
+	///     Computes SHA-256 hash of raw content for change detection
+	/// </summary>
+	private static string ComputeContentHash(string content)
+	{
+		if (string.IsNullOrEmpty(content))
+			return string.Empty;
+
+		byte[] hashBytes = SHA256.HashData(Encoding.UTF8.GetBytes(content));
+		return Convert.ToHexString(hashBytes).ToLowerInvariant();
 	}
 
 	#endregion
