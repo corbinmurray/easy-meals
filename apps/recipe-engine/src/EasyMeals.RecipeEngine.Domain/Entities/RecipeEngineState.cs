@@ -161,8 +161,8 @@ public partial class RecipeEngineState
 			Status = m.Status,
 			StartedAt = m.StartedAt,
 			CompletedAt = m.CompletedAt,
-			RecipeEngineContext = m.RecipeEngineContext ?? new Dictionary<string, object>(),
-			CheckpointData = m.CheckpointData ?? new Dictionary<string, object>(),
+			RecipeEngineContext = m.RecipeEngineContext ?? [],
+			CheckpointData = m.CheckpointData ?? [],
 			UpdatedAt = m.UpdatedAt,
 			Metrics = m.Metrics ?? new RecipeEngineMetrics(),
 			_errorDetails =  m.ErrorDetails ?? []

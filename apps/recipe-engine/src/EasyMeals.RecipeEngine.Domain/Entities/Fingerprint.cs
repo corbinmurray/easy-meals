@@ -35,13 +35,15 @@ public sealed class Fingerprint : AggregateRoot<Guid>
 		RawContent = ValidateRawContent(rawContent);
 		ContentHash = ComputeContentHash(rawContent);
 		ProviderName = ValidateProviderName(providerName);
+		RecipeContentHash = string.Empty; // How do we compute this without recipe data?
+		DuplicateOfRecipeId = null;
 		Quality = quality;
 		Status = FingerprintStatus.Success;
 
 		ScrapedAt = DateTime.UtcNow;
 		RetryCount = 0;
 
-		_metadata = metadata != null ? new Dictionary<string, object>(metadata) : new Dictionary<string, object>();
+		_metadata = metadata != null ? new Dictionary<string, object>(metadata) : [];
 	}
 
 	/// <summary>
@@ -63,7 +65,9 @@ public sealed class Fingerprint : AggregateRoot<Guid>
 		Url = ValidateUrl(url);
 		ProviderName = ValidateProviderName(providerName);
 		ErrorMessage = ValidateErrorMessage(errorMessage);
-
+		DuplicateOfRecipeId = null;
+		RecipeContentHash = string.Empty;
+		RawContent = null;
 		ContentHash = string.Empty;
 		Quality = ScrapingQuality.Poor;
 		Status = FingerprintStatus.Failed;
@@ -71,16 +75,23 @@ public sealed class Fingerprint : AggregateRoot<Guid>
 		ScrapedAt = DateTime.UtcNow;
 		RetryCount = 0;
 
-		_metadata = metadata != null ? new Dictionary<string, object>(metadata) : new Dictionary<string, object>();
+		_metadata = metadata != null ? new Dictionary<string, object>(metadata) : [];
 	}
 
-	// Private constructor for reconstitution from persistence
-	private Fingerprint() => _metadata = new Dictionary<string, object>();
+    // Private constructor for reconstitution from persistence
+    private Fingerprint()
+    {
+        _metadata = [];
+		ContentHash = string.Empty;
+		RecipeContentHash = string.Empty;
+		DuplicateOfRecipeId = null;
+		RawContent = null;
+    }
 
-	#region Properties
+    #region Properties
 
-	/// <summary>URL that was scraped</summary>
-	public string Url { get; private set; } = string.Empty;
+    /// <summary>URL that was scraped</summary>
+    public string Url { get; private set; } = string.Empty;
 
 	/// <summary>Hash of the scraped content</summary>
 	public string ContentHash { get; private set; } = string.Empty;
@@ -114,6 +125,12 @@ public sealed class Fingerprint : AggregateRoot<Guid>
 
 	/// <summary>ID of the recipe created from this fingerprint</summary>
 	public Guid? RecipeId { get; private set; }
+
+	/// <summary>Hash of the normalized title + ingredients</summary>
+	public string RecipeContentHash {get; private set;}
+
+	/// <summary>If duplicate, the ID of the original recipe</summary>
+	public Guid? DuplicateOfRecipeId {get; private set;}
 
 	#endregion
 

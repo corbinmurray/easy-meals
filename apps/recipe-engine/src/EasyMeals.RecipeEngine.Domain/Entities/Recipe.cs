@@ -4,7 +4,8 @@ using EasyMeals.RecipeEngine.Domain.ValueObjects.Recipe;
 namespace EasyMeals.RecipeEngine.Domain.Entities;
 
 /// <summary>
-///     Recipe aggregate root
+///     Recipe aggregate root representing extracted recipe content
+///     Part of the Content Acquisition bounded context
 /// </summary>
 public sealed class Recipe : AggregateRoot<Guid>
 {
@@ -20,24 +21,27 @@ public sealed class Recipe : AggregateRoot<Guid>
 	/// <param name="description">Recipe description</param>
 	/// <param name="sourceUrl">Original source URL (required)</param>
 	/// <param name="providerName">Source provider name</param>
+	/// <param name="sourceFingerprintId">ID of the fingerprint that created this recipe</param>
 	public Recipe(
 		Guid id,
 		string title,
 		string description,
 		string sourceUrl,
-		string providerName)
+		string providerName,
+		Guid? sourceFingerprintId = null)
 		: base(id)
 	{
 		Title = ValidateTitle(title);
 		Description = description ?? string.Empty;
 		SourceUrl = ValidateSourceUrl(sourceUrl);
 		ProviderName = providerName ?? string.Empty;
+		SourceFingerprintId = sourceFingerprintId;
 
 		_ingredients = [];
 		_instructions = [];
 		_tags = [];
 
-		IsActive = true;
+		Status = RecipeStatus.Draft;
 	}
 
 	// Private constructor for reconstitution from persistence
@@ -86,20 +90,41 @@ public sealed class Recipe : AggregateRoot<Guid>
 	/// <summary>Source provider name</summary>
 	public string ProviderName { get; private set; } = string.Empty;
 
-	/// <summary>Whether recipe is active/published</summary>
-	public bool IsActive { get; private set; }
+	/// <summary>Current lifecycle status of the recipe</summary>
+	public RecipeStatus Status { get; private set; }
 
-	/// <summary>Cuisine type</summary>
+	/// <summary>Cuisine type (e.g., Italian, Mexican, Thai)</summary>
 	public string? Cuisine { get; private set; }
 
 	/// <summary>Difficulty level</summary>
 	public string? Difficulty { get; private set; }
 
-	/// <summary>Recipe rating (1-5 stars)</summary>
-	public decimal? Rating { get; private set; }
+	/// <summary>ID of the fingerprint that created this recipe (audit trail)</summary>
+	public Guid? SourceFingerprintId { get; private set; }
 
-	/// <summary>Number of reviews</summary>
-	public int ReviewCount { get; private set; }
+	/// <summary>When the source URL was last verified to be accessible</summary>
+	public DateTime? SourceLastVerifiedAt { get; private set; }
+
+	/// <summary>When the source content was last modified (if detectable)</summary>
+	public DateTime? SourceLastModifiedAt { get; private set; }
+
+	/// <summary>Recipe author as extracted from source</summary>
+	public string? Author { get; private set; }
+
+	/// <summary>Meal occasion this recipe is suited for</summary>
+	public MealType? MealType { get; private set; }
+
+	/// <summary>Course type within a meal</summary>
+	public CourseType? CourseType { get; private set; }
+
+	/// <summary>Dietary and allergen information</summary>
+	public DietaryInfo? DietaryInfo { get; private set; }
+
+	/// <summary>
+	///     Hash of normalized recipe content for deduplication
+	///     Computed from title + sorted ingredient names by the application layer
+	/// </summary>
+	public string? ContentHash { get; private set; }
 
 	#endregion
 
@@ -124,6 +149,12 @@ public sealed class Recipe : AggregateRoot<Guid>
 		_instructions.Count > 0 &&
 		Servings > 0;
 
+	/// <summary>Whether recipe is in a published state</summary>
+	public bool IsPublished => Status == RecipeStatus.Published;
+
+	/// <summary>Whether recipe can be edited (not archived)</summary>
+	public bool IsEditable => Status != RecipeStatus.Archived;
+
 	#endregion
 
 	#region Business Methods
@@ -133,7 +164,7 @@ public sealed class Recipe : AggregateRoot<Guid>
 	/// </summary>
 	public void UpdateBasicInfo(string title, string description, int servings)
 	{
-		string oldTitle = Title;
+		EnsureEditable();
 
 		Title = ValidateTitle(title);
 		Description = description ?? string.Empty;
@@ -146,6 +177,8 @@ public sealed class Recipe : AggregateRoot<Guid>
 	/// </summary>
 	public void SetTimingInfo(int prepTimeMinutes, int cookTimeMinutes)
 	{
+		EnsureEditable();
+
 		PrepTimeMinutes = ValidateTime(prepTimeMinutes, nameof(prepTimeMinutes));
 		CookTimeMinutes = ValidateTime(cookTimeMinutes, nameof(cookTimeMinutes));
 		UpdatedAt = DateTime.UtcNow;
@@ -156,6 +189,8 @@ public sealed class Recipe : AggregateRoot<Guid>
 	/// </summary>
 	public void SetImageUrl(string imageUrl)
 	{
+		EnsureEditable();
+
 		ImageUrl = imageUrl ?? string.Empty;
 		UpdatedAt = DateTime.UtcNow;
 	}
@@ -165,7 +200,9 @@ public sealed class Recipe : AggregateRoot<Guid>
 	/// </summary>
 	public void AddIngredient(Ingredient ingredient)
 	{
-		if (ingredient == null)
+		EnsureEditable();
+
+		if (ingredient is null)
 			throw new ArgumentNullException(nameof(ingredient));
 
 		if (_ingredients.Any(i => i.Name.Equals(ingredient.Name, StringComparison.OrdinalIgnoreCase)))
@@ -180,13 +217,15 @@ public sealed class Recipe : AggregateRoot<Guid>
 	/// </summary>
 	public void RemoveIngredient(string ingredientName)
 	{
+		EnsureEditable();
+
 		if (string.IsNullOrWhiteSpace(ingredientName))
 			throw new ArgumentException("Ingredient name cannot be empty", nameof(ingredientName));
 
 		Ingredient? ingredient = _ingredients.FirstOrDefault(i =>
 			i.Name.Equals(ingredientName, StringComparison.OrdinalIgnoreCase));
 
-		if (ingredient == null)
+		if (ingredient is null)
 			throw new InvalidOperationException($"Ingredient '{ingredientName}' not found in recipe");
 
 		_ingredients.Remove(ingredient);
@@ -198,10 +237,11 @@ public sealed class Recipe : AggregateRoot<Guid>
 	/// </summary>
 	public void AddInstruction(Instruction instruction)
 	{
-		if (instruction == null)
+		EnsureEditable();
+
+		if (instruction is null)
 			throw new ArgumentNullException(nameof(instruction));
 
-		// Ensure step numbers are sequential
 		if (instruction.StepNumber <= 0)
 			throw new ArgumentException("Step number must be positive", nameof(instruction));
 
@@ -218,6 +258,8 @@ public sealed class Recipe : AggregateRoot<Guid>
 	/// </summary>
 	public void SetNutritionalInfo(NutritionalInfo nutritionalInfo)
 	{
+		EnsureEditable();
+
 		NutritionalInfo = nutritionalInfo;
 		UpdatedAt = DateTime.UtcNow;
 	}
@@ -227,6 +269,8 @@ public sealed class Recipe : AggregateRoot<Guid>
 	/// </summary>
 	public void AddTag(string tag)
 	{
+		EnsureEditable();
+
 		if (string.IsNullOrWhiteSpace(tag))
 			throw new ArgumentException("Tag cannot be empty", nameof(tag));
 
@@ -242,8 +286,10 @@ public sealed class Recipe : AggregateRoot<Guid>
 	/// <summary>
 	///     Sets cuisine type
 	/// </summary>
-	public void SetCuisine(string cuisine)
+	public void SetCuisine(string? cuisine)
 	{
+		EnsureEditable();
+
 		Cuisine = string.IsNullOrWhiteSpace(cuisine) ? null : cuisine.Trim();
 		UpdatedAt = DateTime.UtcNow;
 	}
@@ -251,11 +297,13 @@ public sealed class Recipe : AggregateRoot<Guid>
 	/// <summary>
 	///     Sets difficulty level
 	/// </summary>
-	public void SetDifficulty(string difficulty)
+	public void SetDifficulty(string? difficulty)
 	{
+		EnsureEditable();
+
 		if (!string.IsNullOrWhiteSpace(difficulty))
 		{
-			var validDifficulties = new[] { "Easy", "Medium", "Hard" };
+			string[] validDifficulties = ["Easy", "Medium", "Hard"];
 			if (!validDifficulties.Contains(difficulty))
 				throw new ArgumentException("Difficulty must be Easy, Medium, or Hard", nameof(difficulty));
 		}
@@ -265,22 +313,111 @@ public sealed class Recipe : AggregateRoot<Guid>
 	}
 
 	/// <summary>
-	///     Updates recipe rating
+	///     Sets the recipe author as extracted from source
 	/// </summary>
-	public void UpdateRating(decimal newRating)
+	public void SetAuthor(string? author)
 	{
-		if (newRating < 1 || newRating > 5)
-			throw new ArgumentOutOfRangeException(nameof(newRating), "Rating must be between 1 and 5");
+		EnsureEditable();
 
-		decimal? oldRating = Rating;
-		Rating = Math.Round(newRating, 1);
-		ReviewCount++;
+		Author = string.IsNullOrWhiteSpace(author) ? null : author.Trim();
+		UpdatedAt = DateTime.UtcNow;
+	}
+
+	/// <summary>
+	///     Sets meal type classification
+	/// </summary>
+	public void SetMealType(MealType? mealType)
+	{
+		EnsureEditable();
+
+		MealType = mealType;
+		UpdatedAt = DateTime.UtcNow;
+	}
+
+	/// <summary>
+	///     Sets course type classification
+	/// </summary>
+	public void SetCourseType(CourseType? courseType)
+	{
+		EnsureEditable();
+
+		CourseType = courseType;
+		UpdatedAt = DateTime.UtcNow;
+	}
+
+	/// <summary>
+	///     Sets dietary and allergen information
+	/// </summary>
+	public void SetDietaryInfo(DietaryInfo? dietaryInfo)
+	{
+		EnsureEditable();
+
+		DietaryInfo = dietaryInfo;
+		UpdatedAt = DateTime.UtcNow;
+	}
+
+	/// <summary>
+	///     Records that the source URL was verified to be accessible
+	/// </summary>
+	public void MarkSourceVerified(DateTime? sourceLastModified = null)
+	{
+		SourceLastVerifiedAt = DateTime.UtcNow;
+		SourceLastModifiedAt = sourceLastModified;
+		UpdatedAt = DateTime.UtcNow;
+	}
+
+	#endregion
+
+	#region Lifecycle Methods
+
+	/// <summary>
+	///     Sets the content hash for deduplication (computed by application layer)
+	/// </summary>
+	public void SetContentHash(string contentHash)
+	{
+		if (string.IsNullOrWhiteSpace(contentHash))
+			throw new ArgumentException("Content hash cannot be empty", nameof(contentHash));
+
+		ContentHash = contentHash;
+		UpdatedAt = DateTime.UtcNow;
+	}
+
+	/// <summary>
+	///     Publishes the recipe, making it available in the shared collection
+	/// </summary>
+	public void Publish()
+	{
+		if (Status != RecipeStatus.Draft)
+			throw new InvalidOperationException($"Cannot publish from status {Status}");
+
+		if (!IsReadyForPublication)
+			throw new InvalidOperationException("Recipe is not ready for publication. Ensure title, ingredients, instructions, and servings are set.");
+
+		Status = RecipeStatus.Published;
+		UpdatedAt = DateTime.UtcNow;
+	}
+
+	/// <summary>
+	///     Archives the recipe, removing it from active use
+	/// </summary>
+	public void Archive()
+	{
+		if (Status == RecipeStatus.Archived)
+			throw new InvalidOperationException("Recipe is already archived");
+
+		Status = RecipeStatus.Archived;
 		UpdatedAt = DateTime.UtcNow;
 	}
 
 	#endregion
 
 	#region Private Methods
+
+	private void EnsureEditable()
+	{
+		if (!IsEditable)
+			throw new InvalidOperationException($"Cannot modify recipe in {Status} status");
+	}
 
 	private static string ValidateTitle(string title)
 	{
@@ -319,7 +456,6 @@ public sealed class Recipe : AggregateRoot<Guid>
 		return timeMinutes switch
 		{
 			< 0 => throw new ArgumentOutOfRangeException(parameterName, "Time cannot be negative"),
-			// 24 hours
 			> 1440 => throw new ArgumentOutOfRangeException(parameterName, "Time cannot exceed 24 hours"),
 			_ => timeMinutes
 		};
