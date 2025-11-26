@@ -14,19 +14,23 @@ public abstract class AggregateRoot<TKey> : IAggregateRoot<TKey>
 	protected AggregateRoot()
 	{
 		Id = default;
-		CreatedAt = DateTime.UtcNow;
-		UpdatedAt = DateTime.UtcNow;
+		DateTime now = DateTime.UtcNow;
+		CreatedAt = now;
+		UpdatedAt = now;
 	}
 
 	/// <summary>
 	///     Instantiates a new aggregate root with the given ID
 	/// </summary>
 	/// <param name="id"></param>
-	protected AggregateRoot(TKey id)
+	/// <param name="createdAt"></param>
+	/// <param name="updatedAt"></param>
+	protected AggregateRoot(TKey id, DateTime? createdAt = null, DateTime? updatedAt = null)
 	{
 		Id = id;
-		CreatedAt = DateTime.UtcNow;
-		UpdatedAt = DateTime.UtcNow;
+		DateTime now = DateTime.UtcNow;
+		CreatedAt = createdAt ?? now;
+		UpdatedAt = updatedAt ?? now;
 	}
 
 	/// <summary>
