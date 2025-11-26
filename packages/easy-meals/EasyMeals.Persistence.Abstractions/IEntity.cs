@@ -1,12 +1,13 @@
 ﻿namespace EasyMeals.Persistence.Abstractions;
 
 /// <summary>
-///     Represents a basic entity.
+///     Represents a basic entity with a unique identifier.
 /// </summary>
-public interface IEntity
+/// <typeparam name="TKey">The type of the entity's unique identifier.</typeparam>
+public interface IEntity<TKey>
 {
 	/// <summary>
 	///     Gets or sets the unique identifier of the entity.
 	/// </summary>
-	string Id { get; set; }
+	TKey Id { get; set; }
 }

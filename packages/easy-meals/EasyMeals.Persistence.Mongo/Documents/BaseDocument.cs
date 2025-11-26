@@ -6,8 +6,9 @@ namespace EasyMeals.Persistence.Mongo.Documents;
 
 /// <summary>
 ///     Base document for MongoDB entities.
+///     Uses string (ObjectId) as the key type for MongoDB compatibility.
 /// </summary>
-public abstract class BaseDocument : IEntity, IAuditableEntity, IVersionedEntity, IOptimisticConcurrency
+public abstract class BaseDocument : IEntity<string>, IAuditableEntity, IVersionedEntity, IOptimisticConcurrency
 {
 	/// <summary>
 	///     Unique identifier for the document

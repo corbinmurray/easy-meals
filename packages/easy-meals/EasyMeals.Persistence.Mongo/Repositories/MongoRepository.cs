@@ -10,9 +10,9 @@ namespace EasyMeals.Persistence.Mongo.Repositories;
 ///     MongoDB implementation of the repository pattern with support for CRUD operations,
 ///     pagination, soft deletes, optimistic concurrency, and transactions.
 /// </summary>
-/// <typeparam name="T">The entity type that implements IEntity.</typeparam>
+/// <typeparam name="T">The entity type that implements IEntity with string key.</typeparam>
 public class MongoRepository<T>(IMongoContext context) : IRepository<T, string>
-	where T : class, IEntity
+	where T : class, IEntity<string>
 {
 	protected readonly IMongoCollection<T> Collection = context.GetCollection<T>();
 	protected readonly IMongoContext Context = context ?? throw new ArgumentNullException(nameof(context));
