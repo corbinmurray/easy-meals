@@ -1,3 +1,5 @@
+using System.Reflection;
+using EasyMeals.Persistence.Mongo.Attributes;
 using EasyMeals.Persistence.Mongo.Options;
 using MongoDB.Driver;
 
@@ -35,13 +37,17 @@ public sealed class MongoContext : IMongoContext
 	public Task<IClientSessionHandle> StartSessionAsync(CancellationToken ct = default) => _client.StartSessionAsync(cancellationToken: ct);
 
 	/// <summary>
-	///     Gets the collection name for a type using pluralization convention.
+	///     Gets the collection name for a type, checking BsonCollectionAttribute first,
+	///     then falling back to pluralization convention.
 	/// </summary>
 	private static string GetCollectionName<T>()
 	{
+		var attribute = typeof(T).GetCustomAttribute<BsonCollectionAttribute>();
+		if (attribute is not null)
+			return attribute.CollectionName;
+
 		string typeName = typeof(T).Name;
 
-		// Simple pluralization - add 's' (can be enhanced with a proper pluralization library)
 		return typeName.EndsWith("s", StringComparison.OrdinalIgnoreCase)
 			? typeName.ToLowerInvariant()
 			: $"{typeName.ToLowerInvariant()}s";
