@@ -3,22 +3,51 @@ namespace EasyMeals.Domain.ProviderConfiguration;
 /// <summary>
 /// Rate limiting and retry configuration for provider requests.
 /// </summary>
-public sealed record RateLimitSettings
+public sealed class RateLimitSettings
 {
     /// <summary>Maximum requests per minute to this provider.</summary>
-    public int RequestsPerMinute { get; init; } = 60;
+    public int RequestsPerMinute { get; private set; }
 
     /// <summary>Minimum delay between consecutive requests.</summary>
-    public TimeSpan DelayBetweenRequests { get; init; } = TimeSpan.FromMilliseconds(100);
+    public TimeSpan DelayBetweenRequests { get; private set; }
 
     /// <summary>Maximum concurrent requests to this provider.</summary>
-    public int MaxConcurrentRequests { get; init; } = 5;
+    public int MaxConcurrentRequests { get; private set; }
 
     /// <summary>Maximum retry attempts on transient failures.</summary>
-    public int MaxRetries { get; init; } = 3;
+    public int MaxRetries { get; private set; }
 
     /// <summary>Base delay between retry attempts (may be multiplied for backoff).</summary>
-    public TimeSpan RetryDelay { get; init; } = TimeSpan.FromSeconds(1);
+    public TimeSpan RetryDelay { get; private set; }
+
+    /// <summary>
+    /// Creates a new instance of RateLimitSettings.
+    /// </summary>
+    /// <param name="requestsPerMinute">Maximum requests per minute (default: 60).</param>
+    /// <param name="delayBetweenRequests">Delay between consecutive requests (default: 100ms).</param>
+    /// <param name="maxConcurrentRequests">Maximum concurrent requests (default: 5).</param>
+    /// <param name="maxRetries">Maximum retry attempts (default: 3).</param>
+    /// <param name="retryDelay">Base delay between retries (default: 1 second).</param>
+    public RateLimitSettings(
+        int requestsPerMinute = 60,
+        TimeSpan? delayBetweenRequests = null,
+        int maxConcurrentRequests = 5,
+        int maxRetries = 3,
+        TimeSpan? retryDelay = null)
+    {
+        if (requestsPerMinute <= 0)
+            throw new ArgumentOutOfRangeException(nameof(requestsPerMinute), "Must be greater than 0.");
+        if (maxConcurrentRequests <= 0)
+            throw new ArgumentOutOfRangeException(nameof(maxConcurrentRequests), "Must be greater than 0.");
+        if (maxRetries < 0)
+            throw new ArgumentOutOfRangeException(nameof(maxRetries), "Cannot be negative.");
+
+        RequestsPerMinute = requestsPerMinute;
+        DelayBetweenRequests = delayBetweenRequests ?? TimeSpan.FromMilliseconds(100);
+        MaxConcurrentRequests = maxConcurrentRequests;
+        MaxRetries = maxRetries;
+        RetryDelay = retryDelay ?? TimeSpan.FromSeconds(1);
+    }
 
     /// <summary>
     /// Creates a default rate limit configuration suitable for most providers.
@@ -28,12 +57,10 @@ public sealed record RateLimitSettings
     /// <summary>
     /// Creates a conservative rate limit configuration for providers with strict limits.
     /// </summary>
-    public static RateLimitSettings Conservative => new()
-    {
-        RequestsPerMinute = 30,
-        DelayBetweenRequests = TimeSpan.FromMilliseconds(500),
-        MaxConcurrentRequests = 2,
-        MaxRetries = 3,
-        RetryDelay = TimeSpan.FromSeconds(2)
-    };
+    public static RateLimitSettings Conservative => new(
+        requestsPerMinute: 30,
+        delayBetweenRequests: TimeSpan.FromMilliseconds(500),
+        maxConcurrentRequests: 2,
+        maxRetries: 3,
+        retryDelay: TimeSpan.FromSeconds(2));
 }

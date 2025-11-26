@@ -10,30 +10,54 @@ namespace EasyMeals.Domain.ProviderConfiguration;
 /// from a secure secret store (Azure Key Vault, AWS Secrets Manager, or environment variables for development).
 /// </para>
 /// </remarks>
-public sealed record ApiSettings
+public sealed class ApiSettings
 {
     /// <summary>API endpoint URL for recipe data.</summary>
-    public required string Endpoint { get; init; }
+    public string Endpoint { get; private set; }
 
     /// <summary>Authentication method (None, ApiKey, Bearer, Basic).</summary>
-    public AuthMethod AuthMethod { get; init; } = AuthMethod.None;
+    public AuthMethod AuthMethod { get; private set; }
 
     /// <summary>
     /// Custom headers to include with API requests.
     /// For sensitive values (API keys, tokens), store secret references only.
     /// Example: "X-Api-Key": "secret:provider-apikey"
     /// </summary>
-    public IReadOnlyDictionary<string, string> Headers { get; init; } =
-        new Dictionary<string, string>();
+    public IReadOnlyDictionary<string, string> Headers { get; private set; }
 
     /// <summary>Query parameter name for page size (pagination).</summary>
-    public string? PageSizeParam { get; init; }
+    public string? PageSizeParam { get; private set; }
 
     /// <summary>Query parameter name for page number (pagination).</summary>
-    public string? PageNumberParam { get; init; }
+    public string? PageNumberParam { get; private set; }
 
     /// <summary>Default page size for paginated requests.</summary>
-    public int DefaultPageSize { get; init; } = 20;
+    public int DefaultPageSize { get; private set; }
+
+    /// <summary>
+    /// Creates a new instance of ApiSettings.
+    /// </summary>
+    /// <param name="endpoint">API endpoint URL for recipe data.</param>
+    /// <param name="authMethod">Authentication method (default: None).</param>
+    /// <param name="headers">Custom headers to include with requests.</param>
+    /// <param name="pageSizeParam">Query parameter name for page size.</param>
+    /// <param name="pageNumberParam">Query parameter name for page number.</param>
+    /// <param name="defaultPageSize">Default page size (default: 20).</param>
+    public ApiSettings(
+        string endpoint,
+        AuthMethod authMethod = AuthMethod.None,
+        IReadOnlyDictionary<string, string>? headers = null,
+        string? pageSizeParam = null,
+        string? pageNumberParam = null,
+        int defaultPageSize = 20)
+    {
+        Endpoint = endpoint ?? throw new ArgumentNullException(nameof(endpoint));
+        AuthMethod = authMethod;
+        Headers = headers ?? new Dictionary<string, string>();
+        PageSizeParam = pageSizeParam;
+        PageNumberParam = pageNumberParam;
+        DefaultPageSize = defaultPageSize > 0 ? defaultPageSize : throw new ArgumentOutOfRangeException(nameof(defaultPageSize), "Must be greater than 0.");
+    }
 
     /// <summary>
     /// Validates that any secret references in headers follow the expected pattern.

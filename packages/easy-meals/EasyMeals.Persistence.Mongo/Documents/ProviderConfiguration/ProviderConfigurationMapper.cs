@@ -94,24 +94,23 @@ public static class ProviderConfigurationMapper
 
     private static DomainExtractionSelectors MapExtractionSelectorsToDomain(ExtractionSelectorsDocument doc)
     {
-        return new DomainExtractionSelectors
-        {
-            TitleSelector = doc.TitleSelector,
-            TitleFallbackSelector = doc.TitleFallbackSelector,
-            DescriptionSelector = doc.DescriptionSelector,
-            DescriptionFallbackSelector = doc.DescriptionFallbackSelector,
-            IngredientsSelector = doc.IngredientsSelector,
-            InstructionsSelector = doc.InstructionsSelector,
-            PrepTimeSelector = doc.PrepTimeSelector,
-            CookTimeSelector = doc.CookTimeSelector,
-            TotalTimeSelector = doc.TotalTimeSelector,
-            ServingsSelector = doc.ServingsSelector,
-            ImageUrlSelector = doc.ImageUrlSelector,
-            AuthorSelector = doc.AuthorSelector,
-            CuisineSelector = doc.CuisineSelector,
-            DifficultySelector = doc.DifficultySelector,
-            NutritionSelector = doc.NutritionSelector
-        };
+        return new DomainExtractionSelectors(
+            titleSelector: doc.TitleSelector,
+            descriptionSelector: doc.DescriptionSelector,
+            ingredientsSelector: doc.IngredientsSelector,
+            instructionsSelector: doc.InstructionsSelector,
+            titleFallbackSelector: doc.TitleFallbackSelector,
+            descriptionFallbackSelector: doc.DescriptionFallbackSelector,
+            prepTimeSelector: doc.PrepTimeSelector,
+            cookTimeSelector: doc.CookTimeSelector,
+            totalTimeSelector: doc.TotalTimeSelector,
+            servingsSelector: doc.ServingsSelector,
+            imageUrlSelector: doc.ImageUrlSelector,
+            authorSelector: doc.AuthorSelector,
+            cuisineSelector: doc.CuisineSelector,
+            difficultySelector: doc.DifficultySelector,
+            nutritionSelector: doc.NutritionSelector
+        );
     }
 
     private static ExtractionSelectorsDocument MapExtractionSelectorsToDocument(DomainExtractionSelectors entity)
@@ -138,14 +137,13 @@ public static class ProviderConfigurationMapper
 
     private static DomainRateLimitSettings MapRateLimitSettingsToDomain(RateLimitSettingsDocument doc)
     {
-        return new DomainRateLimitSettings
-        {
-            RequestsPerMinute = doc.RequestsPerMinute,
-            DelayBetweenRequests = TimeSpan.FromMilliseconds(doc.DelayBetweenRequestsMs),
-            MaxConcurrentRequests = doc.MaxConcurrentRequests,
-            MaxRetries = doc.MaxRetries,
-            RetryDelay = TimeSpan.FromMilliseconds(doc.RetryDelayMs)
-        };
+        return new DomainRateLimitSettings(
+            requestsPerMinute: doc.RequestsPerMinute,
+            delayBetweenRequests: TimeSpan.FromMilliseconds(doc.DelayBetweenRequestsMs),
+            maxConcurrentRequests: doc.MaxConcurrentRequests,
+            maxRetries: doc.MaxRetries,
+            retryDelay: TimeSpan.FromMilliseconds(doc.RetryDelayMs)
+        );
     }
 
     private static RateLimitSettingsDocument MapRateLimitSettingsToDocument(DomainRateLimitSettings entity)
@@ -162,15 +160,14 @@ public static class ProviderConfigurationMapper
 
     private static DomainApiSettings MapApiSettingsToDomain(ApiSettingsDocument doc)
     {
-        return new DomainApiSettings
-        {
-            Endpoint = doc.Endpoint,
-            AuthMethod = ParseAuthMethod(doc.AuthMethod),
-            Headers = new Dictionary<string, string>(doc.Headers),
-            PageSizeParam = doc.PageSizeParam,
-            PageNumberParam = doc.PageNumberParam,
-            DefaultPageSize = doc.DefaultPageSize
-        };
+        return new DomainApiSettings(
+            endpoint: doc.Endpoint,
+            authMethod: ParseAuthMethod(doc.AuthMethod),
+            headers: new Dictionary<string, string>(doc.Headers),
+            pageSizeParam: doc.PageSizeParam,
+            pageNumberParam: doc.PageNumberParam,
+            defaultPageSize: doc.DefaultPageSize
+        );
     }
 
     private static ApiSettingsDocument MapApiSettingsToDocument(DomainApiSettings entity)
@@ -188,14 +185,13 @@ public static class ProviderConfigurationMapper
 
     private static DomainCrawlSettings MapCrawlSettingsToDomain(CrawlSettingsDocument doc)
     {
-        return new DomainCrawlSettings
-        {
-            SeedUrls = doc.SeedUrls.AsReadOnly(),
-            IncludePatterns = doc.IncludePatterns.AsReadOnly(),
-            ExcludePatterns = doc.ExcludePatterns.AsReadOnly(),
-            MaxDepth = doc.MaxDepth,
-            LinkSelector = doc.LinkSelector
-        };
+        return new DomainCrawlSettings(
+            seedUrls: doc.SeedUrls.AsReadOnly(),
+            includePatterns: doc.IncludePatterns.AsReadOnly(),
+            excludePatterns: doc.ExcludePatterns.AsReadOnly(),
+            maxDepth: doc.MaxDepth,
+            linkSelector: doc.LinkSelector
+        );
     }
 
     private static CrawlSettingsDocument MapCrawlSettingsToDocument(DomainCrawlSettings entity)
