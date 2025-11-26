@@ -12,6 +12,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Platform", "Platform", "{49
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EasyMeals.Platform.Abstractions", "EasyMeals.Platform.Abstractions\EasyMeals.Platform.Abstractions.csproj", "{495D3DB2-D0D7-43C3-85BF-C14EFEB3ED9A}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EasyMeals.Domain", "EasyMeals.Domain\EasyMeals.Domain.csproj", "{F1E5C5ED-0B7C-4F8D-9C12-7A9D6E3E7B8A}"
+EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EasyMeals.Persistence.Mongo.Extensions", "EasyMeals.Persistence.Mongo.Extensions\EasyMeals.Persistence.Mongo.Extensions.csproj", "{5BAB4052-C0E5-4C74-9392-53FEDB6765A1}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Mongo", "Mongo", "{39F450AC-CCC4-4AA4-932A-7A6DA97FCF77}"
@@ -38,10 +40,18 @@ Global
 		{495D3DB2-D0D7-43C3-85BF-C14EFEB3ED9A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{495D3DB2-D0D7-43C3-85BF-C14EFEB3ED9A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{495D3DB2-D0D7-43C3-85BF-C14EFEB3ED9A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F1E5C5ED-0B7C-4F8D-9C12-7A9D6E3E7B8A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F1E5C5ED-0B7C-4F8D-9C12-7A9D6E3E7B8A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F1E5C5ED-0B7C-4F8D-9C12-7A9D6E3E7B8A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F1E5C5ED-0B7C-4F8D-9C12-7A9D6E3E7B8A}.Release|Any CPU.Build.0 = Release|Any CPU
 		{5BAB4052-C0E5-4C74-9392-53FEDB6765A1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{5BAB4052-C0E5-4C74-9392-53FEDB6765A1}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5BAB4052-C0E5-4C74-9392-53FEDB6765A1}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{5BAB4052-C0E5-4C74-9392-53FEDB6765A1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F1E5C5ED-0B7C-4F8D-9C12-7A9D6E3E7B8A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F1E5C5ED-0B7C-4F8D-9C12-7A9D6E3E7B8A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F1E5C5ED-0B7C-4F8D-9C12-7A9D6E3E7B8A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F1E5C5ED-0B7C-4F8D-9C12-7A9D6E3E7B8A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{A120975C-4A5E-4830-A4F6-BF022B409E01} = {662BE531-CCE7-4DC6-8AAB-E47C9D445522}

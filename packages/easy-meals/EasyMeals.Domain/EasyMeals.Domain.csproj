@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\EasyMeals.Platform\EasyMeals.Platform.csproj" />
+    </ItemGroup>
+
+    <!-- No package references in domain project for Phase 1. AngleSharp integration will be added
+    in Phase 2 tests/implementation. -->
+
+</Project>

@@ -30,12 +30,12 @@ Based on plan.md structure:
 
 **Purpose**: Create new projects and configure dependencies
 
-- [ ] T001 Create `EasyMeals.Domain` project in `packages/easy-meals/EasyMeals.Domain/EasyMeals.Domain.csproj` with reference to `EasyMeals.Platform`
-- [ ] T002 Add `EasyMeals.Domain` project to `packages/easy-meals/EasyMeals.Packages.sln`
-- [ ] T003 [P] Add AngleSharp package reference to `Directory.Packages.props` (version 1.2.0)
-- [ ] T004 [P] Create test project `EasyMeals.RecipeEngine.Infrastructure.Tests` in `apps/recipe-engine/tests/EasyMeals.RecipeEngine.Infrastructure.Tests/`
-- [ ] T005 [P] Add test project to `apps/recipe-engine/EasyMeals.RecipeEngine.sln`
-- [ ] T006 Configure test project with xUnit, FluentAssertions, Testcontainers.MongoDb references
+- [x] T001 Create `EasyMeals.Domain` project in `packages/easy-meals/EasyMeals.Domain/EasyMeals.Domain.csproj` with reference to `EasyMeals.Platform`
+- [x] T002 Add `EasyMeals.Domain` project to `packages/easy-meals/EasyMeals.Packages.sln`
+- [x] T003 [P] Add AngleSharp package reference to `Directory.Packages.props` (version 1.2.0)
+- [x] T004 [P] Create test project `EasyMeals.RecipeEngine.Infrastructure.Tests` in `apps/recipe-engine/tests/EasyMeals.RecipeEngine.Infrastructure.Tests/`
+- [x] T005 [P] Add test project to `apps/recipe-engine/EasyMeals.RecipeEngine.sln`
+- [x] T006 Configure test project with xUnit, FluentAssertions, Testcontainers.MongoDb references
 
 ---
 
