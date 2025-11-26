@@ -11,6 +11,7 @@
     </ItemGroup>
 
     <ItemGroup>
+        <ProjectReference Include="..\EasyMeals.Domain\EasyMeals.Domain.csproj" />
         <ProjectReference
             Include="..\EasyMeals.Persistence.Abstractions\EasyMeals.Persistence.Abstractions.csproj" />
     </ItemGroup>

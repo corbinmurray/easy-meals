@@ -8,10 +8,16 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\EasyMeals.Platform\EasyMeals.Platform.csproj" />
+        <InternalsVisibleTo Include="EasyMeals.Persistence.Mongo" />
+        <InternalsVisibleTo Include="EasyMeals.RecipeEngine.Infrastructure.Tests" />
     </ItemGroup>
 
-    <!-- No package references in domain project for Phase 1. AngleSharp integration will be added
-    in Phase 2 tests/implementation. -->
+    <ItemGroup>
+        <PackageReference Include="AngleSharp" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\EasyMeals.Platform\EasyMeals.Platform.csproj" />
+    </ItemGroup>
 
 </Project>

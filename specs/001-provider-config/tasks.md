@@ -47,56 +47,56 @@ Based on plan.md structure:
 
 ### Domain Enums & Value Objects
 
-- [ ] T007 [P] Create `DiscoveryStrategy` enum in `packages/easy-meals/EasyMeals.Domain/ProviderConfiguration/DiscoveryStrategy.cs`
-- [ ] T008 [P] Create `FetchingStrategy` enum in `packages/easy-meals/EasyMeals.Domain/ProviderConfiguration/FetchingStrategy.cs`
-- [ ] T009 [P] Create `AuthMethod` enum in `packages/easy-meals/EasyMeals.Domain/ProviderConfiguration/AuthMethod.cs`
-- [ ] T010 [P] Create `ExtractionSelectors` value object in `packages/easy-meals/EasyMeals.Domain/ProviderConfiguration/ExtractionSelectors.cs`
-- [ ] T011 [P] Create `RateLimitSettings` value object in `packages/easy-meals/EasyMeals.Domain/ProviderConfiguration/RateLimitSettings.cs`
-- [ ] T012 [P] Create `ApiSettings` value object in `packages/easy-meals/EasyMeals.Domain/ProviderConfiguration/ApiSettings.cs`
-- [ ] T013 [P] Create `CrawlSettings` value object in `packages/easy-meals/EasyMeals.Domain/ProviderConfiguration/CrawlSettings.cs`
+- [x] T007 [P] Create `DiscoveryStrategy` enum in `packages/easy-meals/EasyMeals.Domain/ProviderConfiguration/DiscoveryStrategy.cs`
+- [x] T008 [P] Create `FetchingStrategy` enum in `packages/easy-meals/EasyMeals.Domain/ProviderConfiguration/FetchingStrategy.cs`
+- [x] T009 [P] Create `AuthMethod` enum in `packages/easy-meals/EasyMeals.Domain/ProviderConfiguration/AuthMethod.cs`
+- [x] T010 [P] Create `ExtractionSelectors` value object in `packages/easy-meals/EasyMeals.Domain/ProviderConfiguration/ExtractionSelectors.cs`
+- [x] T011 [P] Create `RateLimitSettings` value object in `packages/easy-meals/EasyMeals.Domain/ProviderConfiguration/RateLimitSettings.cs`
+- [x] T012 [P] Create `ApiSettings` value object in `packages/easy-meals/EasyMeals.Domain/ProviderConfiguration/ApiSettings.cs`
+- [x] T013 [P] Create `CrawlSettings` value object in `packages/easy-meals/EasyMeals.Domain/ProviderConfiguration/CrawlSettings.cs`
 
 ### CSS Selector Validation
 
-- [ ] T014 Create `CssSelectorValidator` static class in `packages/easy-meals/EasyMeals.Domain/ProviderConfiguration/CssSelectorValidator.cs` using AngleSharp
+- [x] T014 Create `CssSelectorValidator` static class in `packages/easy-meals/EasyMeals.Domain/ProviderConfiguration/CssSelectorValidator.cs` using AngleSharp
 
 ### Domain Aggregate Root
 
-- [ ] T015 Create `ProviderConfiguration` aggregate root in `packages/easy-meals/EasyMeals.Domain/ProviderConfiguration/ProviderConfiguration.cs` with validation logic (depends on T007-T014)
+- [x] T015 Create `ProviderConfiguration` aggregate root in `packages/easy-meals/EasyMeals.Domain/ProviderConfiguration/ProviderConfiguration.cs` with validation logic (depends on T007-T014)
 
 ### Repository Interface
 
-- [ ] T016 Copy `IProviderConfigurationRepository` interface from `specs/001-provider-config/contracts/IProviderConfigurationRepository.cs` to `packages/easy-meals/EasyMeals.Persistence.Abstractions/Repositories/IProviderConfigurationRepository.cs` (contract already defined)
-- [ ] T017 Extract `ICacheableProviderConfigurationRepository` interface from contract file to `packages/easy-meals/EasyMeals.Persistence.Abstractions/Repositories/ICacheableProviderConfigurationRepository.cs`
+- [x] T016 Copy `IProviderConfigurationRepository` interface from `specs/001-provider-config/contracts/IProviderConfigurationRepository.cs` to `packages/easy-meals/EasyMeals.Persistence.Abstractions/Repositories/IProviderConfigurationRepository.cs` (contract already defined)
+- [x] T017 Extract `ICacheableProviderConfigurationRepository` interface from contract file to `packages/easy-meals/EasyMeals.Persistence.Abstractions/Repositories/ICacheableProviderConfigurationRepository.cs`
 
 ### MongoDB Documents
 
-- [ ] T018 [P] Create `ProviderConfigurationDocument` in `packages/easy-meals/EasyMeals.Persistence.Mongo/Documents/ProviderConfiguration/ProviderConfigurationDocument.cs`
-- [ ] T019 [P] Create `ExtractionSelectorsDocument` embedded document in `packages/easy-meals/EasyMeals.Persistence.Mongo/Documents/ProviderConfiguration/ExtractionSelectorsDocument.cs`
-- [ ] T020 [P] Create `RateLimitSettingsDocument` embedded document in `packages/easy-meals/EasyMeals.Persistence.Mongo/Documents/ProviderConfiguration/RateLimitSettingsDocument.cs`
-- [ ] T021 [P] Create `ApiSettingsDocument` embedded document in `packages/easy-meals/EasyMeals.Persistence.Mongo/Documents/ProviderConfiguration/ApiSettingsDocument.cs`
-- [ ] T022 [P] Create `CrawlSettingsDocument` embedded document in `packages/easy-meals/EasyMeals.Persistence.Mongo/Documents/ProviderConfiguration/CrawlSettingsDocument.cs`
+- [x] T018 [P] Create `ProviderConfigurationDocument` in `packages/easy-meals/EasyMeals.Persistence.Mongo/Documents/ProviderConfiguration/ProviderConfigurationDocument.cs`
+- [x] T019 [P] Create `ExtractionSelectorsDocument` embedded document in `packages/easy-meals/EasyMeals.Persistence.Mongo/Documents/ProviderConfiguration/ExtractionSelectorsDocument.cs`
+- [x] T020 [P] Create `RateLimitSettingsDocument` embedded document in `packages/easy-meals/EasyMeals.Persistence.Mongo/Documents/ProviderConfiguration/RateLimitSettingsDocument.cs`
+- [x] T021 [P] Create `ApiSettingsDocument` embedded document in `packages/easy-meals/EasyMeals.Persistence.Mongo/Documents/ProviderConfiguration/ApiSettingsDocument.cs`
+- [x] T022 [P] Create `CrawlSettingsDocument` embedded document in `packages/easy-meals/EasyMeals.Persistence.Mongo/Documents/ProviderConfiguration/CrawlSettingsDocument.cs`
 
 ### Domain-Document Mapper
 
-- [ ] T023 Create `ProviderConfigurationMapper` in `packages/easy-meals/EasyMeals.Persistence.Mongo/Documents/ProviderConfiguration/ProviderConfigurationMapper.cs` (depends on T015, T018-T022)
+- [x] T023 Create `ProviderConfigurationMapper` in `packages/easy-meals/EasyMeals.Persistence.Mongo/Documents/ProviderConfiguration/ProviderConfigurationMapper.cs` (depends on T015, T018-T022)
 
 ### MongoDB Repository & Indexes
 
-- [ ] T024 Create `ProviderConfigurationRepository` implementation in `packages/easy-meals/EasyMeals.Persistence.Mongo/Repositories/ProviderConfigurationRepository.cs` (depends on T016, T023)
-- [ ] T025 Create `ProviderConfigurationIndexes` in `packages/easy-meals/EasyMeals.Persistence.Mongo/Indexes/ProviderConfigurationIndexes.cs`
+- [x] T024 Create `ProviderConfigurationRepository` implementation in `packages/easy-meals/EasyMeals.Persistence.Mongo/Repositories/ProviderConfigurationRepository.cs` (depends on T016, T023)
+- [x] T025 Create `ProviderConfigurationIndexes` in `packages/easy-meals/EasyMeals.Persistence.Mongo/Indexes/ProviderConfigurationIndexes.cs`
 
 ### Caching Infrastructure
 
-- [ ] T026 [P] Create `ProviderConfigurationCacheOptions` in `apps/recipe-engine/src/EasyMeals.RecipeEngine.Infrastructure/Caching/ProviderConfigurationCacheOptions.cs`
-- [ ] T027 Create `CachedProviderConfigurationRepository` decorator in `apps/recipe-engine/src/EasyMeals.RecipeEngine.Infrastructure/Caching/CachedProviderConfigurationRepository.cs` (depends on T016, T017, T026)
+- [x] T026 [P] Create `ProviderConfigurationCacheOptions` in `apps/recipe-engine/src/EasyMeals.RecipeEngine.Infrastructure/Caching/ProviderConfigurationCacheOptions.cs`
+- [x] T027 Create `CachedProviderConfigurationRepository` decorator in `apps/recipe-engine/src/EasyMeals.RecipeEngine.Infrastructure/Caching/CachedProviderConfigurationRepository.cs` (depends on T016, T017, T026)
 
 ### Observability
 
-- [ ] T028 Create `ProviderConfigurationMetrics` in `apps/recipe-engine/src/EasyMeals.RecipeEngine.Infrastructure/Metrics/ProviderConfigurationMetrics.cs`
+- [x] T028 Create `ProviderConfigurationMetrics` in `apps/recipe-engine/src/EasyMeals.RecipeEngine.Infrastructure/Metrics/ProviderConfigurationMetrics.cs`
 
 ### DI Registration
 
-- [ ] T029 Update `ServiceCollectionExtensions.cs` in `apps/recipe-engine/src/EasyMeals.RecipeEngine.Infrastructure/ServiceCollectionExtensions.cs` with provider configuration registration (depends on T024, T027, T028)
+- [x] T029 Update `ServiceCollectionExtensions.cs` in `apps/recipe-engine/src/EasyMeals.RecipeEngine.Infrastructure/ServiceCollectionExtensions.cs` with provider configuration registration (depends on T024, T027, T028)
 
 **Checkpoint**: Foundation ready - user story implementation can now begin
 

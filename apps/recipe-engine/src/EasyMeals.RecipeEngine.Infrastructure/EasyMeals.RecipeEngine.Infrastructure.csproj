@@ -1,19 +1,25 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-    
+
     <PropertyGroup>
         <TargetFramework>net10.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
     </PropertyGroup>
-    
+
     <ItemGroup>
-        <ProjectReference Include="..\EasyMeals.RecipeEngine.Application\EasyMeals.RecipeEngine.Application.csproj" />
-        <ProjectReference Include="..\EasyMeals.RecipeEngine.Domain\EasyMeals.RecipeEngine.Domain.csproj" />
-        <ProjectReference Include="..\..\..\..\packages\easy-meals\EasyMeals.Persistence.Mongo.Extensions\EasyMeals.Persistence.Mongo.Extensions.csproj" />
+        <PackageReference Include="Microsoft.Extensions.Caching.Memory" />
+        <PackageReference Include="Microsoft.Extensions.Diagnostics" />
+        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+        <PackageReference Include="Microsoft.Extensions.Options" />
     </ItemGroup>
-    
+
     <ItemGroup>
-      <Folder Include="Repositories\" />
+        <ProjectReference
+            Include="..\EasyMeals.RecipeEngine.Application\EasyMeals.RecipeEngine.Application.csproj" />
+        <ProjectReference
+            Include="..\EasyMeals.RecipeEngine.Domain\EasyMeals.RecipeEngine.Domain.csproj" />
+        <ProjectReference
+            Include="..\..\..\..\packages\easy-meals\EasyMeals.Persistence.Mongo.Extensions\EasyMeals.Persistence.Mongo.Extensions.csproj" />
     </ItemGroup>
 
 </Project>

@@ -1,10 +1,13 @@
 namespace EasyMeals.Domain.ProviderConfiguration;
 
 /// <summary>
-/// How recipes are discovered for a provider.
+/// How recipe URLs are discovered from a provider.
 /// </summary>
 public enum DiscoveryStrategy
 {
-    Api,
-    Crawl
+    /// <summary>Discover recipes via the provider's API.</summary>
+    Api = 0,
+
+    /// <summary>Discover recipes by crawling HTML pages.</summary>
+    Crawl = 1
 }
