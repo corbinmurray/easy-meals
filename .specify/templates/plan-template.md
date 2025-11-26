@@ -31,7 +31,20 @@
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+This section forces teams to explicitly confirm how the feature plan satisfies the
+project constitution. At minimum include answers for:
+
+- Code Quality: Which linters/type-checks apply and how the code will be structured
+  to keep the module maintainable.
+- Testing Standards: Which tests will be written (unit/integration/contract), which
+  tests will run in CI pre-merge, and where coverage will be measured.
+- UX Consistency: If user-facing, link design-system components, accessibility
+  checks, and UI acceptance criteria.
+- Performance Goals: List measurable goals (p95 latency, memory) and how they'll be
+  validated (benchmarks, CI performance tests).
+
+Provide a short verification plan for how each item will be validated in CI or by
+manual review before the implementation phase proceeds.
 
 ## Project Structure
 

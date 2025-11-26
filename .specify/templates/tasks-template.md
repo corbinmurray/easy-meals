@@ -8,7 +8,9 @@ description: "Task list template for feature implementation"
 **Input**: Design documents from `/specs/[###-feature-name]/`
 **Prerequisites**: plan.md (required), spec.md (required for user stories), research.md, data-model.md, contracts/
 
-**Tests**: The examples below include test tasks. Tests are OPTIONAL - only include them if explicitly requested in the feature specification.
+**Tests**: Tests are MANDATORY. The project follows Test-First (TDD) practices. For every
+user story tests MUST be written (unit, integration, and where applicable contract/acceptance)
+and must fail before implementation begins. CI MUST run the test suites on PRs.
 
 **Organization**: Tasks are grouped by user story to enable independent implementation and testing of each story.
 
@@ -51,6 +53,7 @@ description: "Task list template for feature implementation"
 - [ ] T001 Create project structure per implementation plan
 - [ ] T002 Initialize [language] project with [framework] dependencies
 - [ ] T003 [P] Configure linting and formatting tools
+- [ ] T003a [P] Configure CI checks for static analysis, dependency scanning, and test execution
 
 ---
 
@@ -79,12 +82,15 @@ Examples of foundational tasks (adjust based on your project):
 
 **Independent Test**: [How to verify this story works on its own]
 
-### Tests for User Story 1 (OPTIONAL - only if tests requested) ⚠️
+### Tests for User Story 1 (REQUIRED)
 
-> **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
+> **NOTE: Tests MUST be written FIRST and must FAIL before implementation.**
 
-- [ ] T010 [P] [US1] Contract test for [endpoint] in tests/contract/test_[name].py
-- [ ] T011 [P] [US1] Integration test for [user journey] in tests/integration/test_[name].py
+- [ ] T010 [P] [US1] Unit tests for core behavior in tests/unit/test_[name].py
+- [ ] T011 [P] [US1] Integration test(s) for the user journey in tests/integration/test_[name].py
+- [ ] T012 [P] [US1] Contract test(s) for any public API or cross-service contract
+- [ ] T013 [P] [US1] Accessibility tests for user-facing features (if applicable)
+- [ ] T014 [P] [US1] Performance micro-benchmark if the story affects latency/throughput
 
 ### Implementation for User Story 1
 
@@ -105,10 +111,12 @@ Examples of foundational tasks (adjust based on your project):
 
 **Independent Test**: [How to verify this story works on its own]
 
-### Tests for User Story 2 (OPTIONAL - only if tests requested) ⚠️
+### Tests for User Story 2 (REQUIRED)
 
-- [ ] T018 [P] [US2] Contract test for [endpoint] in tests/contract/test_[name].py
-- [ ] T019 [P] [US2] Integration test for [user journey] in tests/integration/test_[name].py
+- [ ] T018 [P] [US2] Unit tests for story-level logic
+- [ ] T019 [P] [US2] Integration test(s) for the user journey
+- [ ] T020 [P] [US2] Contract tests if this story changes any API/schema
+- [ ] T021 [P] [US2] Accessibility/UX acceptance checks (for UI changes)
 
 ### Implementation for User Story 2
 
@@ -127,10 +135,12 @@ Examples of foundational tasks (adjust based on your project):
 
 **Independent Test**: [How to verify this story works on its own]
 
-### Tests for User Story 3 (OPTIONAL - only if tests requested) ⚠️
+### Tests for User Story 3 (REQUIRED)
 
-- [ ] T024 [P] [US3] Contract test for [endpoint] in tests/contract/test_[name].py
-- [ ] T025 [P] [US3] Integration test for [user journey] in tests/integration/test_[name].py
+- [ ] T024 [P] [US3] Unit tests for story-level logic
+- [ ] T025 [P] [US3] Integration tests for the end-to-end journey
+- [ ] T026 [P] [US3] Contract tests when public API or data schema is affected
+- [ ] T027 [P] [US3] Accessibility checks (if UI changes)
 
 ### Implementation for User Story 3
 
@@ -153,7 +163,7 @@ Examples of foundational tasks (adjust based on your project):
 - [ ] TXXX [P] Documentation updates in docs/
 - [ ] TXXX Code cleanup and refactoring
 - [ ] TXXX Performance optimization across all stories
-- [ ] TXXX [P] Additional unit tests (if requested) in tests/unit/
+ - [ ] TXXX [P] Additional unit tests and coverage improvements in tests/unit/
 - [ ] TXXX Security hardening
 - [ ] TXXX Run quickstart.md validation
 
@@ -178,7 +188,9 @@ Examples of foundational tasks (adjust based on your project):
 
 ### Within Each User Story
 
-- Tests (if included) MUST be written and FAIL before implementation
+- Tests MUST be written and FAIL before implementation; CI must run tests for the branch and
+  passing tests are required prior to merge. If a PR intentionally adds tests that fail, the
+  PR must be limited to only the test changes and clearly labeled.
 - Models before services
 - Services before endpoints
 - Core implementation before integration

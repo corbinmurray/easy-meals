@@ -90,6 +90,14 @@
 - **FR-004**: System MUST [data requirement, e.g., "persist user preferences"]
 - **FR-005**: System MUST [behavior, e.g., "log all security events"]
 
+### Testing & Quality Requirements (MANDATORY)
+
+- Every feature MUST list the tests to be added: unit tests, integration tests, contract tests,
+  and any end-to-end acceptance tests. Tests MUST be written first and fail prior to
+  production implementation (TDD). Include which CI jobs will run these tests and any
+  coverage thresholds that must be maintained. If there are legacy modules with lower
+  coverage, document the plan to address them in a follow-up task.
+
 *Example of marking unclear requirements:*
 
 - **FR-006**: System MUST authenticate users via [NEEDS CLARIFICATION: auth method not specified - email/password, SSO, OAuth?]
@@ -113,3 +121,9 @@
 - **SC-002**: [Measurable metric, e.g., "System handles 1000 concurrent users without degradation"]
 - **SC-003**: [User satisfaction metric, e.g., "90% of users successfully complete primary task on first attempt"]
 - **SC-004**: [Business metric, e.g., "Reduce support tickets related to [X] by 50%"]
+
+### Performance & Scalability Targets (MANDATORY when applicable)
+
+- Specify concrete performance goals for the feature (p95 latency, throughput, CPU/memory caps)
+- Include the methods for validating these goals (benchmarks, profiling, CI measurement)
+- Note any expectations for observability and alerts tied to performance thresholds
