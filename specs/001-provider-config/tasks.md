@@ -112,12 +112,12 @@ Based on plan.md structure:
 
 > **NOTE: Tests MUST be written FIRST and must FAIL before implementation.**
 
-- [ ] T030 [P] [US1] Unit tests for `ProviderConfiguration` validation in `apps/recipe-engine/tests/EasyMeals.RecipeEngine.Infrastructure.Tests/Domain/ProviderConfigurationTests.cs`
-- [ ] T031 [P] [US1] Unit tests for `CssSelectorValidator` in `apps/recipe-engine/tests/EasyMeals.RecipeEngine.Infrastructure.Tests/Validation/CssSelectorValidatorTests.cs`
-- [ ] T032 [P] [US1] Unit tests for value object equality/immutability in `apps/recipe-engine/tests/EasyMeals.RecipeEngine.Infrastructure.Tests/Domain/ValueObjectTests.cs`
-- [ ] T033 [P] [US1] Integration tests for repository CRUD in `apps/recipe-engine/tests/EasyMeals.RecipeEngine.Infrastructure.Tests/Repositories/ProviderConfigurationRepositoryTests.cs`
-- [ ] T034 [P] [US1] Integration tests for index enforcement in `apps/recipe-engine/tests/EasyMeals.RecipeEngine.Infrastructure.Tests/Indexes/IndexEnforcementTests.cs`
-- [ ] T035 [P] [US1] Integration tests for `GetAllEnabledAsync` returns only enabled providers (ordered by priority) in same file as T033
+- [x] T030 [P] [US1] Unit tests for `ProviderConfiguration` validation in `apps/recipe-engine/tests/EasyMeals.RecipeEngine.Infrastructure.Tests/Domain/ProviderConfigurationTests.cs`
+- [x] T031 [P] [US1] Unit tests for `CssSelectorValidator` in `apps/recipe-engine/tests/EasyMeals.RecipeEngine.Infrastructure.Tests/Validation/CssSelectorValidatorTests.cs`
+- [x] T032 [P] [US1] Unit tests for value object equality/immutability in `apps/recipe-engine/tests/EasyMeals.RecipeEngine.Infrastructure.Tests/Domain/ValueObjectTests.cs`
+- [x] T033 [P] [US1] Integration tests for repository CRUD in `apps/recipe-engine/tests/EasyMeals.RecipeEngine.Infrastructure.Tests/Repositories/ProviderConfigurationRepositoryTests.cs`
+- [x] T034 [P] [US1] Integration tests for index enforcement in `apps/recipe-engine/tests/EasyMeals.RecipeEngine.Infrastructure.Tests/Indexes/IndexEnforcementTests.cs`
+- [x] T035 [P] [US1] Integration tests for `GetAllEnabledAsync` returns only enabled providers (ordered by priority) in same file as T033
 
 ### Implementation for User Story 1
 
