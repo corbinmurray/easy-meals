@@ -121,11 +121,11 @@ Based on plan.md structure:
 
 ### Implementation for User Story 1
 
-- [ ] T036 [US1] Implement `ProviderConfiguration.Create()` factory method with full validation (in T015 file)
-- [ ] T037 [US1] Implement `ProviderConfigurationRepository.AddAsync()` with provider name uniqueness check (in T024 file)
-- [ ] T038 [US1] Implement `ProviderConfigurationRepository.GetAllEnabledAsync()` with soft-delete and priority ordering (in T024 file)
-- [ ] T039 [US1] Implement index creation in `ProviderConfigurationIndexes` (in T025 file)
-- [ ] T040 [US1] Verify `dotnet build` passes for all projects with no warnings
+- [x] T036 [US1] Implement `ProviderConfiguration.Create()` factory method with full validation (in T015 file)
+- [x] T037 [US1] Implement `ProviderConfigurationRepository.AddAsync()` with provider name uniqueness check (in T024 file)
+- [x] T038 [US1] Implement `ProviderConfigurationRepository.GetAllEnabledAsync()` with soft-delete and priority ordering (in T024 file)
+- [x] T039 [US1] Implement index creation in `ProviderConfigurationIndexes` (in T025 file)
+- [x] T040 [US1] Verify `dotnet build` passes for all projects with no warnings
 
 **Checkpoint**: User Story 1 complete - operators can insert provider configs and recipe engine loads them
 
@@ -139,18 +139,18 @@ Based on plan.md structure:
 
 ### Tests for User Story 2 (REQUIRED)
 
-- [ ] T041 [P] [US2] Unit tests for `ProviderConfiguration.UpdateSelectors()` in `apps/recipe-engine/tests/EasyMeals.RecipeEngine.Infrastructure.Tests/Domain/ProviderConfigurationTests.cs`
-- [ ] T042 [P] [US2] Unit tests for `ProviderConfiguration.UpdateRateLimits()` in same file
-- [ ] T043 [P] [US2] Integration tests for `UpdateAsync` with optimistic concurrency in `apps/recipe-engine/tests/EasyMeals.RecipeEngine.Infrastructure.Tests/Repositories/ProviderConfigurationRepositoryTests.cs`
-- [ ] T044 [P] [US2] Integration tests for cache TTL expiration in `apps/recipe-engine/tests/EasyMeals.RecipeEngine.Infrastructure.Tests/Caching/CachedProviderConfigurationRepositoryTests.cs`
-- [ ] T045 [P] [US2] Integration tests for cache returns same instance within TTL window in same file as T044
+- [x] T041 [P] [US2] Unit tests for `ProviderConfiguration.UpdateSelectors()` in `apps/recipe-engine/tests/EasyMeals.RecipeEngine.Infrastructure.Tests/Domain/ProviderConfigurationTests.cs`
+- [x] T042 [P] [US2] Unit tests for `ProviderConfiguration.UpdateRateLimits()` in same file
+- [x] T043 [P] [US2] Integration tests for `UpdateAsync` with optimistic concurrency in `apps/recipe-engine/tests/EasyMeals.RecipeEngine.Infrastructure.Tests/Repositories/ProviderConfigurationRepositoryTests.cs`
+- [x] T044 [P] [US2] Integration tests for cache TTL expiration in `apps/recipe-engine/tests/EasyMeals.RecipeEngine.Infrastructure.Tests/Caching/CachedProviderConfigurationRepositoryTests.cs`
+- [x] T045 [P] [US2] Integration tests for cache returns same instance within TTL window in same file as T044
 
 ### Implementation for User Story 2
 
-- [ ] T046 [US2] Implement `ProviderConfiguration.UpdateSelectors(ExtractionSelectors)` domain method (in T015 file)
-- [ ] T047 [US2] Implement `ProviderConfiguration.UpdateRateLimits(RateLimitSettings)` domain method (in T015 file)
-- [ ] T048 [US2] Implement `ProviderConfigurationRepository.UpdateAsync()` with concurrency token check (in T024 file)
-- [ ] T049 [US2] Implement cache TTL behavior in `CachedProviderConfigurationRepository` (in T027 file)
+- [x] T046 [US2] Implement `ProviderConfiguration.UpdateSelectors(ExtractionSelectors)` domain method (in T015 file)
+- [x] T047 [US2] Implement `ProviderConfiguration.UpdateRateLimits(RateLimitSettings)` domain method (in T015 file)
+- [x] T048 [US2] Implement `ProviderConfigurationRepository.UpdateAsync()` with concurrency token check (in T024 file)
+- [x] T049 [US2] Implement cache TTL behavior in `CachedProviderConfigurationRepository` (in T027 file)
 
 **Checkpoint**: User Story 2 complete - operators can edit configs and changes reflect after cache TTL
 
