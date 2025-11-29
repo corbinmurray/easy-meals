@@ -1,5 +1,6 @@
 using EasyMeals.Domain.ProviderConfiguration;
 using EasyMeals.Persistence.Abstractions.Repositories;
+using EasyMeals.RecipeEngine.Infrastructure.Metrics;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -20,17 +21,20 @@ public class CachedProviderConfigurationRepository : ICacheableProviderConfigura
     private readonly IMemoryCache _cache;
     private readonly ILogger<CachedProviderConfigurationRepository> _logger;
     private readonly ProviderConfigurationCacheOptions _options;
+    private readonly ProviderConfigurationMetrics? _metrics;
 
     public CachedProviderConfigurationRepository(
         IProviderConfigurationRepository inner,
         IMemoryCache cache,
         IOptions<ProviderConfigurationCacheOptions> options,
-        ILogger<CachedProviderConfigurationRepository> logger)
+        ILogger<CachedProviderConfigurationRepository> logger,
+        ProviderConfigurationMetrics? metrics = null)
     {
         _inner = inner ?? throw new ArgumentNullException(nameof(inner));
         _cache = cache ?? throw new ArgumentNullException(nameof(cache));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _options = options?.Value ?? throw new ArgumentNullException(nameof(options));
+        _metrics = metrics;
     }
 
     /// <inheritdoc />
@@ -44,11 +48,14 @@ public class CachedProviderConfigurationRepository : ICacheableProviderConfigura
         if (_cache.TryGetValue(cacheKey, out ProviderConfiguration? cached))
         {
             _logger.LogDebug("Cache hit for provider configuration by ID: {Id}", id);
+            _metrics?.RecordCacheHit("GetById");
             return cached;
         }
 
         _logger.LogDebug("Cache miss for provider configuration by ID: {Id}", id);
+        _metrics?.RecordCacheMiss("GetById");
 
+        using var timing = _metrics?.StartTiming("GetById");
         var result = await _inner.GetByIdAsync(id, ct);
 
         if (result is not null)
@@ -69,11 +76,14 @@ public class CachedProviderConfigurationRepository : ICacheableProviderConfigura
         if (_cache.TryGetValue(AllEnabledCacheKey, out IReadOnlyList<ProviderConfiguration>? cached))
         {
             _logger.LogDebug("Cache hit for all enabled provider configurations. Count: {Count}", cached?.Count ?? 0);
+            _metrics?.RecordCacheHit("GetAllEnabled");
             return cached ?? [];
         }
 
         _logger.LogDebug("Cache miss for all enabled provider configurations");
+        _metrics?.RecordCacheMiss("GetAllEnabled");
 
+        using var timing = _metrics?.StartTiming("GetAllEnabled");
         var result = await _inner.GetAllEnabledAsync(ct);
 
         _cache.Set(AllEnabledCacheKey, result, _options.CacheTtl);
@@ -94,11 +104,14 @@ public class CachedProviderConfigurationRepository : ICacheableProviderConfigura
         if (_cache.TryGetValue(cacheKey, out ProviderConfiguration? cached))
         {
             _logger.LogDebug("Cache hit for provider configuration by name: {ProviderName}", normalizedName);
+            _metrics?.RecordCacheHit("GetByName");
             return cached;
         }
 
         _logger.LogDebug("Cache miss for provider configuration by name: {ProviderName}", normalizedName);
+        _metrics?.RecordCacheMiss("GetByName");
 
+        using var timing = _metrics?.StartTiming("GetByName");
         var result = await _inner.GetByProviderNameAsync(providerName ?? string.Empty, ct);
 
         if (result is not null)

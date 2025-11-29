@@ -441,6 +441,63 @@ public class ProviderConfigurationRepositoryTests : IAsyncLifetime
         results.Should().NotContain(c => c.ProviderName == "lonely-disabled-provider");
     }
 
+    [Fact]
+    public async Task DisabledVsSoftDeleted_DisabledConfigCanBeRetrievedById()
+    {
+        // Arrange - This test demonstrates the distinction between disabled and soft-deleted
+        var disabledConfig = CreateTestConfiguration("disabled-retrievable-provider");
+        var deletedConfig = CreateTestConfiguration("deleted-not-retrievable-provider");
+
+        var disabledId = await _repository.AddAsync(disabledConfig);
+        var deletedId = await _repository.AddAsync(deletedConfig);
+
+        // Disable one configuration
+        var toDisable = await _repository.GetByIdAsync(disabledId);
+        toDisable!.Disable();
+        await _repository.UpdateAsync(toDisable);
+
+        // Soft-delete the other
+        await _repository.DeleteAsync(deletedId);
+
+        // Act
+        var disabledResult = await _repository.GetByIdAsync(disabledId);
+        var deletedResult = await _repository.GetByIdAsync(deletedId);
+
+        // Assert - Disabled config IS retrievable by ID, soft-deleted is NOT
+        disabledResult.Should().NotBeNull("disabled configs can be retrieved by ID for re-enabling");
+        disabledResult!.IsEnabled.Should().BeFalse();
+        deletedResult.Should().BeNull("soft-deleted configs are never returned");
+    }
+
+    [Fact]
+    public async Task DisabledVsSoftDeleted_BothExcludedFromGetAllEnabled()
+    {
+        // Arrange
+        var enabledConfig = CreateTestConfiguration("enabled-distinction-provider");
+        var disabledConfig = CreateTestConfiguration("disabled-distinction-provider");
+        var deletedConfig = CreateTestConfiguration("deleted-distinction-provider");
+
+        var enabledId = await _repository.AddAsync(enabledConfig);
+        var disabledId = await _repository.AddAsync(disabledConfig);
+        var deletedId = await _repository.AddAsync(deletedConfig);
+
+        // Disable one
+        var toDisable = await _repository.GetByIdAsync(disabledId);
+        toDisable!.Disable();
+        await _repository.UpdateAsync(toDisable);
+
+        // Soft-delete another
+        await _repository.DeleteAsync(deletedId);
+
+        // Act
+        var results = await _repository.GetAllEnabledAsync();
+
+        // Assert - Only enabled config appears in list
+        results.Should().Contain(c => c.Id == enabledId);
+        results.Should().NotContain(c => c.Id == disabledId);
+        results.Should().NotContain(c => c.Id == deletedId);
+    }
+
     #endregion
 
     #region UpdateAsync Tests

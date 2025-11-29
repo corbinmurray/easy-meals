@@ -164,15 +164,15 @@ Based on plan.md structure:
 
 ### Tests for User Story 3 (REQUIRED)
 
-- [ ] T050 [P] [US3] Unit tests for `ProviderConfiguration.Enable()` and `Disable()` in `apps/recipe-engine/tests/EasyMeals.RecipeEngine.Infrastructure.Tests/Domain/ProviderConfigurationTests.cs`
-- [ ] T051 [P] [US3] Integration tests for enabled/disabled filtering in `apps/recipe-engine/tests/EasyMeals.RecipeEngine.Infrastructure.Tests/Repositories/ProviderConfigurationRepositoryTests.cs`
-- [ ] T052 [P] [US3] Integration test for soft-delete vs disable distinction in same file as T051
+- [x] T050 [P] [US3] Unit tests for `ProviderConfiguration.Enable()` and `Disable()` in `apps/recipe-engine/tests/EasyMeals.RecipeEngine.Infrastructure.Tests/Domain/ProviderConfigurationTests.cs`
+- [x] T051 [P] [US3] Integration tests for enabled/disabled filtering in `apps/recipe-engine/tests/EasyMeals.RecipeEngine.Infrastructure.Tests/Repositories/ProviderConfigurationRepositoryTests.cs`
+- [x] T052 [P] [US3] Integration test for soft-delete vs disable distinction in same file as T051
 
 ### Implementation for User Story 3
 
-- [ ] T053 [US3] Implement `ProviderConfiguration.Enable()` domain method (in T015 file)
-- [ ] T054 [US3] Implement `ProviderConfiguration.Disable()` domain method (in T015 file)
-- [ ] T055 [US3] Ensure `GetAllEnabledAsync` filters by `isEnabled=true` AND `isDeleted=false` (verify in T038)
+- [x] T053 [US3] Implement `ProviderConfiguration.Enable()` domain method (in T015 file)
+- [x] T054 [US3] Implement `ProviderConfiguration.Disable()` domain method (in T015 file)
+- [x] T055 [US3] Ensure `GetAllEnabledAsync` filters by `isEnabled=true` AND `isDeleted=false` (verify in T038)
 
 **Checkpoint**: User Story 3 complete - operators can enable/disable providers without deletion
 
@@ -186,15 +186,15 @@ Based on plan.md structure:
 
 ### Tests for User Story 4 (REQUIRED)
 
-- [ ] T056 [P] [US4] Unit tests verifying all domain properties accessible in `apps/recipe-engine/tests/EasyMeals.RecipeEngine.Infrastructure.Tests/Domain/ProviderConfigurationTests.cs`
-- [ ] T057 [P] [US4] Unit tests for strategy-specific settings validation (ApiSettings required when DiscoveryStrategy=Api) in same file
-- [ ] T058 [P] [US4] Integration tests for round-trip persistence (save → load → verify all properties) in `apps/recipe-engine/tests/EasyMeals.RecipeEngine.Infrastructure.Tests/Repositories/ProviderConfigurationRepositoryTests.cs`
+- [x] T056 [P] [US4] Unit tests verifying all domain properties accessible in `apps/recipe-engine/tests/EasyMeals.RecipeEngine.Infrastructure.Tests/Domain/ProviderConfigurationTests.cs`
+- [x] T057 [P] [US4] Unit tests for strategy-specific settings validation (ApiSettings required when DiscoveryStrategy=Api) in same file
+- [x] T058 [P] [US4] Integration tests for round-trip persistence (save → load → verify all properties) in `apps/recipe-engine/tests/EasyMeals.RecipeEngine.Infrastructure.Tests/Repositories/ProviderConfigurationRepositoryTests.cs`
 
 ### Implementation for User Story 4
 
-- [ ] T059 [US4] Verify `ProviderConfiguration` exposes: DiscoveryStrategy, FetchingStrategy, ExtractionSelectors, RateLimitSettings, ApiSettings, CrawlSettings (review T015)
-- [ ] T060 [US4] Implement strategy-specific validation in `ProviderConfiguration.Validate()` (ApiSettings required for Api strategy, CrawlSettings for Crawl)
-- [ ] T061 [US4] Verify mapper correctly maps all nested value objects (review T023)
+- [x] T059 [US4] Verify `ProviderConfiguration` exposes: DiscoveryStrategy, FetchingStrategy, ExtractionSelectors, RateLimitSettings, ApiSettings, CrawlSettings (review T015)
+- [x] T060 [US4] Implement strategy-specific validation in `ProviderConfiguration.Validate()` (ApiSettings required for Api strategy, CrawlSettings for Crawl)
+- [x] T061 [US4] Verify mapper correctly maps all nested value objects (review T023)
 
 **Checkpoint**: User Story 4 complete - domain model ready for saga consumption
 
@@ -204,15 +204,15 @@ Based on plan.md structure:
 
 **Purpose**: Observability, documentation, performance validation, and final verification
 
-- [ ] T062 [P] Implement structured logging in `CachedProviderConfigurationRepository` (ConfigLoaded, CacheHit, CacheMiss, CacheCleared events)
-- [ ] T063 [P] Implement metrics emission in `ProviderConfigurationMetrics` (cache hit/miss counters, load duration histogram)
-- [ ] T064 [P] Wire up metrics in `CachedProviderConfigurationRepository` using `ProviderConfigurationMetrics`
-- [ ] T065 [P] Add XML documentation to all public interfaces and domain entities
-- [ ] T066 Run `dotnet build` for entire solution with TreatWarningsAsErrors to verify no warnings
-- [ ] T067 Run `dotnet test` to verify all tests pass
-- [ ] T068 Validate quickstart.md scenarios work end-to-end (manual verification against Testcontainers)
-- [ ] T069 [P] Add integration test asserting config load time p95 < 100ms in `apps/recipe-engine/tests/EasyMeals.RecipeEngine.Infrastructure.Tests/Performance/ConfigLoadPerformanceTests.cs`
-- [ ] T070 [P] Add unit test verifying secret reference pattern (`secret:*`) is used for ApiSettings credentials (no raw secrets) in `apps/recipe-engine/tests/EasyMeals.RecipeEngine.Infrastructure.Tests/Security/SecretReferenceValidationTests.cs`
+- [x] T062 [P] Implement structured logging in `CachedProviderConfigurationRepository` (ConfigLoaded, CacheHit, CacheMiss, CacheCleared events)
+- [x] T063 [P] Implement metrics emission in `ProviderConfigurationMetrics` (cache hit/miss counters, load duration histogram)
+- [x] T064 [P] Wire up metrics in `CachedProviderConfigurationRepository` using `ProviderConfigurationMetrics`
+- [x] T065 [P] Add XML documentation to all public interfaces and domain entities
+- [x] T066 Run `dotnet build` for entire solution with TreatWarningsAsErrors to verify no warnings
+- [x] T067 Run `dotnet test` to verify all tests pass
+- [x] T068 Validate quickstart.md scenarios work end-to-end (manual verification against Testcontainers)
+- [x] T069 [P] Add integration test asserting config load time p95 < 100ms in `apps/recipe-engine/tests/EasyMeals.RecipeEngine.Infrastructure.Tests/Performance/ConfigLoadPerformanceTests.cs`
+- [x] T070 [P] Add unit test verifying secret reference pattern (`secret:*`) is used for ApiSettings credentials (no raw secrets) in `apps/recipe-engine/tests/EasyMeals.RecipeEngine.Infrastructure.Tests/Security/SecretReferenceValidationTests.cs`
 
 ---
 
